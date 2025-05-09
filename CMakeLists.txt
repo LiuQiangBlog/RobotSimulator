@@ -248,3 +248,6 @@ if(NOT (APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS))
     PATTERN "CMakeLists.txt" EXCLUDE
   )
 endif()
+
+add_subdirectory(3rdparty)
+
