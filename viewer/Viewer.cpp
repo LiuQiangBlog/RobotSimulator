@@ -3,3 +3,548 @@
 //
 
 #include "Viewer.h"
+
+Viewer::Viewer(mjModel *m, mjData *d, std::string windowTitle)
+    : model(m), data(d), title(std::move(windowTitle))
+{
+    bodyVisible.resize(model->nbody, true);
+    bodyChildren.resize(model->nbody);
+    for (int i = 1; i < model->nbody; ++i) // body 0 is world
+    {
+        int parent = model->body_parentid[i];
+        bodyChildren[parent].push_back(i);
+    }
+}
+
+Viewer::~Viewer()
+{
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
+    ImGui::DestroyContext();
+
+    mjr_freeContext(&con);
+    mjv_freeScene(&scn);
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
+bool Viewer::init()
+{
+    if (!glfwInit())
+    {
+        CLOG_ERROR << "Init GLFW Failed.";
+        return false;
+    }
+    const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    int screen_width = mode->width;
+    int screen_height = mode->height;
+    int window_width = 1920;
+    int window_height = 1080;
+    int x_pos = (screen_width - window_width) / 2;
+    int y_pos = (screen_height - window_height) / 2;
+    const char *glsl_version = "#version 130";
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    window = glfwCreateWindow(window_width, window_height, "Viewer", nullptr, nullptr);
+    if (!window)
+    {
+        glfwTerminate();
+        CLOG_ERROR << "Failed to create GLFW Window.";
+        return false;
+    }
+    glfwSetWindowPos(window, x_pos, y_pos);
+    glfwShowWindow(window);
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImPlot::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    io.FontGlobalScale = 1.2f;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+    glfwSetWindowUserPointer(window, this); // 设置窗口用户指针
+    glfwSetMouseButtonCallback(window, mouseClickCallback);
+    glfwSetCursorPosCallback(window, mouseMoveCallback);
+    glfwSetScrollCallback(window, mouseScrollCallback);
+    glfwSetKeyCallback(window, keyboardKeyDownCallback);
+    mjv_defaultCamera(&cam);
+    cam.type = mjCAMERA_FREE;
+    mjv_defaultOption(&opt);
+    mjv_defaultScene(&scn);
+    mjr_defaultContext(&con);
+    mjv_makeScene(model, &scn, 2000);
+    mjr_makeContext(model, &con, mjFONTSCALE_150);
+    return true;
+}
+
+void Viewer::render()
+{
+    mjv_updateScene(model, data, &opt, nullptr, &cam, mjCAT_ALL, &scn);
+    mjrRect viewport = {0, 0, 0, 0};
+    glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
+    mjr_render(viewport, &scn, &con);
+    mjr_overlay(mjFONT_NORMAL, mjGRID_TOPRIGHT, viewport,
+                current_mode == FREE_VIEW      ? "Camera: FREE"
+                : current_mode == FIXED_TOP    ? "Camera: TOP"
+                : current_mode == FIXED_BOTTOM ? "Camera: BOTTOM"
+                : current_mode == FIXED_LEFT   ? "Camera: LEFT"
+                : current_mode == FIXED_RIGHT  ? "Camera: RIGHT"
+                : current_mode == FIXED_FRONT  ? "Camera: FRONT"
+                : current_mode == FIXED_BACK   ? "Camera: BACK"
+                                               : "Camera: UNKNOWN",
+                nullptr, &con);
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGuizmo::BeginFrame(); // 必须位于ImGui新帧之后
+    ImGuizmo::AllowAxisFlip(false);
+    ImGuiIO &io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+    float view[16], proj[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, view);
+    glGetFloatv(GL_PROJECTION_MATRIX, proj);
+
+    int target_id = mj_name2id(model, mjOBJ_BODY, "target");
+    if (target_id >= 0 || target_id < model->nbody)
+    {
+        ImGui::Begin("Mocap Control");
+        static ImGuizmo::OPERATION op = ImGuizmo::TRANSLATE;
+        if (ImGui::RadioButton("Translate", op == ImGuizmo::TRANSLATE))
+        {
+            op = ImGuizmo::TRANSLATE;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", op == ImGuizmo::ROTATE))
+        {
+            op = ImGuizmo::ROTATE;
+        }
+
+        static ImGuizmo::MODE mode = ImGuizmo::WORLD;
+        if (ImGui::RadioButton("Local", mode == ImGuizmo::LOCAL))
+        {
+            mode = ImGuizmo::LOCAL;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("World", mode == ImGuizmo::WORLD))
+        {
+            mode = ImGuizmo::WORLD;
+        }
+        mjvGLCamera &glcam = scn.camera[0];
+        glcam.orthographic = 0; // perspective
+        ImGuizmo::SetOrthographic(glcam.orthographic);
+        ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
+        ImGuizmo::SetRect(0, 0, (float)viewport.width, (float)viewport.height);
+        float trans[16];
+        getMocapPose(target_id, trans);
+        if (ImGuizmo::Manipulate(view, proj, op, mode, trans))
+        {
+            setMocapPose(target_id, trans);
+            mj_forward(model, data);
+        }
+        ImGui::End();
+    }
+    static bool open{true};
+    if (open)
+    {
+        if (ImGui::Begin("TreeView", &open))
+        {
+            int base_id = mj_name2id(model, mjOBJ_BODY, "base_Link");
+            showBodyTree(base_id);
+        }
+        ImGui::End();
+    }
+
+    // ImGui render
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    glfwSwapBuffers(window);
+    glfwPollEvents(); // process events
+}
+
+bool Viewer::getJointIds(const std::vector<std::string> &jointNames, std::vector<int> &jointIds)
+{
+    for (auto &jointName : jointNames)
+    {
+        int jointId = mj_name2id(model, mjOBJ_JOINT, jointName.c_str());
+        if (jointId == -1)
+        {
+            return false;
+        }
+        jointIds.push_back(jointId);
+    }
+    return true;
+}
+
+bool Viewer::getActuatorIds(const std::vector<std::string> &actuatorNames, std::vector<int> &actuatorIds)
+{
+    for (auto &actuatorName : actuatorNames)
+    {
+        int actuatorId = mj_name2id(model, mjOBJ_ACTUATOR, actuatorName.c_str());
+        if (actuatorId == -1)
+        {
+            return false;
+        }
+        actuatorIds.push_back(actuatorId);
+    }
+    return true;
+}
+
+bool Viewer::setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q)
+{
+    int i = 0;
+    for (auto &id : ids)
+    {
+        int joint_type = model->jnt_type[id];
+        int cnt = 0;
+        switch (joint_type)
+        {
+        case mjJNT_FREE:
+            cnt = 7;
+            break;
+        case mjJNT_BALL:
+            cnt = 4;
+            break;
+        case mjJNT_HINGE:
+        case mjJNT_SLIDE:
+            cnt = 1;
+            break;
+        default:
+            CLOG_ERROR << "Unsupported joint type.";
+            return false;
+        }
+        if (i + cnt > q.size())
+        {
+            CLOG_ERROR << "Joint value vector too short (need " << (i + cnt) << ", got " << q.size() << ")";
+            return false;
+        }
+        for (int j = 0; j < cnt; ++j)
+        {
+            data->qpos[model->jnt_qposadr[id] + i] = q[Eigen::Index(i + j)];
+        }
+        if (joint_type == mjJNT_BALL)
+        {
+            mju_normalize4(data->qpos + model->jnt_qposadr[id]);
+        }
+        else if (joint_type == mjJNT_FREE)
+        {
+            mju_normalize4(data->qpos + model->jnt_qposadr[id] + 3);
+        }
+        i += cnt;  // move to next joint
+    }
+    mj_forward(model, data);
+    return true;
+}
+
+void Viewer::mouseClickCallback(GLFWwindow *win, int button, int action, int mods)
+{
+    auto *self = static_cast<Viewer *>(glfwGetWindowUserPointer(win));
+    if (self)
+    {
+        //        self->mouse_button(win, button, action, mods);
+        self->mouseClick(win, button, action, mods);
+    }
+}
+
+void Viewer::mouseMoveCallback(GLFWwindow *win, double xPos, double yPos)
+{
+    auto *self = static_cast<Viewer *>(glfwGetWindowUserPointer(win));
+    if (self)
+    {
+        self->mouseMove(win, xPos, yPos);
+    }
+}
+
+void Viewer::mouseScrollCallback(GLFWwindow *win, double xOffset, double yOffset)
+{
+    auto *self = static_cast<Viewer *>(glfwGetWindowUserPointer(win));
+    if (self)
+    {
+        self->mouseScroll(win, xOffset, yOffset);
+    }
+}
+
+void Viewer::keyboardKeyDownCallback(GLFWwindow *win, int key, int scancode, int action, int mods)
+{
+    auto *self = static_cast<Viewer *>(glfwGetWindowUserPointer(win));
+    if (self)
+    {
+        self->keyboard(win, key, scancode, action, mods);
+    }
+}
+
+void Viewer::mouseClick(GLFWwindow *win, int button, int action, int mods)
+{
+    ImGui_ImplGlfw_MouseButtonCallback(win, button, action, mods);
+    if (ImGui::GetIO().WantCaptureMouse)
+    {
+        return;
+    }
+    button_left = (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+    button_middle = (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
+    button_right = (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+    glfwGetCursorPos(win, &last_x, &last_y);
+}
+
+void Viewer::mouseMove(GLFWwindow *win, double xPos, double yPos)
+{
+    ImGui_ImplGlfw_CursorPosCallback(win, xPos, yPos);
+    if (ImGui::GetIO().WantCaptureMouse)
+    {
+        return;
+    }
+    if (!button_left && !button_middle && !button_right)
+    {
+        return;
+    }
+
+    double dx = xPos - last_x;
+    double dy = yPos - last_y;
+    last_x = xPos;
+    last_y = yPos;
+
+    int width, height;
+    glfwGetWindowSize(win, &width, &height);
+
+    int leftShiftKey = glfwGetKey(win, GLFW_KEY_LEFT_SHIFT);
+    int rightShiftKey = glfwGetKey(win, GLFW_KEY_RIGHT_SHIFT);
+    bool modifyShift = (leftShiftKey == GLFW_PRESS || rightShiftKey == GLFW_PRESS);
+
+    mjtMouse action;
+    if (button_right)
+    {
+        action = modifyShift ? mjMOUSE_MOVE_H : mjMOUSE_MOVE_V;
+    }
+    else if (button_left)
+    {
+        action = modifyShift ? mjMOUSE_ROTATE_H : mjMOUSE_ROTATE_V;
+    }
+    else
+    {
+        action = mjMOUSE_ZOOM;
+    }
+    mjv_moveCamera(model, action, dx / height, dy / height, &scn, &cam);
+}
+
+void Viewer::mouseScroll(GLFWwindow *win, double xOffset, double yOffset)
+{
+    ImGui_ImplGlfw_ScrollCallback(win, xOffset, yOffset);
+    if (ImGui::GetIO().WantCaptureMouse)
+    {
+        return;
+    }
+    mjv_moveCamera(model, mjMOUSE_ZOOM, 0, -0.05 * yOffset, &scn, &cam);
+}
+
+void Viewer::switchCamera(CameraMode mode)
+{
+    current_mode = mode;
+    if (mode == FREE_VIEW)
+    {
+        cam.type = mjCAMERA_FREE;
+    }
+    else
+    {
+        cam.type = mjCAMERA_FIXED;
+        cam.fixedcamid = getFixedCameraId(mode);
+    }
+}
+
+void Viewer::keyboard(GLFWwindow *win, int key, int scancode, int action, int mods)
+{
+    if (action == GLFW_PRESS)
+    {
+        if (key == GLFW_KEY_F1)
+        {
+            switchCamera(FREE_VIEW);
+        }
+        else if (key == GLFW_KEY_F2)
+        {
+            switchCamera(FIXED_TOP);
+        }
+        else if (key == GLFW_KEY_F3)
+        {
+            switchCamera(FIXED_LEFT);
+        }
+        else if (key == GLFW_KEY_F4)
+        {
+            switchCamera(FIXED_RIGHT);
+        }
+    }
+}
+
+int Viewer::getFixedCameraId(CameraMode mode)
+{
+    switch (mode)
+    {
+    case FIXED_TOP:
+        return 0;
+    case FIXED_BOTTOM:
+        return 1;
+    case FIXED_LEFT:
+        return 2;
+    case FIXED_RIGHT:
+        return 3;
+    case FIXED_FRONT:
+        return 4;
+    case FIXED_BACK:
+        return 5;
+    default:
+        return 0;
+    }
+}
+
+void Viewer::getMocapPose(int bodyId, float *matrix)
+{
+    int mocap_id = model->body_mocapid[bodyId];
+    if (mocap_id < 0)
+    {
+        return;
+    }
+    const double *pos = data->mocap_pos + 3 * mocap_id;
+    const double *quat = data->mocap_quat + 4 * mocap_id;
+
+    double rot[9];
+    mju_quat2Mat(rot, quat);
+
+    // Column Major（OpenGL/ImGizmo Style）
+    // X Axis
+    matrix[0] = (float)rot[0];
+    matrix[1] = (float)rot[3];
+    matrix[2] = (float)rot[6];
+    matrix[3] = 0.0f;
+    // Y Axis
+    matrix[4] = (float)rot[1];
+    matrix[5] = (float)rot[4];
+    matrix[6] = (float)rot[7];
+    matrix[7] = 0.0f;
+    // Z Axis
+    matrix[8] = (float)rot[2];
+    matrix[9] = (float)rot[5];
+    matrix[10] = (float)rot[8];
+    matrix[11] = 0.0f;
+    // Position
+    matrix[12] = (float)pos[0];
+    matrix[13] = (float)pos[1];
+    matrix[14] = (float)pos[2];
+    matrix[15] = 1.0f;
+}
+
+void Viewer::setMocapPose(int bodyId, const float mat[9])
+{
+    int mocap_id = model->body_mocapid[bodyId];
+    if (mocap_id < 0)
+    {
+        return;
+    }
+    data->mocap_pos[3 * mocap_id] = mat[12];
+    data->mocap_pos[3 * mocap_id + 1] = mat[13];
+    data->mocap_pos[3 * mocap_id + 2] = mat[14];
+    double rot[9] = {mat[0], mat[4], mat[8], mat[1], mat[5], mat[9], mat[2], mat[6], mat[10]};
+    mju_mat2Quat(data->mocap_quat + 4 * mocap_id, rot);
+}
+
+void Viewer::showBodyTree(int bodyId)
+{
+    const char *bodyName = model->names + model->name_bodyadr[bodyId];
+
+    ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow;
+    bool nodeOpen = ImGui::TreeNodeEx(bodyName, nodeFlags);
+
+    ImGui::SameLine();
+    std::string id = "##visible" + std::to_string(bodyId);
+    bool changed = ImGui::Checkbox(id.c_str(), reinterpret_cast<bool *>(&bodyVisible[bodyId]));
+    if (changed)
+    {
+        setBodyVisibilityRecursively(bodyId, bodyVisible[bodyId]);
+    }
+
+    if (nodeOpen)
+    {
+        for (int childId : bodyChildren[bodyId])
+        {
+            showBodyTree(childId);
+        }
+        ImGui::TreePop();
+    }
+}
+
+void Viewer::setBodyVisibilityRecursively(int bodyId, bool visible)
+{
+    bodyVisible[bodyId] = (char)visible;
+    for (int childId : bodyChildren[bodyId])
+    {
+        setBodyVisibilityRecursively(childId, visible);
+    }
+}
+
+bool Viewer::setBodyVisible(const std::string &bodyName, bool visible)
+{
+    auto bodyId = mj_name2id(model, mjOBJ_BODY, bodyName.c_str());
+    if (bodyId != -1)
+    {
+        return setBodyVisible(bodyId, visible);
+    }
+    return false;
+}
+
+bool Viewer::setBodyVisible(int bodyId, bool visible)
+{
+    if (bodyId < 0 || bodyId >= model->nbody)
+    {
+        CLOG_ERROR << "Invalid body ID: " << bodyId;
+        return false;
+    }
+    int geomStart = model->body_geomadr[bodyId];
+    int geomCount = model->body_geomnum[bodyId];
+    if (geomStart == -1 || geomCount == 0)
+    {
+        CLOG_INFO << "Body " << bodyId << " has no associated geoms.";
+        return false;
+    }
+    if (!visible)
+    {
+        for (int i = 0; i < geomCount; ++i)
+        {
+            geomIds.insert(geomStart + i);
+        }
+    }
+    return true;
+}
+
+void Viewer::hideGeomsById(const std::unordered_set<int>& geomIdsToRemove)
+{
+    int j = 0;
+    for (int i = 0; i < scn.ngeom; ++i)
+    {
+        const mjvGeom &g = scn.geoms[i];
+        bool shouldRemove = (g.objtype == mjOBJ_GEOM) && (geomIdsToRemove.count(g.objid) > 0);
+        if (!shouldRemove)
+        {
+            if (i != j)
+            {
+                scn.geoms[j] = scn.geoms[i];
+            }
+            ++j;
+        }
+    }
+    scn.ngeom = j;
+}
+
+void Viewer::hideGeomById(int geomId)
+{
+    hideGeomsById({geomId});
+}
+
