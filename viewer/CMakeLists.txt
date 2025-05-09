@@ -1,6 +1,6 @@
-add_library(viewer STATIC Viewer.h Viewer.cpp)
-target_link_libraries(viewer mujoco)
-
-add_executable(RobotSimulator main.cpp)
-target_link_libraries(RobotSimulator viewer mujoco pthread glew glfw gizmo imgui implot)
+#add_library(viewer Viewer.h Viewer.cpp)
+#target_link_libraries(viewer imgui mujoco pthread glew glfw gizmo implot)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../cmake-build-debug/lib)
+add_executable(RobotSimulator main.cpp Viewer.h Viewer.cpp)
+target_link_libraries(RobotSimulator mujoco glew glfw imgui implot gizmo dl)
 

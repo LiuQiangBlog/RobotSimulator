@@ -1,2 +1,2 @@
-add_library(implot implot.cpp implot_items.cpp)
+add_library(implot STATIC implot.cpp implot_items.cpp)
 target_link_libraries(implot imgui glfw glew)
