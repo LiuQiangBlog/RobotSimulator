@@ -89,6 +89,41 @@ bool Viewer::init()
 void Viewer::render()
 {
     mjv_updateScene(model, data, &opt, nullptr, &cam, mjCAT_ALL, &scn);
+    int body_id = mj_name2id(model, mjOBJ_BODY, "table");
+    drawBodyFrame(vGeoms, body_id, 0.2);
+    hideGeomsById(geomIds);
+
+    int j = 0;
+    for (int i = 0; i < scn.ngeom; ++i) {
+        const mjvGeom& g = scn.geoms[i];
+
+        bool keep = true;
+
+        if (g.objtype == mjOBJ_GEOM) {
+            int geomId = g.objid;
+            int bodyId = model->geom_bodyid[geomId];
+
+            if (!bodyVisible[bodyId]) {
+                keep = false;
+            }
+        }
+
+        if (keep) {
+            if (i != j) scn.geoms[j] = scn.geoms[i];
+            ++j;
+        }
+    }
+    scn.ngeom = j;
+
+    // 添加自定义几何体到渲染缓冲
+    for (const auto& g : vGeoms)
+    {
+        if (scn.ngeom < scn.maxgeom)
+        {
+            scn.geoms[scn.ngeom++] = g;
+        }
+    }
+
     mjrRect viewport = {0, 0, 0, 0};
     glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
     mjr_render(viewport, &scn, &con);
@@ -174,13 +209,13 @@ void Viewer::render()
     glfwPollEvents(); // process events
 }
 
-bool Viewer::setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q)
+bool Viewer::setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q) const
 {
     int i = 0;
     for (auto &id : ids)
     {
         int joint_type = model->jnt_type[id];
-        int cnt = 0;
+        int cnt;
         switch (joint_type)
         {
         case mjJNT_FREE:
@@ -204,7 +239,7 @@ bool Viewer::setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q
         }
         for (int j = 0; j < cnt; ++j)
         {
-            data->qpos[model->jnt_qposadr[id] + i] = q[Eigen::Index(i + j)];
+            data->qpos[model->jnt_qposadr[id] + i] = q[i + j];
         }
         if (joint_type == mjJNT_BALL)
         {
@@ -681,7 +716,7 @@ int Viewer::getFixedCameraId(CameraMode mode)
     }
 }
 
-void Viewer::getMocapPose(int bodyId, float *matrix)
+void Viewer::getMocapPose(int bodyId, float *matrix) const
 {
     int mocap_id = model->body_mocapid[bodyId];
     if (mocap_id < 0)
@@ -717,7 +752,7 @@ void Viewer::getMocapPose(int bodyId, float *matrix)
     matrix[15] = 1.0f;
 }
 
-void Viewer::setMocapPose(int bodyId, const float mat[9])
+void Viewer::setMocapPose(int bodyId, const float mat[9]) const
 {
     int mocap_id = model->body_mocapid[bodyId];
     if (mocap_id < 0)
@@ -821,5 +856,63 @@ void Viewer::hideGeomsById(const std::unordered_set<int>& geomIdsToRemove)
 void Viewer::hideGeomById(int geomId)
 {
     hideGeomsById({geomId});
+}
+
+void Viewer::drawBodyFrame(std::vector<mjvGeom> &geoms, int bodyId, double scale) const
+{
+    Vec3d pos(data->xpos + 3 * bodyId);
+    Quaterniond quat(data->xquat[4 * bodyId + 0], data->xquat[4 * bodyId + 1], data->xquat[4 * bodyId + 2],
+                     data->xquat[4 * bodyId + 3]);
+    drawFrame(geoms, pos, quat.toRotationMatrix(), scale);
+}
+
+void Viewer::drawFrame(std::vector<mjvGeom> &geoms, const Vec3d &pos, const Mat3d &rot, double scale)
+{
+    const double shaft_diam = 0.01 * scale;
+    const double head_diam = 0.02 * scale;
+    const double head_len = 0.005 * scale;
+
+    auto drawAxis = [&](const Vec3d &dir, const Vec4f &color)
+    {
+        Vec3d to = pos + rot * dir * scale;
+        drawArrow(geoms, pos, to, shaft_diam, head_diam, head_len, color.data());
+    };
+
+    drawAxis(Vec3d::UnitX(), Vec4f(1, 0, 0, 1)); // Red
+    drawAxis(Vec3d::UnitY(), Vec4f(0, 1, 0, 1)); // Green
+    drawAxis(Vec3d::UnitZ(), Vec4f(0, 0, 1, 1)); // Blue
+}
+
+void Viewer::drawArrow(std::vector<mjvGeom> &geoms, const Vec3d &from, const Vec3d &to, double shaft_diam,
+                      double head_diam, double head_len, const float rgba[4])
+{
+    mjvGeom geom{};
+    int type = mjGEOM_ARROW;
+    if (head_diam == 0.0 || head_len == 0.0)
+    {
+        type = mjGEOM_CYLINDER;
+    }
+    else if (head_diam == shaft_diam)
+    {
+        type = mjGEOM_ARROW1;
+    }
+
+    Eigen::Vector3d dir = to - from;
+    double length = dir.norm();
+    if (length < 1e-6)
+    {
+        return;
+    }
+
+    Vec3d z = dir.normalized();
+    Quaterniond q = Quaterniond::FromTwoVectors(Vec3d::UnitZ(), z);
+    RowMajorMat3d orient = q.toRotationMatrix();
+    double size[3] = {shaft_diam, shaft_diam, length / 2.0};
+    mjv_initGeom(&geom, type, size, from.data(), orient.data(), rgba);
+    geom.emission    = 0.5f;
+    geom.specular    = 0.0f;
+    geom.shininess   = 0.0f;
+    geom.reflectance = 0.0f;
+    geoms.push_back(geom);
 }
 

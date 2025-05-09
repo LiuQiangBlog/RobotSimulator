@@ -11,6 +11,7 @@ std::condition_variable cv;
 int main()
 {
     std::string file("/home/liuqiang/CLionProjects/RobotControlAlgorithms/mujoco/tora_one/scene.xml");
+//    std::string file("/home/liuqiang/PycharmProjects/mink/examples/kuka_iiwa_14/scene.xml");
     char err[1000];
     mjModel *model = mj_loadXML(file.c_str(), nullptr, err, 1000);
     if (!model)

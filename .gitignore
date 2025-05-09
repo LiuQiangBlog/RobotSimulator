@@ -37,6 +37,7 @@ MUJOCO_LOG.TXT
 
 # Clang cache
 .cache/
-/cmake-build-debug/
+/cmake-build-debug
+/cmake-build-release
 /.idea
 

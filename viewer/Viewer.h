@@ -18,6 +18,7 @@
 #include <ImGuizmo.h>
 #include <unordered_set>
 #include "Logging.h"
+#include "Types.h"
 
 enum CameraMode
 {
@@ -54,7 +55,7 @@ public:
         return glfwWindowShouldClose(window);
     }
 
-    bool setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q);
+    bool setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q) const;
 
     int getSensorId(const std::string &sensorName) const;
 
@@ -139,9 +140,9 @@ protected:
 
     static int getFixedCameraId(CameraMode mode);
 
-    void getMocapPose(int bodyId, float mat[9]);
+    void getMocapPose(int bodyId, float mat[9]) const;
 
-    void setMocapPose(int bodyId, const float mat[9]);
+    void setMocapPose(int bodyId, const float mat[9]) const;
 
     void showBodyTree(int bodyId);
 
@@ -150,6 +151,13 @@ protected:
     void hideGeomsById(const std::unordered_set<int> &geomIdsToRemove);
 
     void hideGeomById(int geomId);
+
+    void drawBodyFrame(std::vector<mjvGeom> &geoms, int bodyId, double scale = 0.1) const;
+
+    static void drawFrame(std::vector<mjvGeom> &geoms, const Vec3d &pos, const Mat3d &rot, double scale = 0.2);
+
+    static void drawArrow(std::vector<mjvGeom> &geoms, const Vec3d &from, const Vec3d &to,
+                          double shaft_diam, double head_diam, double head_len, const float rgba[4]);
 
 private:
     std::string title;
