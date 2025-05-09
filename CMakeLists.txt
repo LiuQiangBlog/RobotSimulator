@@ -58,7 +58,28 @@ endif()
 
 include(MujocoOptions)
 include(MujocoMacOS)
-include(MujocoDependencies)
+#include(MujocoDependencies)
+
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/eigen3)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/abseil-cpp)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/benchmark/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/ccd/src)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/cereal_lib/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/glew/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/glfw3/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/glm_lib)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/googletest/googlemock/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/googletest/googletest/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imgui)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/ImGuizmo)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/implot)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/implot3d)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/lodepng)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/tinyobjloader)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/marchingcubecpp)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/qhull/src/libqhull_r)
+
+add_subdirectory(3rdparty)
 
 set(MUJOCO_HEADERS
     include/mujoco/mjdata.h
@@ -201,53 +222,51 @@ if(BUILD_TESTING AND MUJOCO_BUILD_TESTS)
   endif()
 endif()
 
-if(NOT (APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS))
-  # Install the libraries.
-  install(
-    TARGETS mujoco
-    EXPORT ${PROJECT_NAME}
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT runtime
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT runtime
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT dev
-    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mujoco" COMPONENT dev
-  )
-
-  set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
-
-  # Generate and install the mujocoTargets.cmake file. This defines the targets as
-  # IMPORTED libraries for downstream users.
-  install(
-    EXPORT ${PROJECT_NAME}
-    DESTINATION ${CONFIG_PACKAGE_LOCATION}
-    NAMESPACE mujoco::
-    FILE "${PROJECT_NAME}Targets.cmake"
-  )
-
-  include(CMakePackageConfigHelpers)
-
-  write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION ${mujoco_VERSION}
-    COMPATIBILITY AnyNewerVersion
-  )
-
-  configure_package_config_file(
-    cmake/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
-  )
-
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-                "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-          DESTINATION ${CONFIG_PACKAGE_LOCATION}
-  )
-
-  # Install also models into share folder.
-  install(
-    DIRECTORY model
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/mujoco"
-    PATTERN "CMakeLists.txt" EXCLUDE
-  )
-endif()
-
-add_subdirectory(3rdparty)
+#if(NOT (APPLE AND MUJOCO_BUILD_MACOS_FRAMEWORKS))
+#  # Install the libraries.
+#  install(
+#    TARGETS mujoco
+#    EXPORT ${PROJECT_NAME}
+#    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT runtime
+#    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT runtime
+#    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT dev
+#    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mujoco" COMPONENT dev
+#  )
+#
+#  set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+#
+#  # Generate and install the mujocoTargets.cmake file. This defines the targets as
+#  # IMPORTED libraries for downstream users.
+#  install(
+#    EXPORT ${PROJECT_NAME}
+#    DESTINATION ${CONFIG_PACKAGE_LOCATION}
+#    NAMESPACE mujoco::
+#    FILE "${PROJECT_NAME}Targets.cmake"
+#  )
+#
+#  include(CMakePackageConfigHelpers)
+#
+#  write_basic_package_version_file(
+#    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+#    VERSION ${mujoco_VERSION}
+#    COMPATIBILITY AnyNewerVersion
+#  )
+#
+#  configure_package_config_file(
+#    cmake/${PROJECT_NAME}Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+#    INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+#  )
+#
+#  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+#                "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+#          DESTINATION ${CONFIG_PACKAGE_LOCATION}
+#  )
+#
+#  # Install also models into share folder.
+#  install(
+#    DIRECTORY model
+#    DESTINATION "${CMAKE_INSTALL_DATADIR}/mujoco"
+#    PATTERN "CMakeLists.txt" EXCLUDE
+#  )
+#endif()
 

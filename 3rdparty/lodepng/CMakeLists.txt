@@ -1,0 +1,4 @@
+add_library(lodepng SHARED lodepng.cpp lodepng.h)
+set_target_properties(lodepng PROPERTIES CXX_VISIBILITY_PRESET default VISIBILITY_INLINES_HIDDEN OFF)
+target_compile_definitions(lodepng PUBLIC _GLIBCXX_USE_CXX11_ABI=1)
+target_include_directories(lodepng PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
