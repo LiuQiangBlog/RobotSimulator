@@ -270,3 +270,4 @@ endif()
 #  )
 #endif()
 
+add_subdirectory(viewer)

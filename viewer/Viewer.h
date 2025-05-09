@@ -49,13 +49,18 @@ public:
 
     void render();
 
+    bool shouldClose() const
+    {
+        return glfwWindowShouldClose(window);
+    }
+
     bool getJointIds(const std::vector<std::string> &jointNames, std::vector<int> &jointIds);
 
     bool getActuatorIds(const std::vector<std::string> &actuatorNames, std::vector<int> &actuatorIds);
 
     bool setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q);
 
-    int getSensorId(const std::string &sensorName)
+    int getSensorId(const std::string &sensorName) const
     {
         int sensorId = mj_name2id(model, mjOBJ_SENSOR, sensorName.c_str());
         if (sensorId == -1)
@@ -65,7 +70,7 @@ public:
         return sensorId;
     }
 
-    int getSiteId(const std::string &siteName)
+    int getSiteId(const std::string &siteName) const
     {
         int siteId = mj_name2id(model, mjOBJ_SITE, siteName.c_str());
         if (siteId == -1)
@@ -75,7 +80,7 @@ public:
         return siteId;
     }
 
-    int getGeomId(const std::string &geomName)
+    int getGeomId(const std::string &geomName) const
     {
         int geomId = mj_name2id(model, mjOBJ_GEOM, geomName.c_str());
         if (geomId == -1)
@@ -85,7 +90,7 @@ public:
         return geomId;
     }
 
-    int getMeshId(const std::string &meshName)
+    int getMeshId(const std::string &meshName) const
     {
         int meshId = mj_name2id(model, mjOBJ_MESH, meshName.c_str());
         if (meshId == -1)
@@ -95,7 +100,7 @@ public:
         return meshId;
     }
 
-    int getBodyId(const std::string &bodyName)
+    int getBodyId(const std::string &bodyName) const
     {
         int bodyId = mj_name2id(model, mjOBJ_BODY, bodyName.c_str());
         if (bodyId == -1)
@@ -105,7 +110,7 @@ public:
         return bodyId;
     }
 
-    int getJointId(const std::string &jointName)
+    int getJointId(const std::string &jointName) const
     {
         int jointId = mj_name2id(model, mjOBJ_JOINT, jointName.c_str());
         if (jointId == -1)
@@ -115,7 +120,7 @@ public:
         return jointId;
     }
 
-    std::vector<int> getJointIds(const std::vector<std::string> &jointNames)
+    std::vector<int> getJointIds(const std::vector<std::string> &jointNames) const
     {
         std::vector<int> jointIds;
         for (const auto &jointName : jointNames)
@@ -133,7 +138,7 @@ public:
         return jointIds;
     }
 
-    int getActuatorId(const std::string &actuatorName)
+    int getActuatorId(const std::string &actuatorName) const
     {
         int actuatorId = mj_name2id(model, mjOBJ_ACTUATOR, actuatorName.c_str());
         if (actuatorId == -1)
@@ -143,7 +148,7 @@ public:
         return actuatorId;
     }
 
-    std::vector<int> getActuatorIds(const std::vector<std::string> &actuatorNames)
+    std::vector<int> getActuatorIds(const std::vector<std::string> &actuatorNames) const
     {
         std::vector<int> actuatorIds;
         for (const auto &name : actuatorNames)
@@ -161,7 +166,7 @@ public:
         return actuatorIds;
     }
 
-    std::vector<int> jointNameToActuatorIds(const std::string &jointName)
+    std::vector<int> jointNameToActuatorIds(const std::string &jointName) const
     {
         int jointId = mj_name2id(model, mjOBJ_JOINT, jointName.c_str());
         if (jointId == -1)
@@ -184,7 +189,7 @@ public:
         return actuatorIds;
     }
 
-    std::vector<int> jointNamesToActuatorIds(const std::vector<std::string> &jointNames)
+    std::vector<int> jointNamesToActuatorIds(const std::vector<std::string> &jointNames) const
     {
         std::vector<int> allActuatorIds;
         for (const auto &name : jointNames)
@@ -199,7 +204,7 @@ public:
         return allActuatorIds;
     }
 
-    bool setActuatorCtrlCmd(int actuatorId, double ctrlValue)
+    bool setActuatorCtrlCmd(int actuatorId, double ctrlValue) const
     {
         if (actuatorId < 0 || actuatorId >= model->nu)
         {
@@ -212,17 +217,17 @@ public:
         return true;
     }
 
-    bool setActuatorsCtrlCmd(const std::vector<std::string> &actuatorNames, const Eigen::VectorXd &ctrlValues)
+    bool setActuatorsCtrlCmd(const std::vector<std::string> &actuatorNames, const Eigen::VectorXd &ctrlValues) const
     {
         return setActuatorsCtrlCmd(getActuatorIds(actuatorNames), ctrlValues);
     }
 
-    bool setActuatorCtrlCmd(const std::string &actuatorName, double ctrlValue)
+    bool setActuatorCtrlCmd(const std::string &actuatorName, double ctrlValue) const
     {
         return setActuatorCtrlCmd(getActuatorId(actuatorName), ctrlValue);
     }
 
-    bool setActuatorsCtrlCmd(const std::vector<int> &actuatorIds, const Eigen::VectorXd &ctrlValues)
+    bool setActuatorsCtrlCmd(const std::vector<int> &actuatorIds, const Eigen::VectorXd &ctrlValues) const
     {
         if (actuatorIds.size() != ctrlValues.size())
         {
@@ -231,7 +236,7 @@ public:
         }
         for (size_t i = 0; i < actuatorIds.size(); ++i)
         {
-            if (!setActuatorCtrlCmd(actuatorIds[i], ctrlValues[i]))
+            if (!setActuatorCtrlCmd(actuatorIds[i], ctrlValues[Eigen::Index(i)]))
             {
                 return false;
             }
@@ -239,7 +244,7 @@ public:
         return true;
     }
 
-    bool setJointCtrlCmd(const std::string &jointName, const Eigen::VectorXd &ctrlValue)
+    bool setJointCtrlCmd(const std::string &jointName, const Eigen::VectorXd &ctrlValue) const
     {
         auto actuatorIds = jointNameToActuatorIds(jointName);
         if (actuatorIds.empty())
@@ -254,7 +259,7 @@ public:
         return setActuatorsCtrlCmd(actuatorIds, ctrlValue);
     }
 
-    bool setJointsCtrlCmd(const std::vector<std::string> &jointNames, const Eigen::VectorXd &ctrlValues)
+    bool setJointsCtrlCmd(const std::vector<std::string> &jointNames, const Eigen::VectorXd &ctrlValues) const
     {
         int currentIdx = 0;
         for (const auto &name : jointNames)
@@ -270,12 +275,12 @@ public:
             {
                 return false;
             }
-            currentIdx += dim;
+            currentIdx += (int)dim;
         }
         return true;
     }
 
-    bool setJointsCtrlCmd(const std::vector<int> &jointIds, const Eigen::VectorXd &q)
+    bool setJointsCtrlCmd(const std::vector<int> &jointIds, const Eigen::VectorXd &q) const
     {
         int requiredCtrlSize = 0;
         std::vector<std::vector<int>> jointActuators(jointIds.size());
@@ -301,7 +306,7 @@ public:
                 return false;
             }
             jointActuators[i] = std::move(actuatorIds);
-            requiredCtrlSize += jointActuators[i].size();
+            requiredCtrlSize += (int)jointActuators[i].size();
         }
         if (q.size() != requiredCtrlSize)
         {
@@ -322,7 +327,9 @@ public:
         return true;
     }
 
-    bool setActuatorPositionCtrlCmd(const std::vector<int> &actuatorIds, const Eigen::VectorXd &q);
+    bool setBodyVisible(const std::string &bodyName, bool visible);
+
+    bool setBodyVisible(int bodyId, bool visible);
 
     template <typename Func, typename... Args>
     void addFunction(Func &&f, Args &&...args)
@@ -368,10 +375,6 @@ protected:
     void showBodyTree(int bodyId);
 
     void setBodyVisibilityRecursively(int bodyId, bool visible);
-
-    bool setBodyVisible(const std::string &bodyName, bool visible);
-
-    bool setBodyVisible(int bodyId, bool visible);
 
     void hideGeomsById(const std::unordered_set<int> &geomIdsToRemove);
 

@@ -1,10 +1,6 @@
-add_library(mujoco_extend
-        src/mujoco_chain.cpp
-        src/mujoco_workcell.cpp
-        src/mujoco_viewer.cpp
-        src/mujoco_math.cpp
-        src/mujoco_imgui_utils.cpp
-        src/mujoco_imguizmo_utils.cpp
-        src/mujoco_implot_utils.cpp
-)
-target_link_libraries(mujoco_extend mujoco)
+add_library(viewer STATIC Viewer.h Viewer.cpp)
+target_link_libraries(viewer mujoco)
+
+add_executable(RobotSimulator main.cpp)
+target_link_libraries(RobotSimulator viewer mujoco pthread glew glfw gizmo imgui implot)
+
