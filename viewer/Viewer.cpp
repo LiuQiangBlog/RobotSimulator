@@ -9,6 +9,7 @@ Viewer::Viewer(mjModel *m, mjData *d, std::string windowTitle)
 {
     bodyVisible.resize(model->nbody, true);
     bodyChildren.resize(model->nbody);
+    bodyExpanded.resize(model->nbody, true);
     for (int i = 1; i < model->nbody; ++i) // body 0 is world
     {
         int parent = model->body_parentid[i];
@@ -90,7 +91,7 @@ void Viewer::render()
 {
     mjv_updateScene(model, data, &opt, nullptr, &cam, mjCAT_ALL, &scn);
     int body_id = mj_name2id(model, mjOBJ_BODY, "table");
-    drawBodyFrame(vGeoms, body_id, 0.2);
+    drawBodyFrame(vGeoms, body_id, 0.5);
     hideGeomsById(geomIds);
 
     int j = 0;
@@ -115,7 +116,6 @@ void Viewer::render()
     }
     scn.ngeom = j;
 
-    // 添加自定义几何体到渲染缓冲
     for (const auto& g : vGeoms)
     {
         if (scn.ngeom < scn.maxgeom)
@@ -193,8 +193,25 @@ void Viewer::render()
     static bool open{true};
     if (open)
     {
-        if (ImGui::Begin("TreeView", &open))
+        if (ImGui::Begin("TreeView", &open, ImGuiWindowFlags_NoCollapse))
         {
+            if (ImGui::Button("ExpandAll"))
+            {
+                globalExpand = true;
+                for (int i = 0; i < model->nbody; ++i)
+                {
+                    bodyExpanded[i] = true; // 覆盖个体状态
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("CollapseAll"))
+            {
+                globalExpand = false;
+                for (int i = 0; i < model->nbody; ++i)
+                {
+                    bodyExpanded[i] = false; // 覆盖个体状态
+                }
+            }
             int base_id = mj_name2id(model, mjOBJ_BODY, "base_Link");
             showBodyTree(base_id);
         }
@@ -769,8 +786,13 @@ void Viewer::setMocapPose(int bodyId, const float mat[9]) const
 void Viewer::showBodyTree(int bodyId)
 {
     const char *bodyName = model->names + model->name_bodyadr[bodyId];
-
     ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow;
+
+    bool shouldBeOpen = globalExpand || bodyExpanded[bodyId];
+    if (shouldBeOpen) {
+        nodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;  // 设置默认展开
+    }
+
     bool nodeOpen = ImGui::TreeNodeEx(bodyName, nodeFlags);
 
     ImGui::SameLine();
@@ -779,6 +801,12 @@ void Viewer::showBodyTree(int bodyId)
     if (changed)
     {
         setBodyVisibilityRecursively(bodyId, bodyVisible[bodyId]);
+    }
+
+    if (nodeOpen != bodyExpanded[bodyId])
+    {
+        bodyExpanded[bodyId] = nodeOpen;
+        globalExpand = false; // 取消全局展开状态
     }
 
     if (nodeOpen)
@@ -911,8 +939,8 @@ void Viewer::drawArrow(std::vector<mjvGeom> &geoms, const Vec3d &from, const Vec
     mjv_initGeom(&geom, type, size, from.data(), orient.data(), rgba);
     geom.emission    = 0.5f;
     geom.specular    = 0.0f;
-    geom.shininess   = 0.0f;
-    geom.reflectance = 0.0f;
+    geom.shininess   = 0.1f;
+    geom.reflectance = 0.1f;
     geoms.push_back(geom);
 }
 

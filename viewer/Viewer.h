@@ -152,7 +152,7 @@ protected:
 
     void hideGeomById(int geomId);
 
-    void drawBodyFrame(std::vector<mjvGeom> &geoms, int bodyId, double scale = 0.1) const;
+    void drawBodyFrame(std::vector<mjvGeom> &geoms, int bodyId, double scale = 0.2) const;
 
     static void drawFrame(std::vector<mjvGeom> &geoms, const Vec3d &pos, const Mat3d &rot, double scale = 0.2);
 
@@ -163,18 +163,20 @@ private:
     std::string title;
     std::vector<std::function<void()>> funcs;
     GLFWwindow *window{nullptr};
-    bool button_left = false;
-    bool button_middle = false;
-    bool button_right = false;
-    double last_x = 0;
-    double last_y = 0;
+    bool button_left{false};
+    bool button_middle{false};
+    bool button_right{false};
+    double last_x{0};
+    double last_y{0};
     std::vector<mjvGeom> vGeoms;
-    int selected_body = -1;
+    int selected_body{-1};
     CameraMode current_mode = FREE_VIEW;
     mjtNum pivot_point[3]{};
     std::unordered_set<int> geomIds; // collect geoms to hide
     std::vector<std::vector<int>> bodyChildren;
     std::vector<char> bodyVisible; // default all are visible
+    std::vector<bool> bodyExpanded;
+    bool globalExpand{true};
 };
 
 #endif // MUJOCO_VIEWER_H
