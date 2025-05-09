@@ -62,7 +62,7 @@ endif(NOT LZ4_BUNDLED_MODE AND NOT CPack_CMake_INCLUDED)
 # via the BUILD_SHARED_LIBS option unless we are in bundled mode, in
 # which case we always use static libraries.
 include(CMakeDependentOption)
-set(BUILD_SHARED_LIBS ON)
+set(BUILD_SHARED_LIBS OFF)
 #CMAKE_DEPENDENT_OPTION( "Build shared libraries" ON)
 #CMAKE_DEPENDENT_OPTION(BUILD_STATIC_LIBS "Build static libraries" OFF "BUILD_SHARED_LIBS" ON)
 

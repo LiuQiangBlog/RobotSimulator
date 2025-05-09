@@ -55,7 +55,7 @@ public:
         return glfwWindowShouldClose(window);
     }
 
-    bool setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q) const;
+    bool setJointValue(const std::vector<int> &jointIds, const Eigen::VectorXd &q) const;
 
     int getSensorId(const std::string &sensorName) const;
 

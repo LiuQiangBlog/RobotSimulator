@@ -12,7 +12,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/zstd/lib)
 option(DATA_TAMER_BUILD_TESTS "Build tests" ON)
 option(DATA_TAMER_BUILD_EXAMPLES "Build examples" ON)
 
-option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 # optionally build for ROS 2
 option(DATA_TAMER_BUILD_ROS "Build for ROS 2" OFF)
@@ -54,7 +54,7 @@ if(DATA_TAMER_BUILD_ROS AND NOT BUILD_SHARED_LIBS)
     message("BUILD_SHARED_LIBS forced to ON (i.e. SHARED) in ROS2. Set BUILD_SHARED_LIBS to true to disable this warning when building with ROS.")
 endif()
 
-add_library(data_tamer ${LIB_TYPE}
+add_library(data_tamer STATIC
     include/data_tamer/channel.hpp
     include/data_tamer/custom_types.hpp
     include/data_tamer/data_tamer.hpp

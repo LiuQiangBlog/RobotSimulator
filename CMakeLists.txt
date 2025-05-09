@@ -35,6 +35,8 @@ project(
 
 enable_language(C)
 enable_language(CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
@@ -78,6 +80,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/lodepng)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/tinyobjloader)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/marchingcubecpp)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/qhull/src/libqhull_r)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/data_tamer/include)
 
 add_subdirectory(3rdparty)
 

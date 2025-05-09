@@ -226,10 +226,10 @@ void Viewer::render()
     glfwPollEvents(); // process events
 }
 
-bool Viewer::setJointValue(const std::vector<int> &ids, const Eigen::VectorXd &q) const
+bool Viewer::setJointValue(const std::vector<int> &jointIds, const Eigen::VectorXd &q) const
 {
     int i = 0;
-    for (auto &id : ids)
+    for (auto &id : jointIds)
     {
         int joint_type = model->jnt_type[id];
         int cnt;
