@@ -195,21 +195,21 @@ void Viewer::render()
     {
         if (ImGui::Begin("TreeView", &open, ImGuiWindowFlags_NoCollapse))
         {
-            if (ImGui::Button("ExpandAll"))
+            if (ImGui::Button("Expand"))
             {
                 globalExpand = true;
                 for (int i = 0; i < model->nbody; ++i)
                 {
-                    bodyExpanded[i] = true; // 覆盖个体状态
+                    bodyExpanded[i] = true;
                 }
             }
             ImGui::SameLine();
-            if (ImGui::Button("CollapseAll"))
+            if (ImGui::Button("Collapse"))
             {
                 globalExpand = false;
                 for (int i = 0; i < model->nbody; ++i)
                 {
-                    bodyExpanded[i] = false; // 覆盖个体状态
+                    bodyExpanded[i] = false;
                 }
             }
             int base_id = mj_name2id(model, mjOBJ_BODY, "base_Link");
@@ -789,8 +789,9 @@ void Viewer::showBodyTree(int bodyId)
     ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnArrow;
 
     bool shouldBeOpen = globalExpand || bodyExpanded[bodyId];
-    if (shouldBeOpen) {
-        nodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;  // 设置默认展开
+    if (shouldBeOpen)
+    {
+        nodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
     }
 
     bool nodeOpen = ImGui::TreeNodeEx(bodyName, nodeFlags);
@@ -806,7 +807,7 @@ void Viewer::showBodyTree(int bodyId)
     if (nodeOpen != bodyExpanded[bodyId])
     {
         bodyExpanded[bodyId] = nodeOpen;
-        globalExpand = false; // 取消全局展开状态
+        globalExpand = false;
     }
 
     if (nodeOpen)
