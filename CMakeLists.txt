@@ -63,6 +63,7 @@ include(MujocoMacOS)
 #include(MujocoDependencies)
 
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/eigen3)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/log)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/abseil)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/benchmark/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/ccd/src)

@@ -22,50 +22,51 @@ static const std::array<std::string, TypesCount> kNames = {
 };
 // clang-format on
 
-const std::string& ToStr(const BasicType& type)
+const std::string &ToStr(const BasicType &type)
 {
-  return kNames[static_cast<size_t>(type)];
+    return kNames[static_cast<size_t>(type)];
 }
 
-BasicType FromStr(const std::string& str)
+BasicType FromStr(const std::string &str)
 {
-  static const auto kMap = []() {
-    std::unordered_map<std::string, BasicType> map;
-    for(size_t i = 0; i < TypesCount; i++)
+    static const auto kMap = []()
     {
-      auto type = static_cast<BasicType>(i);
-      map[ToStr(type)] = type;
-    }
-    return map;
-  }();
+        std::unordered_map<std::string, BasicType> map;
+        for (size_t i = 0; i < TypesCount; i++)
+        {
+            auto type = static_cast<BasicType>(i);
+            map[ToStr(type)] = type;
+        }
+        return map;
+    }();
 
-  auto const it = kMap.find(str);
-  return it == kMap.end() ? BasicType::OTHER : it->second;
+    auto const it = kMap.find(str);
+    return it == kMap.end() ? BasicType::OTHER : it->second;
 }
 
-size_t SizeOf(const BasicType& type)
+size_t SizeOf(const BasicType &type)
 {
-  // clang-format off
+    // clang-format off
   static constexpr std::array<size_t, TypesCount> kSizes =
       { 1, 1,
         1, 1,
         2, 2, 4, 4, 8, 8,
         4, 8, 0 };
-  // clang-format on
-  return kSizes[static_cast<size_t>(type)];
+    // clang-format on
+    return kSizes[static_cast<size_t>(type)];
 }
 
 template <typename T>
-T DeserializeImpl(const void* data)
+T DeserializeImpl(const void *data)
 {
-  T var;
-  std::memcpy(&var, data, sizeof(T));
-  return var;
+    T var;
+    std::memcpy(&var, data, sizeof(T));
+    return var;
 }
 
-VarNumber DeserializeAsVarType(const BasicType& type, const void* data)
+VarNumber DeserializeAsVarType(const BasicType &type, const void *data)
 {
-  // clang-format off
+    // clang-format off
   switch(type)
   {
     case BasicType::BOOL: return DeserializeImpl<bool>(data);
@@ -89,105 +90,105 @@ VarNumber DeserializeAsVarType(const BasicType& type, const void* data)
     case BasicType::OTHER:
       return double(std::numeric_limits<double>::quiet_NaN());
   }
-  // clang-format on
-  return {};
+    // clang-format on
+    return {};
 }
 
-uint64_t AddFieldToHash(const TypeField& field, uint64_t hash)
+uint64_t AddFieldToHash(const TypeField &field, uint64_t hash)
 {
-  // https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
-  const std::hash<std::string> str_hasher;
-  const std::hash<uint8_t> type_hasher;
-  const std::hash<bool> bool_hasher;
-  const std::hash<uint32_t> uint_hasher;
+    // https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x
+    const std::hash<std::string> str_hasher;
+    const std::hash<uint8_t> type_hasher;
+    const std::hash<bool> bool_hasher;
+    const std::hash<uint32_t> uint_hasher;
 
-  auto combine = [&hash](const auto& hasher, const auto& val) {
-    hash ^= hasher(val) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-  };
-
-  combine(str_hasher, field.field_name);
-  combine(type_hasher, static_cast<uint8_t>(field.type));
-  if(field.type == BasicType::OTHER)
-  {
-    combine(str_hasher, field.type_name);
-  }
-  combine(bool_hasher, field.is_vector);
-  combine(uint_hasher, field.array_size);
-  return hash;
-}
-
-std::ostream& operator<<(std::ostream& os, const TypeField& field)
-{
-  if(field.type == BasicType::OTHER)
-  {
-    os << field.type_name;
-  }
-  else
-  {
-    os << ToStr(field.type);
-  }
-
-  if(field.is_vector && field.array_size != 0)
-  {
-    os << "[" << field.array_size << "]";
-  }
-  if(field.is_vector && field.array_size == 0)
-  {
-    os << "[]";
-  }
-  os << ' ' << field.field_name;
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Schema& schema)
-{
-  os << "### version: " << SCHEMA_VERSION << "\n";
-  os << "### hash: " << schema.hash << "\n";
-  os << "### channel_name: " << schema.channel_name << "\n\n";
-
-  //  std::map<std::string, CustomSerializer::Ptr> custom_types;
-  for(const auto& field : schema.fields)
-  {
-    os << field << "\n";
-  }
-
-  for(const auto& [type_name, custom_fields] : schema.custom_types)
-  {
-    os << "===========================================================\n"
-       << "MSG: " << type_name << "\n";
-    for(const auto& field : custom_fields)
+    auto combine = [&hash](const auto &hasher, const auto &val)
     {
-      os << field << "\n";
+        hash ^= hasher(val) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+    };
+
+    combine(str_hasher, field.field_name);
+    combine(type_hasher, static_cast<uint8_t>(field.type));
+    if (field.type == BasicType::OTHER)
+    {
+        combine(str_hasher, field.type_name);
     }
-  }
-  for(const auto& [type_name, custom_schema] : schema.custom_schemas)
-  {
-    os << "===========================================================\n"
-       << "MSG: " << type_name << "\n"
-       << "ENCODING: " << custom_schema.encoding << "\n"
-       << custom_schema.schema << "\n";
-  }
-
-  return os;
+    combine(bool_hasher, field.is_vector);
+    combine(uint_hasher, field.array_size);
+    return hash;
 }
 
-bool TypeField::operator==(const TypeField& other) const
+std::ostream &operator<<(std::ostream &os, const TypeField &field)
 {
-  return is_vector == other.is_vector && type == other.type &&
-         array_size == other.array_size && field_name == other.field_name &&
-         type_name == other.type_name;
+    if (field.type == BasicType::OTHER)
+    {
+        os << field.type_name;
+    }
+    else
+    {
+        os << ToStr(field.type);
+    }
+
+    if (field.is_vector && field.array_size != 0)
+    {
+        os << "[" << field.array_size << "]";
+    }
+    if (field.is_vector && field.array_size == 0)
+    {
+        os << "[]";
+    }
+    os << ' ' << field.field_name;
+    return os;
 }
 
-bool TypeField::operator!=(const TypeField& other) const
+std::ostream &operator<<(std::ostream &os, const Schema &schema)
 {
-  return !(*this == other);
+    os << "### version: " << SCHEMA_VERSION << "\n";
+    os << "### hash: " << schema.hash << "\n";
+    os << "### channel_name: " << schema.channel_name << "\n\n";
+
+    //  std::map<std::string, CustomSerializer::Ptr> custom_types;
+    for (const auto &field : schema.fields)
+    {
+        os << field << "\n";
+    }
+
+    for (const auto &[type_name, custom_fields] : schema.custom_types)
+    {
+        os << "===========================================================\n"
+           << "MSG: " << type_name << "\n";
+        for (const auto &field : custom_fields)
+        {
+            os << field << "\n";
+        }
+    }
+    for (const auto &[type_name, custom_schema] : schema.custom_schemas)
+    {
+        os << "===========================================================\n"
+           << "MSG: " << type_name << "\n"
+           << "ENCODING: " << custom_schema.encoding << "\n"
+           << custom_schema.schema << "\n";
+    }
+
+    return os;
 }
 
-std::string ToStr(const Schema& schema)
+bool TypeField::operator==(const TypeField &other) const
 {
-  std::ostringstream ss;
-  ss << schema;
-  return ss.str();
+    return is_vector == other.is_vector && type == other.type && array_size == other.array_size &&
+           field_name == other.field_name && type_name == other.type_name;
 }
 
-}  // namespace DataTamer
+bool TypeField::operator!=(const TypeField &other) const
+{
+    return !(*this == other);
+}
+
+std::string ToStr(const Schema &schema)
+{
+    std::ostringstream ss;
+    ss << schema;
+    return ss.str();
+}
+
+} // namespace DataTamer

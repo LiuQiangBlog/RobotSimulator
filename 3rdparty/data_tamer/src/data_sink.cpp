@@ -9,48 +9,50 @@ namespace DataTamer
 
 struct DataSinkBase::Pimpl
 {
-  Pimpl(DataSinkBase* self)
-  {
-    run = true;
+    Pimpl(DataSinkBase *self)
+    {
+        run = true;
 
-    thread = std::thread([this, self]() {
-      Snapshot snapshot_copy;
-      while(run)
-      {
-        while(queue.try_dequeue(snapshot_copy))
-        {
-          self->storeSnapshot(snapshot_copy);
-        }
-        // avoid busy loop
-        std::this_thread::sleep_for(std::chrono::microseconds(250));
-      }
-    });
-  }
+        thread = std::thread(
+            [this, self]()
+            {
+                Snapshot snapshot_copy;
+                while (run)
+                {
+                    while (queue.try_dequeue(snapshot_copy))
+                    {
+                        self->storeSnapshot(snapshot_copy);
+                    }
+                    // avoid busy loop
+                    std::this_thread::sleep_for(std::chrono::microseconds(250));
+                }
+            });
+    }
 
-  std::thread thread;
-  std::atomic_bool run = true;
-  moodycamel::ConcurrentQueue<Snapshot> queue;
+    std::thread thread;
+    std::atomic_bool run = true;
+    moodycamel::ConcurrentQueue<Snapshot> queue;
 };
 
 DataSinkBase::DataSinkBase() : _p(new Pimpl(this)) {}
 
 DataSinkBase::~DataSinkBase()
 {
-  stopThread();
+    stopThread();
 }
 
-bool DataSinkBase::pushSnapshot(const Snapshot& snapshot)
+bool DataSinkBase::pushSnapshot(const Snapshot &snapshot)
 {
-  return _p->queue.enqueue(snapshot);
+    return _p->queue.enqueue(snapshot);
 }
 
 void DataSinkBase::stopThread()
 {
-  _p->run = false;
-  if(_p->thread.joinable())
-  {
-    _p->thread.join();
-  }
+    _p->run = false;
+    if (_p->thread.joinable())
+    {
+        _p->thread.join();
+    }
 }
 
-}  // namespace DataTamer
+} // namespace DataTamer
