@@ -49,6 +49,21 @@ std::string_view TypeDefinition(Eigen::Quaterniond &qua, AddField &add)
 }
 } // namespace Eigen
 
+struct Pose
+{
+    Eigen::Vector3d pos;
+    Eigen::Matrix3d rot;
+    double timestamp;
+};
+
+template <typename AddField>
+std::string_view TypeDefinition(Pose &pose, AddField &add)
+{
+    add("pos", &pose.pos);
+    add("rot", &pose.rot);
+    return "Pose";
+}
+
 namespace DataTamer
 {
 

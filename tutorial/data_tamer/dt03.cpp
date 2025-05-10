@@ -2,7 +2,7 @@
 // Created by liuqiang on 25-5-10.
 //
 #include <data_tamer/data_tamer.hpp>
-#include <data_tamer/sinks/dummy_sink.hpp>
+#include <data_tamer/sinks/plot_sink.hpp>
 #include <data_tamer_parser/data_tamer_parser.hpp>
 #include <gtest/gtest.h>
 #include <memory>
@@ -10,91 +10,56 @@
 #include <Logging.h>
 #include <Eigen/Dense>
 
-struct Pose
-{
-    Eigen::Vector3d pos;
-    Eigen::Matrix3d rot;
-    double timestamp;
-};
-
-//template <typename AddField>
-//std::string_view TypeDefinition(Eigen::Vector3d &pos, AddField &add)
-//{
-//    add("x", &pos[0]);
-//    add("y", &pos[1]);
-//    add("z", &pos[2]);
-//    return "Eigen::Vector3d";
-//}
-//
-////--------------------------------------------------------------
-//// We must specialize the function TypeDefinition
-//// This must be done in the same namespace of the original type
-//
-//template <typename AddField>
-//std::string_view TypeDefinition(Eigen::Matrix3d &rot, AddField &add)
-//{
-//    add("r00", &rot(0,0));
-//    add("r01", &rot(0,1));
-//    add("r02", &rot(0,2));
-//    add("r10", &rot(1,0));
-//    add("r11", &rot(1,1));
-//    add("r12", &rot(1,2));
-//    add("r20", &rot(2,0));
-//    add("r21", &rot(2,1));
-//    add("r22", &rot(2,2));
-//    return "Eigen::Matrix3d";
-//}
-
-namespace Eigen
-{
-template <typename AddField>
-std::string_view TypeDefinition(Eigen::Vector3d &pos, AddField &add)
-{
-    add("x", &pos[0]);
-    add("y", &pos[1]);
-    add("z", &pos[2]);
-    return "Eigen::Vector3d";
-}
-
-template <typename AddField>
-std::string_view TypeDefinition(Eigen::Matrix3d &rot, AddField &add)
-{
-    add("r00", &rot(0,0));
-    add("r01", &rot(0,1));
-    add("r02", &rot(0,2));
-    add("r10", &rot(1,0));
-    add("r11", &rot(1,1));
-    add("r12", &rot(1,2));
-    add("r20", &rot(2,0));
-    add("r21", &rot(2,1));
-    add("r22", &rot(2,2));
-    return "Eigen::Matrix3d";
-}
-
-template <typename AddField>
-std::string_view TypeDefinition(Eigen::Quaterniond &qua, AddField &add)
-{
-    add("w", &qua.w());
-    add("x", &qua.x());
-    add("y", &qua.y());
-    add("z", &qua.z());
-    return "Eigen::Quaterniond";
-}
-} // namespace Eigen
-
-template <typename AddField>
-std::string_view TypeDefinition(Pose &pose, AddField &add)
-{
-    add("pos", &pose.pos);
-    add("rot", &pose.rot);
-    return "Pose";
-}
-
 TEST(DataTamerParser, ReadSchema)
 {
     auto ns = std::chrono::nanoseconds(1500000); // 1,500,000 纳秒
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(ns);
     CLOG_INFO << ms.count() << " ms"; // 输出：1 ms
     CLOG_INFO << std::chrono::duration<double, std::milli>(ns).count() << " ms"; // 输出：1.5 ms
+
+    auto channel = DataTamer::LogChannel::create("channel");
+    auto sink = std::make_shared<DataTamer::PlotSink>();
+    channel->addDataSink(sink);
+
+    std::vector<double> valsA = {10, 11, 12};
+    std::array<int, 2> valsB = {13, 14};
+
+    std::array<Eigen::Vector3d, 3> points;
+    points[0] = {1, 2, 3};
+    points[1] = {4, 5, 6};
+    points[2] = {7, 8, 9};
+
+    std::vector<Eigen::Matrix3d> rots(2);
+    rots[0] = Eigen::Matrix3d::Identity();
+    rots[1] = Eigen::Matrix3d::Zero();
+
+    std::vector<Eigen::Quaterniond> quats(2);
+    quats[0] = {20, 21, 22, 23};
+    quats[1] = {30, 31, 32, 33};
+
+    channel->registerValue("valsA", &valsA);
+    channel->registerValue("valsB", &valsB);
+    channel->registerValue("points", &points);
+    channel->registerValue("rots", &rots);
+    channel->registerValue("quats", &quats);
+
+    CLOG_INFO << channel->getSchema();
+
+    channel->takeSnapshot();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    for (const auto &[name, value] : sink->channel_data)
+    {
+        std::cout << "timestamp: " << std::endl;
+        for (auto &item : value.first)
+        {
+            std::cout << item << std::endl;
+        }
+        for (auto &item : value.second)
+        {
+            std::cout << "name: " << name << ", value: " << item << std::endl;
+        }
+    }
+
 }
 
