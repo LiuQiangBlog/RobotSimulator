@@ -81,6 +81,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/tinyobjloader)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/marchingcubecpp)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/qhull/src/libqhull_r)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/data_tamer/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/data_tamer/3rdparty/mcap/include)
 
 add_subdirectory(3rdparty)
 

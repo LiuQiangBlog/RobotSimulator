@@ -1,171 +1,259 @@
 #include "data_tamer/data_tamer.hpp"
-#include "data_tamer_parser/data_tamer_parser.hpp"
-#include <mutex>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#include "data_tamer/sinks/mcap_sink.hpp"
+#include <mcap/reader.hpp>
+#include <GLFW/glfw3.h>
+#include "imgui.h"
+#include "implot.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <cmath>
 
-class ImPlotSink : public DataTamer::DataSinkBase
+// 模拟数据记录
+void recordData()
 {
-public:
-    using TimeSeries = std::vector<double>;
-    using ChannelData = std::unordered_map<std::string, TimeSeries>;
+    auto mcap_sink = std::make_shared<DataTamer::MCAPSink>("test.mcap");
+    DataTamer::ChannelsRegistry::Global().addDefaultSink(mcap_sink);
 
-    struct PlotData
+    auto channel = DataTamer::ChannelsRegistry::Global().getChannel("channel");
+    double value = 0.0;
+    channel->registerValue("value", &value);
+
+    for (int i = 0; i < 1000; ++i)
     {
-        std::vector<double> timestamps;
-        ChannelData channels;
-        std::mutex mutex;
-    };
-
-    explicit ImPlotSink(size_t max_points_per_series = 10000) : max_points_per_series_(max_points_per_series) {}
-
-    ~ImPlotSink() override = default;
-
-    void addChannel(const std::string &name, const DataTamer::Schema &schema) override
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        // 转换为 DataTamerParser::Schema
-        std::string schema_text = DataTamer::ToStr(schema);
-        DataTamerParser::Schema parser_schema = DataTamerParser::BuilSchemaFromText(schema_text);
-        schemas_[schema.hash] = parser_schema;
-        channel_names_.emplace(name);
+        value = std::sin(i * 0.01);
+        channel->takeSnapshot();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+}
 
-    bool storeSnapshot(const DataTamer::Snapshot &snapshot) override
+// 从MCAP文件读取数据
+std::vector<double> readDataFromMCAP()
+{
+    std::vector<double> data;
+    mcap::McapReader reader;
+    auto status = reader.open("test.mcap");
+    if (!status.ok())
     {
-        std::lock_guard<std::mutex> lock(mutex_);
-
-        // 查找对应的 schema
-        auto schema_it = schemas_.find(snapshot.schema_hash);
-        if (schema_it == schemas_.end())
+        std::cerr << "Failed to open MCAP file: " << status.message << std::endl;
+        return data;
+    }
+    std::unordered_map<mcap::SchemaId, size_t> schema_id_to_hash;
+    for (const auto &[schemaId, mcapSchema] : reader.schemas())
+    {
+        std::string schema_text(reinterpret_cast<const char *>(mcapSchema->data.data()), mcapSchema->data.size());
+        // 这里可以根据具体的 schema 解析数据
+        // 假设数据是一个简单的 double 类型
+        for (const auto &[channelId, channel] : reader.channels())
         {
-            return false;
-        }
-
-        // 将 DataTamer::Snapshot 转换为 DataTamerParser::SnapshotView
-        DataTamerParser::SnapshotView view = {snapshot.schema_hash,
-                                              static_cast<uint64_t>(snapshot.timestamp.count()),
-                                              {snapshot.active_mask.data(), snapshot.active_mask.size()},
-                                              {snapshot.payload.data(), snapshot.payload.size()}};
-
-        std::string channel_name_str(snapshot.channel_name);
-        // 确保 channel_name 有效
-        if (!isValidChannelName(channel_name_str))
-        {
-            return false;
-        }
-
-        // 获取或创建该通道的 PlotData
-        PlotData &plot_data = channel_data_[channel_name_str];
-        std::lock_guard<std::mutex> plot_lock(plot_data.mutex);
-
-        // 添加时间戳
-        double timestamp = static_cast<double>(view.timestamp) * 1e-9;
-        plot_data.timestamps.push_back(timestamp);
-
-        // 定义基本类型回调函数
-        auto number_callback = [&](const std::string &field_name, const DataTamerParser::VarNumber &value)
-        {
-            // 确保该字段有对应的 TimeSeries
-            if (plot_data.channels.find(field_name) == plot_data.channels.end())
+            if (channel->schemaId == schemaId)
             {
-                plot_data.channels[field_name] = TimeSeries();
-            }
-
-            // 将值添加到对应的 TimeSeries
-            double numeric_value = std::visit(
-                [](auto &&arg)
+                // 使用 readMessages 迭代器遍历消息
+                for (const auto &msg : reader.readMessages())
                 {
-                    return static_cast<double>(arg);
-                },
-                value);
-
-            plot_data.channels[field_name].push_back(numeric_value);
-
-            // 保持固定大小，移除旧数据
-            if (plot_data.channels[field_name].size() > max_points_per_series_)
-            {
-                size_t excess = plot_data.channels[field_name].size() - max_points_per_series_;
-                plot_data.channels[field_name].erase(plot_data.channels[field_name].begin(),
-                                                     plot_data.channels[field_name].begin() + excess);
-                plot_data.timestamps.erase(plot_data.timestamps.begin(), plot_data.timestamps.begin() + excess);
+                    if (msg.channel->id == channelId)
+                    {
+                        // 这里简单假设数据是一个 double 类型
+                        double value = *reinterpret_cast<const double *>(msg.message.data);
+                        data.push_back(value);
+                    }
+                }
             }
-        };
+        }
+    }
+    reader.close();
+    return data;
+}
 
-        // 定义自定义类型回调函数
-        auto custom_callback = [](const std::string &field_name, const DataTamerParser::BufferSpan &buffer)
+// 可视化数据
+void visualizeData(const std::vector<double> &data)
+{
+    if (!glfwInit())
+    {
+        return;
+    }
+
+    GLFWwindow *window = glfwCreateWindow(800, 600, "ImPlot Data Visualization", nullptr, nullptr);
+    if (!window)
+    {
+        glfwTerminate();
+        return;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImPlot::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
+    while (!glfwWindowShouldClose(window))
+    {
+        glfwPollEvents();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::Begin("Data Visualization");
+        if (ImPlot::BeginPlot("Data Plot", ImVec2(-1, -1)))
         {
-            // 可以处理自定义类型的特殊逻辑，这里留空
-            // 或者可以递归解析自定义类型
-        };
+            ImPlot::PlotLine("Data", data.data(), data.size());
+            ImPlot::EndPlot();
+        }
+        ImGui::End();
 
-        // 使用双回调版本的 ParseSnapshot
-        DataTamerParser::ParseSnapshot(schema_it->second, view, number_callback, custom_callback);
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(window);
+    }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
+    ImGui::DestroyContext();
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
+int main()
+{
+    recordData();
+    auto data = readDataFromMCAP();
+    visualizeData(data);
+    return 0;
+}
+
+
+#include "data_tamer/data_tamer.hpp"
+#include "data_tamer/sinks/mcap_sink.hpp"
+#include <GLFW/glfw3.h>
+#include "imgui.h"
+#include "implot.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+
+// 自定义的 DataSink，用于存储数据以便实时可视化
+class RealTimeVisualizationSink : public DataTamer::DataSinkBase {
+public:
+    std::unordered_map<std::string, std::vector<double>> data_storage;
+
+    void addChannel(std::string const& name, DataTamer::Schema const& schema) override {
+        // 这里可以处理通道添加逻辑
+    }
+
+    bool storeSnapshot(const DataTamer::Snapshot& snapshot) override {
+        for (const auto& [name, value] : snapshot.values) {
+            if (auto num_value = std::get_if<double>(&value)) {
+                data_storage[snapshot.channel_name].push_back(*num_value);
+            }
+        }
         return true;
     }
-
-    // 获取特定通道的数据用于 ImPlot
-    bool getData(const std::string &channel_name,
-                 std::vector<std::string> &series_names,
-                 std::vector<const double *> &series_data,
-                 const double *&timestamps,
-                 size_t &count)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-
-        // 查找通道
-        auto it = channel_data_.find(channel_name);
-        if (it == channel_data_.end())
-        {
-            return false;
-        }
-
-        PlotData &plot_data = it->second;
-        std::lock_guard<std::mutex> plot_lock(plot_data.mutex);
-
-        // 清空输出向量
-        series_names.clear();
-        series_data.clear();
-
-        // 填充系列数据
-        for (auto &pair : plot_data.channels)
-        {
-            series_names.push_back(pair.first);
-            series_data.push_back(pair.second.data());
-        }
-
-        // 设置时间戳和数据点数量
-        timestamps = plot_data.timestamps.data();
-        count = plot_data.timestamps.size();
-
-        return true;
-    }
-
-    // 获取所有可用通道的名称
-    std::vector<std::string> getChannelNames() const
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::vector<std::string> names;
-        names.reserve(channel_data_.size());
-        for (const auto &pair : channel_data_)
-        {
-            names.push_back(pair.first);
-        }
-        return names;
-    }
-
-private:
-    // 检查 channel_name 是否有效（即是否存在于 channel_names_ 中）
-    bool isValidChannelName(const std::string &name) const
-    {
-        return channel_names_.find(name) != channel_names_.end();
-    }
-
-    size_t max_points_per_series_;
-    std::unordered_map<uint64_t, DataTamerParser::Schema> schemas_;
-    std::unordered_map<std::string, PlotData> channel_data_;
-    std::unordered_set<std::string> channel_names_;
-    mutable std::mutex mutex_;
 };
+
+// 模拟数据生成和记录
+void recordData(std::shared_ptr<DataTamer::MCAPSink> mcap_sink, std::shared_ptr<RealTimeVisualizationSink> vis_sink) {
+    auto channel = DataTamer::ChannelsRegistry::Global().getChannel("chan");
+    channel->addDataSink(mcap_sink);
+    channel->addDataSink(vis_sink);
+
+    double value = 0.0;
+    channel->registerValue("value", &value);
+
+    for (int i = 0; i < 1000; ++i) {
+        value = std::sin(i * 0.01);
+        channel->takeSnapshot();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+// 可视化数据
+void visualizeData(std::shared_ptr<RealTimeVisualizationSink> vis_sink) {
+    if (!glfwInit()) {
+        return;
+    }
+
+    GLFWwindow* window = glfwCreateWindow(800, 600, "ImPlot Data Visualization", nullptr, nullptr);
+    if (!window) {
+        glfwTerminate();
+        return;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImPlot::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::Begin("Data Visualization");
+        for (const auto& [channel_name, data] : vis_sink->data_storage) {
+            if (ImPlot::BeginPlot(channel_name.c_str(), ImVec2(-1, -1))) {
+                ImPlot::PlotLine(channel_name.c_str(), data.data(), data.size());
+                ImPlot::EndPlot();
+            }
+        }
+        ImGui::End();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(window);
+    }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
+    ImGui::DestroyContext();
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
+int main() {
+    auto mcap_sink = std::make_shared<DataTamer::MCAPSink>("test.mcap");
+    auto vis_sink = std::make_shared<RealTimeVisualizationSink>();
+
+    std::thread record_thread(recordData, mcap_sink, vis_sink);
+    visualizeData(vis_sink);
+
+    record_thread.join();
+    return 0;
+}
+
+// 模拟数据生成和记录
+void recordData(std::shared_ptr<DataTamer::MCAPSink> mcap_sink) {
+    auto channel = DataTamer::ChannelsRegistry::Global().getChannel("chan");
+    channel->addDataSink(mcap_sink);
+
+    double value = 0.0;
+    auto id = channel->registerValue("value", &value);
+
+    // 设置快照回调
+    channel->setSnapshotCallback(snapshotCallback);
+
+    for (int i = 0; i < 1000; ++i) {
+        value = std::sin(i * 0.01);
+        channel->takeSnapshot();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
