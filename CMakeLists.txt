@@ -275,3 +275,4 @@ endif()
 #endif()
 
 add_subdirectory(viewer)
+add_subdirectory(tutorial/data_tamer)

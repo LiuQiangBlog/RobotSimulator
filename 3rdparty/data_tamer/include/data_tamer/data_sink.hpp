@@ -33,7 +33,7 @@ struct Snapshot
     /// of bools, where each byte contains 8 boolean flags.
     ActiveMask active_mask;
 
-    /// serialized dat containing all the values, ordered as in the schema
+    /// serialized data containing all the values, ordered as in the schema
     PayloadVector payload;
 };
 

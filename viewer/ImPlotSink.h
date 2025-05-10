@@ -111,6 +111,12 @@ public:
         };
 
         // 使用双回调版本的 ParseSnapshot
+        // Callback must be a std::function or lambda with signature:
+        //
+        // void(const std::string& name_field, const VarNumber& value)
+        //
+        // void(const std::string& name_field, const BufferSpan payload, const std::string& type_name)
+        //
         DataTamerParser::ParseSnapshot(schema_it->second, view, number_callback, custom_callback);
         return true;
     }
