@@ -90,59 +90,22 @@ bool Viewer::init()
 void Viewer::render()
 {
     mjv_updateScene(model, data, &opt, nullptr, &cam, mjCAT_ALL, &scn);
-    int body_id = mj_name2id(model, mjOBJ_BODY, "table");
-    drawBodyFrame(vGeoms, body_id, 0.5);
+
+    drawBodyFrame(vGeoms, getBodyId("table"), 0.5);
     hideGeomsById(geomIds);
-
-    int j = 0;
-    for (int i = 0; i < scn.ngeom; ++i) {
-        const mjvGeom& g = scn.geoms[i];
-
-        bool keep = true;
-
-        if (g.objtype == mjOBJ_GEOM) {
-            int geomId = g.objid;
-            int bodyId = model->geom_bodyid[geomId];
-
-            if (!bodyVisible[bodyId]) {
-                keep = false;
-            }
-        }
-
-        if (keep) {
-            if (i != j) scn.geoms[j] = scn.geoms[i];
-            ++j;
-        }
-    }
-    scn.ngeom = j;
-
-    for (const auto& g : vGeoms)
-    {
-        if (scn.ngeom < scn.maxgeom)
-        {
-            scn.geoms[scn.ngeom++] = g;
-        }
-    }
+    hideGeomsByVisibleMask(bodyVisible);
+    showBodyFrame(vGeoms);
 
     mjrRect viewport = {0, 0, 0, 0};
     glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
     mjr_render(viewport, &scn, &con);
-    mjr_overlay(mjFONT_NORMAL, mjGRID_TOPRIGHT, viewport,
-                current_mode == FREE_VIEW      ? "Camera: FREE"
-                : current_mode == FIXED_TOP    ? "Camera: TOP"
-                : current_mode == FIXED_BOTTOM ? "Camera: BOTTOM"
-                : current_mode == FIXED_LEFT   ? "Camera: LEFT"
-                : current_mode == FIXED_RIGHT  ? "Camera: RIGHT"
-                : current_mode == FIXED_FRONT  ? "Camera: FRONT"
-                : current_mode == FIXED_BACK   ? "Camera: BACK"
-                                               : "Camera: UNKNOWN",
-                nullptr, &con);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGuizmo::BeginFrame(); // 必须位于ImGui新帧之后
+    // init gizmo
+    ImGuizmo::BeginFrame();
     ImGuizmo::AllowAxisFlip(false);
     ImGuiIO &io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
@@ -151,7 +114,17 @@ void Viewer::render()
     glGetFloatv(GL_MODELVIEW_MATRIX, view);
     glGetFloatv(GL_PROJECTION_MATRIX, proj);
 
-    int target_id = mj_name2id(model, mjOBJ_BODY, "target");
+    // call mjr_overlay must after getting view and proj
+    mjr_overlay(mjFONT_NORMAL, mjGRID_TOPRIGHT, viewport,
+                current_mode == FREE_VIEW      ? "Camera: FREE"
+                : current_mode == FIXED_TOP    ? "Camera: TOP"
+                : current_mode == FIXED_BOTTOM ? "Camera: BOTTOM"
+                : current_mode == FIXED_LEFT   ? "Camera: LEFT"
+                : current_mode == FIXED_RIGHT  ? "Camera: RIGHT"
+                : current_mode == FIXED_FRONT  ? "Camera: FRONT"
+                : current_mode == FIXED_BACK   ? "Camera: BACK" : "Camera: UNKNOWN", nullptr, &con);
+
+    int target_id = getBodyId("target");
     if (target_id >= 0 || target_id < model->nbody)
     {
         ImGui::Begin("Mocap Control");
@@ -181,8 +154,22 @@ void Viewer::render()
         ImGuizmo::SetOrthographic(glcam.orthographic);
         ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
         ImGuizmo::SetRect(0, 0, (float)viewport.width, (float)viewport.height);
+
+        float rotX90[16] = {
+            1, 0,  0, 0,
+            0, 0, -1, 0,
+            0, 1,  0, 0,
+            0, 0,  0, 1
+        };
+        ImGuizmo::DrawGrid(view, proj, rotX90, 4.0f);
+
+        ImDrawList *draw_list = ImGui::GetWindowDrawList();
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        draw_list->AddCircle(ImVec2(p.x + 50, p.y + 50), 30.0f, IM_COL32(255, 0, 0, 255), 32, 2.0f);
+
         float trans[16];
         getMocapPose(target_id, trans);
+
         if (ImGuizmo::Manipulate(view, proj, op, mode, trans))
         {
             setMocapPose(target_id, trans);
@@ -190,33 +177,8 @@ void Viewer::render()
         }
         ImGui::End();
     }
-    static bool open{true};
-    if (open)
-    {
-        if (ImGui::Begin("TreeView", &open, ImGuiWindowFlags_NoCollapse))
-        {
-            if (ImGui::Button("Expand"))
-            {
-                globalExpand = true;
-                for (int i = 0; i < model->nbody; ++i)
-                {
-                    bodyExpanded[i] = true;
-                }
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Collapse"))
-            {
-                globalExpand = false;
-                for (int i = 0; i < model->nbody; ++i)
-                {
-                    bodyExpanded[i] = false;
-                }
-            }
-            int base_id = mj_name2id(model, mjOBJ_BODY, "base_Link");
-            showBodyTree(base_id);
-        }
-        ImGui::End();
-    }
+
+    showBodyTreeView();
 
     // ImGui render
     ImGui::Render();
@@ -820,6 +782,37 @@ void Viewer::showBodyTree(int bodyId)
     }
 }
 
+void Viewer::showBodyTreeView()
+{
+    static bool open{true};
+    if (open)
+    {
+        if (ImGui::Begin("TreeView", &open, ImGuiWindowFlags_NoCollapse))
+        {
+            if (ImGui::Button("Expand"))
+            {
+                globalExpand = true;
+                for (int i = 0; i < model->nbody; ++i)
+                {
+                    bodyExpanded[i] = true;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Collapse"))
+            {
+                globalExpand = false;
+                for (int i = 0; i < model->nbody; ++i)
+                {
+                    bodyExpanded[i] = false;
+                }
+            }
+            int base_id = mj_name2id(model, mjOBJ_BODY, "base_Link");
+            showBodyTree(base_id);
+        }
+        ImGui::End();
+    }
+}
+
 void Viewer::setBodyVisibilityRecursively(int bodyId, bool visible)
 {
     bodyVisible[bodyId] = (char)visible;
@@ -880,6 +873,45 @@ void Viewer::hideGeomsById(const std::unordered_set<int>& geomIdsToRemove)
         }
     }
     scn.ngeom = j;
+}
+
+void Viewer::hideGeomsByVisibleMask(const std::vector<char> &geomVisibleMask)
+{
+    int j = 0;
+    for (int i = 0; i < scn.ngeom; ++i)
+    {
+        const mjvGeom &g = scn.geoms[i];
+        bool keep = true;
+        if (g.objtype == mjOBJ_GEOM)
+        {
+            int geomId = g.objid;
+            int bodyId = model->geom_bodyid[geomId];
+            if (!geomVisibleMask[bodyId])
+            {
+                keep = false;
+            }
+        }
+        if (keep)
+        {
+            if (i != j)
+            {
+                scn.geoms[j] = scn.geoms[i];
+            }
+            ++j;
+        }
+    }
+    scn.ngeom = j;
+}
+
+void Viewer::showBodyFrame(const std::vector<mjvGeom> &geoms)
+{
+    for (const auto& g : geoms)
+    {
+        if (scn.ngeom < scn.maxgeom)
+        {
+            scn.geoms[scn.ngeom++] = g;
+        }
+    }
 }
 
 void Viewer::hideGeomById(int geomId)

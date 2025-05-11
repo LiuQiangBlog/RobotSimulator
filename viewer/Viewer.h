@@ -146,9 +146,15 @@ protected:
 
     void showBodyTree(int bodyId);
 
+    void showBodyTreeView();
+
     void setBodyVisibilityRecursively(int bodyId, bool visible);
 
     void hideGeomsById(const std::unordered_set<int> &geomIdsToRemove);
+
+    void hideGeomsByVisibleMask(const std::vector<char> &geomVisibleMask);
+
+    void showBodyFrame(const std::vector<mjvGeom> &geoms);
 
     void hideGeomById(int geomId);
 

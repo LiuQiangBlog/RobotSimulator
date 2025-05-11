@@ -25,6 +25,7 @@ int main()
         mj_deleteModel(model);
         return -1;
     }
+
     Viewer viewer(model, data);
     if (!viewer.init())
     {
@@ -32,7 +33,7 @@ int main()
     }
     model->opt.timestep = 0.001; // 1ms
     mj_forward(model, data);
-    viewer.setBodyVisible("table", true);
+    viewer.setBodyVisible("table", false);
     while (!viewer.shouldClose())
     {
         mj_step(model, data);
