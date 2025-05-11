@@ -15,6 +15,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <any>
+#include <mutex>
+#include <atomic>
 #include <ImGuizmo.h>
 #include <unordered_set>
 #include "Logging.h"
@@ -119,6 +121,14 @@ public:
         funcs.emplace_back(std::forward<Func>(f));
     }
 
+    void syncJointState();
+
+    void showJointSliders(std::mutex &mtx);
+
+    void showMocapGizmo(const std::string &mocapBodyName);
+
+    void showGizmo(const mjrRect &viewport, float view[16], float proj[16]);
+
 protected:
     static void mouseClickCallback(GLFWwindow *win, int button, int action, int mods);
 
@@ -183,6 +193,8 @@ private:
     std::vector<char> bodyVisible; // default all are visible
     std::vector<bool> bodyExpanded;
     bool globalExpand{true};
+    std::vector<mjtNum> q, lower, upper; // store joint values from imgui slider
+    std::vector<int> mocapGizmos;
 };
 
 #endif // MUJOCO_VIEWER_H

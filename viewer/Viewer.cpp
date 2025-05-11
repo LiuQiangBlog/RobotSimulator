@@ -15,6 +15,27 @@ Viewer::Viewer(mjModel *m, mjData *d, std::string windowTitle)
         int parent = model->body_parentid[i];
         bodyChildren[parent].push_back(i);
     }
+    q.resize(model->njnt, 0);
+    lower.resize(model->njnt, 0);
+    upper.resize(model->njnt, 0);
+    for (int jnt_id = 0; jnt_id < model->njnt; ++jnt_id)
+    {
+        auto type = (mjtJoint)model->jnt_type[jnt_id];
+        if (type != mjJNT_FREE && type != mjJNT_BALL)
+        {
+            if (type == mjJNT_HINGE)
+            {
+                lower[jnt_id] = model->jnt_limited[jnt_id] ? model->jnt_range[jnt_id * 2] : -mjPI;
+                upper[jnt_id] = model->jnt_limited[jnt_id] ? model->jnt_range[jnt_id * 2 + 1] : mjPI;
+            }
+            else
+            {
+                lower[jnt_id] = model->jnt_limited[jnt_id] ? model->jnt_range[jnt_id * 2] : -1.0;
+                upper[jnt_id] = model->jnt_limited[jnt_id] ? model->jnt_range[jnt_id * 2 + 1] : 1.0;
+            }
+            q[jnt_id] = data->qpos[model->jnt_qposadr[jnt_id]];
+        }
+    }
 }
 
 Viewer::~Viewer()
@@ -124,59 +145,12 @@ void Viewer::render()
                 : current_mode == FIXED_FRONT  ? "Camera: FRONT"
                 : current_mode == FIXED_BACK   ? "Camera: BACK" : "Camera: UNKNOWN", nullptr, &con);
 
-    int target_id = getBodyId("target");
-    if (target_id >= 0 || target_id < model->nbody)
+    for (auto &func : funcs)
     {
-        ImGui::Begin("Mocap Control");
-        static ImGuizmo::OPERATION op = ImGuizmo::TRANSLATE;
-        if (ImGui::RadioButton("Translate", op == ImGuizmo::TRANSLATE))
-        {
-            op = ImGuizmo::TRANSLATE;
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Rotate", op == ImGuizmo::ROTATE))
-        {
-            op = ImGuizmo::ROTATE;
-        }
-
-        static ImGuizmo::MODE mode = ImGuizmo::WORLD;
-        if (ImGui::RadioButton("Local", mode == ImGuizmo::LOCAL))
-        {
-            mode = ImGuizmo::LOCAL;
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("World", mode == ImGuizmo::WORLD))
-        {
-            mode = ImGuizmo::WORLD;
-        }
-        mjvGLCamera &glcam = scn.camera[0];
-        glcam.orthographic = 0; // perspective
-        ImGuizmo::SetOrthographic(glcam.orthographic);
-        ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
-        ImGuizmo::SetRect(0, 0, (float)viewport.width, (float)viewport.height);
-
-        float rotX90[16] = {
-            1, 0,  0, 0,
-            0, 0, -1, 0,
-            0, 1,  0, 0,
-            0, 0,  0, 1
-        };
-        ImGuizmo::DrawGrid(view, proj, rotX90, 4.0f);
-
-        ImDrawList *draw_list = ImGui::GetWindowDrawList();
-        ImVec2 p = ImGui::GetCursorScreenPos();
-        draw_list->AddCircle(ImVec2(p.x + 50, p.y + 50), 30.0f, IM_COL32(255, 0, 0, 255), 32, 2.0f);
-
-        float trans[16];
-        getMocapPose(target_id, trans);
-
-        if (ImGuizmo::Manipulate(view, proj, op, mode, trans))
-        {
-            setMocapPose(target_id, trans);
-            mj_forward(model, data);
-        }
-        ImGui::End();
+        func();
     }
+
+    showGizmo(viewport, view, proj);
 
     showBodyTreeView();
 
@@ -810,6 +784,113 @@ void Viewer::showBodyTreeView()
             showBodyTree(base_id);
         }
         ImGui::End();
+    }
+}
+
+void Viewer::syncJointState()
+{
+    for (int jnt_id = 0; jnt_id < model->njnt; ++jnt_id)
+    {
+        auto type = (mjtJoint)model->jnt_type[jnt_id];
+        if (type != mjJNT_FREE && type != mjJNT_BALL)
+        {
+            data->qpos[model->jnt_qposadr[jnt_id]] = q[jnt_id];
+        }
+    }
+}
+
+void Viewer::showJointSliders(std::mutex &mtx)
+{
+    static bool open{true};
+    if (!open)
+    {
+        return;
+    }
+    if (ImGui::Begin("SliderView", &open, ImGuiWindowFlags_MenuBar))
+    {
+        for (int jnt_id = 0; jnt_id < model->njnt; ++jnt_id)
+        {
+            auto type = (mjtJoint)model->jnt_type[jnt_id];
+            if (type != mjJNT_FREE && type != mjJNT_BALL)
+            {
+                ImGui::SetNextItemWidth(400);
+                auto label = mj_id2name(model, mjOBJ_JOINT, jnt_id);
+                if (ImGui::SliderScalar(label, ImGuiDataType_Double, &q[jnt_id], &lower[jnt_id], &upper[jnt_id]))
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    syncJointState();
+                }
+            }
+        }
+        ImGui::End();
+    }
+}
+
+void Viewer::showMocapGizmo(const std::string &mocapBodyName)
+{
+    int mocapId = getBodyId(mocapBodyName);
+    if (mocapId != -1)
+    {
+        mocapGizmos.push_back(mocapId);
+    }
+}
+
+void Viewer::showGizmo(const mjrRect &viewport, float view[16], float proj[16])
+{
+    for (auto &target_id : mocapGizmos)
+    {
+        if (target_id >= 0 || target_id < model->nbody)
+        {
+            ImGui::Begin(("MocapControl" + std::to_string(target_id)).c_str());
+            static ImGuizmo::OPERATION op = ImGuizmo::TRANSLATE;
+            if (ImGui::RadioButton("Translate", op == ImGuizmo::TRANSLATE))
+            {
+                op = ImGuizmo::TRANSLATE;
+            }
+            ImGui::SameLine();
+            if (ImGui::RadioButton("Rotate", op == ImGuizmo::ROTATE))
+            {
+                op = ImGuizmo::ROTATE;
+            }
+
+            static ImGuizmo::MODE mode = ImGuizmo::WORLD;
+            if (ImGui::RadioButton("Local", mode == ImGuizmo::LOCAL))
+            {
+                mode = ImGuizmo::LOCAL;
+            }
+            ImGui::SameLine();
+            if (ImGui::RadioButton("World", mode == ImGuizmo::WORLD))
+            {
+                mode = ImGuizmo::WORLD;
+            }
+            mjvGLCamera &glcam = scn.camera[0];
+            glcam.orthographic = 0; // perspective
+            ImGuizmo::SetOrthographic(glcam.orthographic);
+            ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
+            ImGuizmo::SetRect(0, 0, (float)viewport.width, (float)viewport.height);
+
+            float rotX90[16] = {
+                1, 0,  0, 0,
+                0, 0, -1, 0,
+                0, 1,  0, 0,
+                0, 0,  0, 1
+            };
+            ImGuizmo::DrawGrid(view, proj, rotX90, 4.0f);
+
+            ImDrawList *draw_list = ImGui::GetWindowDrawList();
+            ImVec2 p = ImGui::GetCursorScreenPos();
+            draw_list->AddCircle(ImVec2(p.x + 50, p.y + 50), 30.0f, IM_COL32(255, 0, 0, 255), 32, 2.0f);
+
+            float trans[16];
+            getMocapPose(target_id, trans);
+
+            if (ImGuizmo::Manipulate(view, proj, op, mode, trans))
+            {
+                setMocapPose(target_id, trans);
+                mj_forward(model, data);
+            }
+            ImGui::End();
+        }
     }
 }
 
