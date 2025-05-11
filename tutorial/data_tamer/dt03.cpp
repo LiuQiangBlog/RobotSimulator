@@ -16,7 +16,7 @@ TEST(DataTamerParser, ReadSchema)
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(ns);
     CLOG_INFO << ms.count() << " ms"; // 输出：1 ms
     CLOG_INFO << std::chrono::duration<double, std::milli>(ns).count() << " ms"; // 输出：1.5 ms
-
+    CLOG_INFO << (ns.count() / 1e9);
     auto channel = DataTamer::LogChannel::create("channel");
     auto sink = std::make_shared<DataTamer::PlotSink>();
     channel->addDataSink(sink);

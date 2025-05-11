@@ -21,6 +21,8 @@
 #include <unordered_set>
 #include "Logging.h"
 #include "Types.h"
+#include <data_tamer/data_tamer.hpp>
+#include <data_tamer/sinks/plot_sink.hpp>
 
 enum CameraMode
 {
@@ -56,6 +58,10 @@ public:
     {
         return glfwWindowShouldClose(window);
     }
+
+    Eigen::Vector3d getBodyPosition(const std::string &bodyName) const;
+
+    Eigen::Matrix4d getBodyPose(const std::string &bodyName) const;
 
     bool setJointValue(const std::vector<int> &jointIds, const Eigen::VectorXd &q) const;
 
@@ -128,6 +134,8 @@ public:
     void showMocapGizmo(const std::string &mocapBodyName);
 
     void showGizmo(const mjrRect &viewport, float view[16], float proj[16]);
+
+    void plotChannelData(const std::string &channelName, const std::shared_ptr<DataTamer::PlotSink>& sink) const;
 
 protected:
     static void mouseClickCallback(GLFWwindow *win, int button, int action, int mods);

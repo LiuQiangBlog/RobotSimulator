@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <Eigen/Dense>
+#include <deque>
 
 namespace Eigen
 {
@@ -81,7 +82,8 @@ public:
     std::unordered_map<uint64_t, long> snapshots_count;
     Snapshot latest_snapshot;
     Mutex schema_mutex;
-    std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_data;
+    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+    std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
 
     ~PlotSink() override
     {
@@ -129,13 +131,24 @@ public:
                         return double(var);
                     },
                     number);
-                parsed_values[field_name] = {snapshot_view.timestamp, value};
+                auto ns = std::chrono::nanoseconds(snapshot_view.timestamp);
+                auto ms = std::chrono::duration<double, std::milli>(ns).count();
+                parsed_values[field_name] = {ms / 1000, value}; // timestamp unit is s
             };
             DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
             for (auto &[key, pair] : parsed_values)
             {
                 channel_data[key].first.push_back(pair.first);
                 channel_data[key].second.push_back(pair.second);
+                if (channel_data[key].first.size() > 10000)
+                {
+                    channel_data[key].first.pop_front();
+                    channel_data[key].second.pop_front();
+                }
+                auto timestamps = std::vector<double>(channel_data[key].first.begin(), channel_data[key].first.end());
+                auto values = std::vector<double>(channel_data[key].second.begin(), channel_data[key].second.end());
+                channel_plot_data[key].first = timestamps;
+                channel_plot_data[key].second = values;
             }
         }
         return true;

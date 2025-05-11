@@ -162,6 +162,32 @@ void Viewer::render()
     glfwPollEvents(); // process events
 }
 
+Eigen::Vector3d Viewer::getBodyPosition(const std::string &bodyName) const
+{
+    auto bodyId = mj_name2id(model, mjOBJ_BODY, bodyName.c_str());
+    if (bodyId != -1)
+    {
+        Eigen::Map<Eigen::Vector3d> pos(data->xpos + bodyId * 3, 3);
+        return pos;
+    }
+    return Eigen::Vector3d::Zero();
+}
+
+Eigen::Matrix4d Viewer::getBodyPose(const std::string &bodyName) const
+{
+    auto bodyId = mj_name2id(model, mjOBJ_BODY, bodyName.c_str());
+    Eigen::Matrix4d res;
+    res.setIdentity();
+    if (bodyId != -1)
+    {
+        Eigen::Map<Eigen::Vector3d> pos(data->xpos + bodyId * 3, 3);
+        Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>> mat(data->xmat + bodyId * 9, 3, 3);
+        res.block<3, 1>(0, 3) = pos;
+        res.block<3, 3>(0, 0) = mat;
+    }
+    return res;
+}
+
 bool Viewer::setJointValue(const std::vector<int> &jointIds, const Eigen::VectorXd &q) const
 {
     int i = 0;
@@ -890,6 +916,29 @@ void Viewer::showGizmo(const mjrRect &viewport, float view[16], float proj[16])
             }
             ImGui::End();
         }
+    }
+}
+
+void Viewer::plotChannelData(const std::string &channelName, const std::shared_ptr<DataTamer::PlotSink>& sink) const
+{
+    static bool show_plot = true;
+    if (show_plot)
+    {
+        ImGui::Begin(("PlotLine: " + channelName).c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
+        if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
+        {
+            ImPlot::SetupAxes("Time (s)", "Value");
+            ImPlot::SetupAxisLimits(ImAxis_X1, data->time - 10.0, data->time, ImGuiCond_Always);
+            std::lock_guard<std::shared_mutex> lock(sink->schema_mutex);
+            if (sink->channel_data.count(channelName) > 0)
+            {
+                auto timestamps = sink->channel_plot_data[channelName].first;
+                auto values = sink->channel_plot_data[channelName].second;
+                ImPlot::PlotLine(channelName.c_str(), timestamps.data(), values.data(), (int)timestamps.size());
+            }
+            ImPlot::EndPlot();
+        }
+        ImGui::End();
     }
 }
 

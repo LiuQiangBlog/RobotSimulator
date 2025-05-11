@@ -68,8 +68,11 @@ struct TypeField
     bool is_vector = 0;
     uint32_t array_size = 0;
 
-    bool operator==(const TypeField &other) const;
-    bool operator!=(const TypeField &other) const;
+    inline bool operator==(const TypeField &other) const;
+    inline bool operator!=(const TypeField &other) const
+    {
+        return (*this == other);
+    }
 };
 
 using FieldsVector = std::vector<TypeField>;

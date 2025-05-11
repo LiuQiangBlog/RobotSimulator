@@ -42,14 +42,39 @@ int main()
     mj_forward(model, data);
     viewer.setBodyVisible("table", false);
     viewer.showMocapGizmo("target");
+
+    auto channel = DataTamer::LogChannel::create("channel");
+    auto sink = std::make_shared<DataTamer::PlotSink>();
+    channel->addDataSink(sink);
+
+    viewer.addFunction(
+        [&]()
+        {
+            viewer.plotChannelData("pos/x", sink);
+        });
+
     std::atomic<bool> exit{false};
     auto control = [&]()
     {
+        Eigen::Vector3d tip;
+        channel->registerValue("pos", &tip);
+        CLOG_INFO << channel->getSchema();
         while (!exit.load(std::memory_order_relaxed))
         {
             auto loop_start_time = std::chrono::high_resolution_clock::now();
             // todo, here implement your control strategy
+
             mj_step(model, data);
+
+            auto bodyId = mj_name2id(model, mjOBJ_BODY, "target");
+            if (bodyId != -1)
+            {
+                std::lock_guard<std::mutex> lck(mtx);
+                Eigen::Map<Eigen::Vector3d> pos(data->xpos + bodyId * 3, 3);
+                tip = pos;
+            }
+            channel->takeSnapshot();
+
             auto loop_end_time = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> loop_duration = loop_end_time - loop_start_time;
             if (loop_duration.count() < model->opt.timestep)
