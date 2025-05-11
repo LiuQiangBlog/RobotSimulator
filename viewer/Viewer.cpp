@@ -925,17 +925,57 @@ void Viewer::plotChannelData(const std::string &channelName, const std::shared_p
     if (show_plot)
     {
         ImGui::Begin(("PlotLine: " + channelName).c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
+//        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 100);
+        ImPlot::SetNextAxisToFit(ImAxis_Y1);
         if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
         {
             ImPlot::SetupAxes("Time (s)", "Value");
-            ImPlot::SetupAxisLimits(ImAxis_X1, data->time - 10.0, data->time, ImGuiCond_Always);
-            std::lock_guard<std::shared_mutex> lock(sink->schema_mutex);
-            if (sink->channel_data.count(channelName) > 0)
+//            ImPlot::SetupAxisLimits(ImAxis_X1, data->time - 10.0, data->time, ImGuiCond_Always);
+
+            if (auto it = sink->channel_plot_data.find(channelName); it != sink->channel_plot_data.end())
             {
-                auto timestamps = sink->channel_plot_data[channelName].first;
-                auto values = sink->channel_plot_data[channelName].second;
-                ImPlot::PlotLine(channelName.c_str(), timestamps.data(), values.data(), (int)timestamps.size());
+                std::lock_guard<std::shared_mutex> lock(sink->schema_mutex);
+                auto &[ts, vals] = it->second;
+                CLOG_INFO << ts.back() << ": " << vals.back();
+                if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                {
+                    double min_time = *std::min_element(ts.begin(), ts.end());
+                    double max_time = *std::max_element(ts.begin(), ts.end());
+                    ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
+//                    auto [min_y, max_y] = std::minmax_element(vals.begin(), vals.end());
+//                    ImPlot::SetupAxisLimits(ImAxis_Y1, *min_y - 1e-3, *max_y + 1e-3, ImGuiCond_Always);
+                    auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+                    ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
+                    ImPlot::PlotLine(channelName.c_str(), ts.data(), vals.data(), (int)ts.size());
+                    ImPlot::PlotScatter("##debug", ts.data(), vals.data(), (int)ts.size());
+                }
             }
+
+//            if (sink->channel_data.count(channelName) > 0)
+//            {
+//                std::lock_guard<std::shared_mutex> lock(sink->schema_mutex);
+//                auto timestamps = sink->channel_plot_data[channelName].first;
+//                auto values = sink->channel_plot_data[channelName].second;
+//                CLOG_INFO << timestamps.back() << ": " << values.back();
+//                // 确保数据无NaN/Inf
+//                for (auto &v : values)
+//                {
+//                    if (std::isnan(v) || std::isinf(v))
+//                    {
+//                        CLOG_ERROR << "Invalid data point detected";
+//                        break;
+//                    }
+//                }
+//                // 改为自动适配Y轴范围
+//                ImPlot::SetupAxisLimits(ImAxis_Y1, *std::min_element(values.begin(), values.end()),
+//                                        *std::max_element(values.begin(), values.end()), ImGuiCond_Once);
+//                ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f);  // 加粗线条
+//                ImPlot::PushStyleColor(ImPlotCol_Line, IM_COL32(255,0,0,255)); // 红色
+//                ImPlot::PlotLine(channelName.c_str(), timestamps.data(), values.data(), (int)timestamps.size());
+//                ImPlot::PopStyleColor();
+//                ImPlot::PopStyleVar();
+//            }
+
             ImPlot::EndPlot();
         }
         ImGui::End();
