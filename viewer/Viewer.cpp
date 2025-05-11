@@ -887,7 +887,6 @@ void Viewer::showGizmo(const mjrRect &viewport, float view[16], float proj[16])
             if (ImGuizmo::Manipulate(view, proj, op, mode, trans))
             {
                 setMocapPose(target_id, trans);
-                mj_forward(model, data);
             }
             ImGui::End();
         }

@@ -41,20 +41,27 @@ int main()
     model->opt.timestep = 0.001; // 1ms
     mj_forward(model, data);
     viewer.setBodyVisible("table", false);
-
+    viewer.showMocapGizmo("target");
     std::atomic<bool> exit{false};
     auto control = [&]()
     {
         while (!exit.load(std::memory_order_relaxed))
         {
-            // todo, implement your control strategy
+            auto loop_start_time = std::chrono::high_resolution_clock::now();
+            // todo, here implement your control strategy
+            mj_step(model, data);
+            auto loop_end_time = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> loop_duration = loop_end_time - loop_start_time;
+            if (loop_duration.count() < model->opt.timestep)
+            {
+                std::this_thread::sleep_for(std::chrono::duration<double>(model->opt.timestep - loop_duration.count()));
+            }
         }
     };
     std::thread th(control);
 
     while (!viewer.shouldClose())
     {
-        mj_step(model, data);
         viewer.render();
     }
     exit = true;
