@@ -17,9 +17,6 @@ function(AddTutorials Path)
     endforeach ()
 endfunction()
 
-AddTutorials(${CMAKE_CURRENT_SOURCE_DIR}
-        zcm
-
-)
+AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} zcm)
 
 
