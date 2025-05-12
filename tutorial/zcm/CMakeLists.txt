@@ -9,7 +9,11 @@ function(AddTutorials Path)
         #        ${ARGV} ${ARGV0} ${ARGV1} ${ARGV2}
         #        get_filename_component(file_base ${example} NAME_WE)
         add_executable(${file_base} ${example})
-        target_link_libraries(${file_base} -Wl,--whole-archive ${ARGN} -Wl,--no-whole-archive)
+        target_link_libraries(${file_base}
+                -Wl,--whole-archive
+                ${ARGN}
+                -Wl,--no-whole-archive
+        )
     endforeach ()
 endfunction()
 
