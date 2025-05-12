@@ -13,3 +13,9 @@ add_subdirectory(implot)
 add_subdirectory(imgizmo)
 add_subdirectory(data_tamer)
 add_subdirectory(googletest)
+
+set(WITH_PERF_TOOL OFF CACHE BOOL "" FORCE)
+add_subdirectory(libzmq)
+add_subdirectory(nng)
+
+add_subdirectory(zcm)

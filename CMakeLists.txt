@@ -22,6 +22,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0072 NEW)
 # Avoid BUILD_SHARED_LIBS getting overridden by an option() in ccd.
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 
 # This line has to appear before 'PROJECT' in order to be able to disable incremental linking
 set(MSVC_INCREMENTAL_DEFAULT ON)
@@ -83,6 +84,10 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/marchingcubecpp)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/qhull/src/libqhull_r)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/data_tamer/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/data_tamer/3rdparty/mcap/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/asio/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/cppzmq)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/libzmq/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/nng/include)
 
 add_subdirectory(3rdparty)
 
