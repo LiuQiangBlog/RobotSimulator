@@ -44,6 +44,8 @@ int main()
     channelB->registerValue("vector_4", &v7);
     channelB->registerValue("array_3", &v8);
     channelB->registerValue("points", &points);
+    std::cout << channelA->getSchema() << std::endl;
+    std::cout << channelB->getSchema() << std::endl;
 
     for (size_t i = 0; i < 1000; i++)
     {
