@@ -88,6 +88,8 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/asio/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/cppzmq)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/libzmq/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/nng/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/zcm)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/zcm/gen)
 
 add_subdirectory(3rdparty)
 
@@ -282,3 +284,4 @@ endif()
 
 add_subdirectory(viewer)
 add_subdirectory(tutorial/data_tamer)
+add_subdirectory(tutorial/zcm)
