@@ -3,6 +3,7 @@
 //
 
 #include "Viewer.h"
+#include <sstream>
 
 Viewer::Viewer(mjModel *m, mjData *d, std::string windowTitle)
     : model(m), data(d), title(std::move(windowTitle))
@@ -112,7 +113,10 @@ void Viewer::render()
 {
     mjv_updateScene(model, data, &opt, nullptr, &cam, mjCAT_ALL, &scn);
 
-    drawBodyFrame(vGeoms, getBodyId("table"), 0.5);
+    for (auto &bodyId : drawFrameBodyId)
+    {
+        drawBodyFrame(vGeoms, bodyId, 0.5);
+    }
     hideGeomsById(geomIds);
     hideGeomsByVisibleMask(bodyVisible);
     showBodyFrame(vGeoms);
@@ -929,6 +933,7 @@ void Viewer::plotChannelData(const std::string &channelName, const std::shared_p
         ImPlot::SetNextAxisToFit(ImAxis_Y1);
         if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
         {
+            ImPlot::SetupAxisFormat(ImAxis_X1, "Value: %.3f");
             ImPlot::SetupAxes("Time (s)", "Value");
 //            ImPlot::SetupAxisLimits(ImAxis_X1, data->time - 10.0, data->time, ImGuiCond_Always);
 
@@ -936,7 +941,7 @@ void Viewer::plotChannelData(const std::string &channelName, const std::shared_p
             {
                 std::lock_guard<std::shared_mutex> lock(sink->schema_mutex);
                 auto &[ts, vals] = it->second;
-                CLOG_INFO << ts.back() << ": " << vals.back();
+//                CLOG_INFO << ts.back() << ": " << vals.back();
                 if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                 {
                     double min_time = *std::min_element(ts.begin(), ts.end());
@@ -979,6 +984,15 @@ void Viewer::plotChannelData(const std::string &channelName, const std::shared_p
             ImPlot::EndPlot();
         }
         ImGui::End();
+    }
+}
+
+void Viewer::drawBodyFrame(const std::string &bodyName)
+{
+    auto bodyId = mj_name2id(model, mjOBJ_BODY, bodyName.c_str());
+    if (bodyId != -1)
+    {
+        drawFrameBodyId.push_back(bodyId);
     }
 }
 

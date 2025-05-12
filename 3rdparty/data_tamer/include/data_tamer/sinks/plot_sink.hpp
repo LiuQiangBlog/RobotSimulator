@@ -84,6 +84,13 @@ public:
     Mutex schema_mutex;
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
+    uint64_t start_time;
+
+    PlotSink()
+    {
+        auto duration = std::chrono::system_clock::now().time_since_epoch();
+        start_time = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+    }
 
     ~PlotSink() override
     {
@@ -98,7 +105,7 @@ public:
         snapshots_count[schema.hash] = 0;
     }
 
-    DataTamerParser::SnapshotView ConvertSnapshot(const DataTamer::Snapshot &snapshot)
+    static DataTamerParser::SnapshotView ConvertSnapshot(const DataTamer::Snapshot &snapshot)
     {
         return {snapshot.schema_hash,
                 uint64_t(snapshot.timestamp.count()),
@@ -131,9 +138,10 @@ public:
                         return double(var);
                     },
                     number);
-                auto ns = std::chrono::nanoseconds(snapshot_view.timestamp);
-                auto ms = std::chrono::duration<double, std::milli>(ns).count();
-                parsed_values[field_name] = {ms / 1000, value}; // timestamp unit is s
+                auto start_tp = std::chrono::system_clock::time_point(std::chrono::nanoseconds(start_time));
+                auto snapshot_tp = std::chrono::system_clock::time_point(std::chrono::nanoseconds(snapshot_view.timestamp));
+                auto sec = std::chrono::duration<double>(snapshot_tp - start_tp).count();
+                parsed_values[field_name] = {sec, value}; // timestamp unit is s
             };
             DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
             for (auto &[key, pair] : parsed_values)

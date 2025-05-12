@@ -42,7 +42,7 @@ int main()
     mj_forward(model, data);
     viewer.setBodyVisible("table", false);
     viewer.showMocapGizmo("target");
-
+    viewer.drawBodyFrame("table");
     auto channel = DataTamer::LogChannel::create("channel");
     auto sink = std::make_shared<DataTamer::PlotSink>();
     channel->addDataSink(sink);

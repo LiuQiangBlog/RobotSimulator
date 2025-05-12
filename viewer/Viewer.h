@@ -137,6 +137,8 @@ public:
 
     void plotChannelData(const std::string &channelName, const std::shared_ptr<DataTamer::PlotSink>& sink) const;
 
+    void drawBodyFrame(const std::string &bodyName);
+
 protected:
     static void mouseClickCallback(GLFWwindow *win, int button, int action, int mods);
 
@@ -203,6 +205,7 @@ private:
     bool globalExpand{true};
     std::vector<mjtNum> q, lower, upper; // store joint values from imgui slider
     std::vector<int> mocapGizmos;
+    std::vector<int> drawFrameBodyId;
 };
 
 #endif // MUJOCO_VIEWER_H
