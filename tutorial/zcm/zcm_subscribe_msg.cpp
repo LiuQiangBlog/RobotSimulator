@@ -37,17 +37,16 @@ public:
         {
             return;
         }
-        CLOG_INFO << "channel: " << chan;
         for (auto &channel : msg->channels)
         {
             discovered_channels.insert(channel);
-            CLOG_INFO << channel;
         }
         if (zcmPtr && channelsSubed)
         {
             zcmPtr->unsubscribe(channelsSubed);
             channelsSubed = nullptr;
             already_received = true; // 设置标志位
+            CLOG_INFO << "unsubscribe channels success.";
         }
     }
     std::set<std::string> discovered_channels;
@@ -66,12 +65,16 @@ int main(int argc, char *argv[])
     if (!zcm.good())
         return 1;
 
-    Handler handlerObject;
-    handlerObject.zcmPtr = &zcm;
-    zcm.subscribe("EXAMPLE", &Handler::handleMessage, &handlerObject);
-    handlerObject.channelsSubed = zcm.subscribe("channels", &Handler::handleMessage2, &handlerObject);
+    Handler hd;
+    hd.zcmPtr = &zcm;
+    zcm.subscribe("EXAMPLE", &Handler::handleMessage, &hd);
+    hd.channelsSubed = zcm.subscribe("channels", &Handler::handleMessage2, &hd);
 
     zcm.run();
-
+    CLOG_INFO << "channels: ";
+    for (const auto &ch : hd.discovered_channels)
+    {
+        std::cout << "- " << ch << std::endl;
+    }
     return 0;
 }
