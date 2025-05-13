@@ -1,0 +1,5 @@
+package test_package;
+struct packaged2_t {
+    boolean packaged;
+    .example4_t e;
+}

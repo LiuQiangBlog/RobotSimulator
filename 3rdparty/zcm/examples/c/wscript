@@ -1,0 +1,31 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+def build(ctx):
+    ctx.program(target = 'pub',
+                use = 'default zcm examplezcmtypes_c_stlib',
+                source = 'pub.c')
+
+    ctx.program(target = 'bitfield_pub',
+                use = 'default zcm examplezcmtypes_c_stlib',
+                source = 'bitfield_pub.c')
+
+    ctx.program(target = 'sub',
+                use = 'default zcm examplezcmtypes_c_stlib',
+                source = 'sub.c')
+
+    ctx.program(target = 'bitfield_sub',
+                use = 'default zcm examplezcmtypes_c_stlib',
+                source = 'bitfield_sub.c')
+
+    ctx.program(target = 'pubsub',
+                use = 'default zcm examplezcmtypes_c_stlib',
+                source = 'pubsub.c')
+
+    ctx.program(target = 'pubsubregex',
+                use = 'default zcm',
+                source = 'pubsubregex.c')
+
+    ctx.program(target = 'nblock-inproc',
+                use = 'default zcm examplezcmtypes_c_stlib',
+                source = 'nblock_inproc.c')

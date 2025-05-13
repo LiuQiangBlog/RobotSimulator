@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ZCM: Node-Client Example</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/zcm-client.js"></script>
+  </head>
+  <body>
+    <div>
+      <button id="subscribe" onclick="subscribe();">Subscribe</button>
+      <button id="subscribe_all" onclick="subscribe_all();">Subscribe All</button>
+      <button id="unsubscribe" onclick="unsubscribe();">Unsubscribe</button>
+      <button id="publish" onclick="publish();">Publish</button>
+      <button id="publish2" onclick="publish2();">Publish2</button>
+    </div>
+    <div>
+      <button id="flush" onclick="flush();">Flush</button>
+      <button id="pause" onclick="pause();">Pause</button>
+      <button id="resume" onclick="resume();">Resume</button>
+    </div>
+    <ul id="messages"></ul>
+    <script src="js/index.js"></script>
+  </body>
+</html>

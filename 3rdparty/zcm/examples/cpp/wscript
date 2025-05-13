@@ -1,0 +1,73 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+def build(ctx):
+    ctx.program(target = 'pub',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'Pub.cpp')
+
+    ctx.program(target = 'bitfield_pub',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'BitfieldPub.cpp')
+
+    ctx.program(target = 'sub',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'Sub.cpp')
+
+    ctx.program(target = 'bitfield_sub',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'BitfieldSub.cpp')
+
+    ctx.program(target = 'sub-functional',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'SubFunctional.cpp')
+
+    ctx.program(target = 'pubsub',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'PubSub.cpp')
+
+    ctx.program(target = 'unsub',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'Unsub.cpp')
+
+    ctx.program(target = 'pauseflushresume',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'PauseFlushResume.cpp')
+
+    ctx.program(target = 'flushdrivenloop',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'FlushDrivenLoop.cpp')
+
+    ctx.program(target = 'inproc',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'Inproc.cpp')
+
+    ctx.program(target = 'serial',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'Serial.cpp')
+
+    ctx.program(target = 'tracker',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'MessageTrackerTest.cpp')
+
+    ctx.shlib(target = 'example-indexer-plugin',
+              use    = ['default', 'zcm', 'examplezcmtypes_cpp'],
+              source = 'CustomIndexerPlugin.cpp')
+
+    ctx.shlib(target = 'example-transcoder-plugin',
+              use    = ['default', 'zcm', 'examplezcmtypes_cpp'],
+              source = 'CustomTranscoderPlugin.cpp')
+
+    ctx.program(target = 'packaged',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'Packaged.cpp')
+
+    ctx.program(target = 'bandwidth-test',
+                use = 'default zcm',
+                source = 'BandwidthTest.cpp')
+
+    ctx.program(target = 'function-name-collision',
+                use = 'default zcm examplezcmtypes_cpp',
+                source = 'FunctionNameCollision.cpp')
+
+    ctx.recurse('transport')

@@ -1,0 +1,11 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+def build(ctx):
+    ctx(name       = 'example',
+        features   = 'javac jar',
+        use        = 'zcmjar zcmtoolsjar examplezcmtypes_java',
+        srcdir     = ['example'],
+        outdir     = 'classes',  # path to output (for .class)
+        basedir    = 'classes',  # basedir for jar
+        destfile   = 'example.jar')

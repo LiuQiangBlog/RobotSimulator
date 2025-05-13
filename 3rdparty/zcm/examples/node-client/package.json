@@ -1,0 +1,19 @@
+{
+  "name": "zcm-example",
+  "version": "1.1.5",
+  "description": "",
+  "scripts": {
+    "//": [
+      "Note: users should use their own post-install script to copy the ",
+      "      zcm-client.js file into a client-visible folder"
+    ],
+    "preinstall": "npm install zerocm --force",
+    "postinstall": "cp /usr/local/share/node/zcm-client.js public/js/. && cp ../../build/examples/examples/types/zcmtypes.js node_modules/"
+  },
+  "dependencies": {
+    "big-integer": "^1.6.27",
+    "express": "^4.14.0",
+    "ref-napi": "^3.0.0",
+    "zerocm": "file:../../../../../../usr/local/share/node/zerocm-1.1.5.tgz"
+  }
+}
