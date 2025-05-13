@@ -6,6 +6,7 @@
 #include <string>
 #include <zcm/zcm-cpp.hpp>
 #include "types/example_t.hpp"
+#include "types/all_channels_t.hpp"
 using std::string;
 #include <set>
 #include <Logging.h>
@@ -29,12 +30,17 @@ public:
         printf("  name        = '%s'\n", msg->name.c_str());
         printf("  enabled     = %d\n", msg->enabled);
     }
-    void handleMessage2(const zcm::ReceiveBuffer *rbuf, const string &chan, const example_t *msg)
+    void handleMessage2(const zcm::ReceiveBuffer *rbuf, const string &chan, const all_channels_t *msg)
     {
         CLOG_INFO << "channel: " << chan;
-        channels.insert(chan);
+        for (auto &channel : msg->channels)
+        {
+            discovered_channels.insert(channel);
+            CLOG_INFO << channel;
+        }
     }
-    std::set<std::string> channels;
+    std::set<std::string> discovered_channels;
+    bool already_received = false;
 };
 
 int main(int argc, char *argv[])
@@ -49,7 +55,8 @@ int main(int argc, char *argv[])
 
     Handler handlerObject;
     zcm.subscribe("EXAMPLE", &Handler::handleMessage, &handlerObject);
-    zcm.subscribe("*", &Handler::handleMessage2, &handlerObject);
+    zcm.subscribe("channels", &Handler::handleMessage2, &handlerObject);
+
     zcm.run();
 
     return 0;
