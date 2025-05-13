@@ -23,6 +23,7 @@
 #include "Types.h"
 #include <data_tamer/data_tamer.hpp>
 #include <data_tamer/sinks/plot_sink.hpp>
+#include <data_tamer/sinks/publish_sink.hpp>
 
 enum CameraMode
 {
