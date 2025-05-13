@@ -44,7 +44,7 @@ void consumer_thread()
     while (element != TOTAL - 1)
     {
         gConcurrentQueue.wait_dequeue(element);
-        printf("element:%d\n", element);
+//        printf("element:%d\n", element);
     }
 }
 

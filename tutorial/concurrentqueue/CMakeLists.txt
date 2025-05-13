@@ -17,6 +17,6 @@ function(AddTutorials Path)
     endforeach ()
 endfunction()
 
-AddTutorials(${CMAKE_CURRENT_SOURCE_DIR})
+AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} pthread)
 
 

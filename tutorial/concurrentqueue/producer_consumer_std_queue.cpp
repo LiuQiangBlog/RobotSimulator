@@ -54,7 +54,7 @@ void consumer_thread()
                 });
         element = gQueue.front();
         gQueue.pop();
-        printf("element:%d\n", element);
+//        printf("element:%d\n", element);
     }
 }
 
