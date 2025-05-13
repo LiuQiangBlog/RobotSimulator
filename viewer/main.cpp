@@ -14,7 +14,7 @@ int main()
 {
     zcm::RegisterAllPlugins();
     std::string file("/home/liuqiang/CLionProjects/RobotControlAlgorithms/mujoco/tora_one/scene.xml");
-    //    std::string file("/home/liuqiang/PycharmProjects/mink/examples/kuka_iiwa_14/scene.xml");
+//        std::string file("/home/liuqiang/PycharmProjects/mink/examples/kuka_iiwa_14/scene.xml");
     char err[1000];
     mjModel *model = mj_loadXML(file.c_str(), nullptr, err, 1000);
     if (!model)
@@ -47,18 +47,21 @@ int main()
     viewer.drawBodyFrame("table");
     auto channel = DataTamer::LogChannel::create("channel");
     auto sink = std::make_shared<DataTamer::PlotSink>();
+    channel->addDataSink(sink);
+
     auto publisher = std::make_shared<DataTamer::PublishSink>();
     if (!publisher->init())
     {
         return -1;
     }
-    channel->addDataSink(sink);
     channel->addDataSink(publisher);
 
     viewer.addFunction(
         [&]()
         {
             viewer.plotChannelData("pos/x", sink);
+            viewer.plotChannelData("pos/y", sink);
+            viewer.plotChannelData("pos/z", sink);
         });
 
     std::atomic<bool> exit{false};

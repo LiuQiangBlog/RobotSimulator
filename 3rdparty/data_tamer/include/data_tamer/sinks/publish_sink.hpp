@@ -59,6 +59,7 @@ public:
             publisher.reset();
             return false;
         }
+        return true;
     }
 
     void addChannel(std::string const &name, Schema const &schema) override
@@ -110,8 +111,11 @@ public:
             DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
             for (auto &[key, pair] : parsed_values)
             {
-                data.set(pair.first, pair.second);
-                publisher->publish(key, &data);
+                if (publisher)
+                {
+                    data.set(pair.first, pair.second);
+                    publisher->publish(key, &data);
+                }
 //                channel_data[key].first.push_back(pair.first);
 //                channel_data[key].second.push_back(pair.second);
 //                if (channel_data[key].first.size() > 10000)

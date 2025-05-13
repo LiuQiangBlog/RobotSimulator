@@ -167,6 +167,7 @@ public:
 // Main code
 int main(int, char**)
 {
+    zcm::RegisterAllPlugins();
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return 1;

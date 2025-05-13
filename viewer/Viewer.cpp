@@ -933,7 +933,7 @@ void Viewer::plotChannelData(const std::string &channelName, const std::shared_p
         ImPlot::SetNextAxisToFit(ImAxis_Y1);
         if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
         {
-            ImPlot::SetupAxisFormat(ImAxis_X1, "Value: %.3f");
+            ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
             ImPlot::SetupAxes("Time (s)", "Value");
 //            ImPlot::SetupAxisLimits(ImAxis_X1, data->time - 10.0, data->time, ImGuiCond_Always);
 
