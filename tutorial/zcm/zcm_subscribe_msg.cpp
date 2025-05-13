@@ -7,9 +7,10 @@
 #include <zcm/zcm-cpp.hpp>
 #include "types/example_t.hpp"
 #include "types/all_channels_t.hpp"
-using std::string;
 #include <set>
 #include <Logging.h>
+
+using std::string;
 
 class Handler
 {
@@ -32,15 +33,27 @@ public:
     }
     void handleMessage2(const zcm::ReceiveBuffer *rbuf, const string &chan, const all_channels_t *msg)
     {
+        if (already_received)
+        {
+            return;
+        }
         CLOG_INFO << "channel: " << chan;
         for (auto &channel : msg->channels)
         {
             discovered_channels.insert(channel);
             CLOG_INFO << channel;
         }
+        if (zcmPtr && channelsSubed)
+        {
+            zcmPtr->unsubscribe(channelsSubed);
+            channelsSubed = nullptr;
+            already_received = true; // 设置标志位
+        }
     }
     std::set<std::string> discovered_channels;
     bool already_received = false;
+    zcm::Subscription *channelsSubed = nullptr;
+    zcm::ZCM *zcmPtr;
 };
 
 int main(int argc, char *argv[])
@@ -54,8 +67,9 @@ int main(int argc, char *argv[])
         return 1;
 
     Handler handlerObject;
+    handlerObject.zcmPtr = &zcm;
     zcm.subscribe("EXAMPLE", &Handler::handleMessage, &handlerObject);
-    zcm.subscribe("channels", &Handler::handleMessage2, &handlerObject);
+    handlerObject.channelsSubed = zcm.subscribe("channels", &Handler::handleMessage2, &handlerObject);
 
     zcm.run();
 
