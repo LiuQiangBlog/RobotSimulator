@@ -48,6 +48,8 @@ int main(int argc, char *argv[])
     while (1)
     {
         zcm.publish(channel, &my_data);
+        zcm.publish("aaa", &my_data);
+        zcm.publish("bbb", &my_data);
         for (auto &val : my_data.position)
             val++;
         usleep(1000 * 1000);

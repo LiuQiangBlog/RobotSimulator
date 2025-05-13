@@ -20,6 +20,18 @@ template <class T, class... Args>
 auto measure(T &&func, Args &&...args) -> std::future<typename std::result_of<T(Args...)>::type>
 {
     using return_type = typename std::result_of<T(Args...)>::type;
+    //    auto task = std::make_shared<std::packaged_task<return_type()>>(
+    //        [Func = std::forward<T>(func), ...args = std::forward<Args>(args)]() mutable
+    //        {
+    //            return std::invoke(Func, std::forward<Args>(args)...);
+    //        }
+    //    );
+    //    auto task = std::make_shared<std::packaged_task<return_type()>>(
+    //        [func = std::forward<T>(func), args = std::make_tuple(std::forward<Args>(args)...)]()
+    //        {
+    //            return std::apply(func, std::move(args));
+    //        }
+    //    );
     auto task = std::make_shared<std::packaged_task<return_type()>>(
         std::bind(std::forward<T>(func), std::forward<Args>(args)...));
     std::future<return_type> res = task->get_future();
@@ -54,7 +66,7 @@ void consumer_thread()
                 });
         element = gQueue.front();
         gQueue.pop();
-//        printf("element:%d\n", element);
+        //        printf("element:%d\n", element);
     }
 }
 

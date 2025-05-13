@@ -7,6 +7,8 @@
 #include <zcm/zcm-cpp.hpp>
 #include "types/example_t.hpp"
 using std::string;
+#include <set>
+#include <Logging.h>
 
 class Handler
 {
@@ -27,21 +29,27 @@ public:
         printf("  name        = '%s'\n", msg->name.c_str());
         printf("  enabled     = %d\n", msg->enabled);
     }
+    void handleMessage2(const zcm::ReceiveBuffer *rbuf, const string &chan, const example_t *msg)
+    {
+        CLOG_INFO << "channel: " << chan;
+        channels.insert(chan);
+    }
+    std::set<std::string> channels;
 };
 
 int main(int argc, char *argv[])
 {
     registerAllPlugins();
     zcm::ZCM zcm("ipc");
-//    zcm::ZCM zcm("udp://127.0.0.1:9001:9000?ttl=1");
-//    zcm::ZCM zcm("ipcshm://");
-//    zcm::ZCM zcm("udpm://239.255.76.67:7654?ttl=1");
+    //    zcm::ZCM zcm("udp://127.0.0.1:9001:9000?ttl=1");
+    //    zcm::ZCM zcm("ipcshm://");
+    //    zcm::ZCM zcm("udpm://239.255.76.67:7654?ttl=1");
     if (!zcm.good())
         return 1;
 
     Handler handlerObject;
     zcm.subscribe("EXAMPLE", &Handler::handleMessage, &handlerObject);
-    zcm.subscribe("FOOBAR", &Handler::handleMessage, &handlerObject);
+    zcm.subscribe("*", &Handler::handleMessage2, &handlerObject);
     zcm.run();
 
     return 0;

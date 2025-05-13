@@ -87,6 +87,7 @@ int main()
     }
     std::this_thread::sleep_for(std::chrono::seconds(2));
     zcm.stop();
+    zcm.flush();
     zcmThread.join();
     return 0;
 }
