@@ -1,0 +1,7 @@
+
+struct all_channels_t
+{
+    int64_t timestamp;
+    int32_t cnt;
+    string channels[cnt];
+}

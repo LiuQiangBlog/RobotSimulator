@@ -65,4 +65,7 @@ add_executable(zcm_gen
 )
 
 target_link_libraries(zcm_gen zcm zcm_json)
-
+target_compile_definitions(zcm_gen PRIVATE
+        -D_GNU_SOURCE
+        -D_POSIX_C_SOURCE=200809L
+)
