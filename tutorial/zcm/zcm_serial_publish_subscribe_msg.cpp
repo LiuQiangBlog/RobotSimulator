@@ -29,20 +29,50 @@ public:
     }
 };
 
-int main(int argc, char *argv[])
+int main()
 {
     registerAllPlugins();
-    zcm::ZCM zcm("inproc");
-//    zcm::ZCM zcm("udp://127.0.0.1:9001:9000?ttl=1");
-//    zcm::ZCM zcm("ipcshm://");
-//    zcm::ZCM zcm("udpm://239.255.76.67:7654?ttl=1");
+    const char *URL = "serial:/dev/ttyUSB0?baud=460800";
+
+    zcm::ZCM zcm{URL};
     if (!zcm.good())
         return 1;
 
     Handler handlerObject;
-    zcm.subscribe("EXAMPLE", &Handler::handleMessage, &handlerObject);
-    zcm.subscribe("FOOBAR", &Handler::handleMessage, &handlerObject);
-    zcm.run();
+    auto subs = zcm.subscribe("EXAMPLE", &Handler::handleMessage, &handlerObject);
+
+    example_t my_data{};
+    my_data.timestamp = 0;
+
+    my_data.position[0] = 1;
+    my_data.position[1] = 2;
+    my_data.position[2] = 3;
+
+    my_data.orientation[0] = 1;
+    my_data.orientation[1] = 0;
+    my_data.orientation[2] = 0;
+    my_data.orientation[3] = 0;
+
+    // my_data.num_ranges = 100000;
+    my_data.num_ranges = 1;
+    my_data.ranges.resize(my_data.num_ranges);
+    for (int i = 0; i < my_data.num_ranges; i++)
+        my_data.ranges[i] = i % 20000;
+
+    my_data.name = "e";
+    my_data.enabled = true;
+
+    zcm.start();
+
+    while (1)
+    {
+        zcm.publish("EXAMPLE", &my_data);
+        usleep(1000 * 1000);
+    }
+
+    zcm.stop();
+
+    zcm.unsubscribe(subs);
 
     return 0;
 }
