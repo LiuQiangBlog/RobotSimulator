@@ -38,8 +38,7 @@ public:
 
 int main()
 {
-    registerAllPlugins();
-
+    zcm::RegisterAllPlugins();
     // ✅ 设置多 transport：既发 UDP，又记录日志
     zcm::ZCM zcm("udpm://239.255.76.67:7667?ttl=1,file:///home/liuqiang/log.zcm?mode=w");
 

@@ -16,7 +16,9 @@ extern "C" void register_nonBlockInproc_plugin();
 extern "C" void register_file_plugin();
 extern "C" void register_can_plugin();
 
-inline void registerAllPlugins()
+namespace zcm
+{
+inline void RegisterAllPlugins()
 {
     register_udp_plugin();
     register_udpm_plugin();
@@ -28,4 +30,5 @@ inline void registerAllPlugins()
     register_nonBlockInproc_plugin();
     register_file_plugin();
     register_can_plugin();
+}
 }

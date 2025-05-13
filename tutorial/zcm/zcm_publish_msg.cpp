@@ -17,7 +17,7 @@ inline int64_t zcm_now()
 
 int main(int argc, char *argv[])
 {
-    registerAllPlugins();
+    zcm::RegisterAllPlugins();
     zcm::ZCM zcm("ipc");
 //    zcm::ZCM zcm("udp://127.0.0.1:9000:9001?ttl=1");
 //    zcm::ZCM zcm("ipcshm://");

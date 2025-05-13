@@ -5,12 +5,14 @@
 #include <mutex>
 #include <condition_variable>
 #include <thread>
+#include <data_tamer/sinks/publish_sink.hpp>
 
 std::mutex mtx;
 std::condition_variable cv;
 
 int main()
 {
+    zcm::RegisterAllPlugins();
     std::string file("/home/liuqiang/CLionProjects/RobotControlAlgorithms/mujoco/tora_one/scene.xml");
     //    std::string file("/home/liuqiang/PycharmProjects/mink/examples/kuka_iiwa_14/scene.xml");
     char err[1000];
@@ -45,7 +47,13 @@ int main()
     viewer.drawBodyFrame("table");
     auto channel = DataTamer::LogChannel::create("channel");
     auto sink = std::make_shared<DataTamer::PlotSink>();
+    auto publisher = std::make_shared<DataTamer::PublishSink>();
+    if (!publisher->init())
+    {
+        return -1;
+    }
     channel->addDataSink(sink);
+    channel->addDataSink(publisher);
 
     viewer.addFunction(
         [&]()

@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     signal(SIGINT, sighandler);
     signal(SIGQUIT, sighandler);
     signal(SIGTERM, sighandler);
-
+    zcm::RegisterAllPlugins();
     zcm::ZCM zcm{"ipcshm://"};
     if (!zcm.good())
         return 1;

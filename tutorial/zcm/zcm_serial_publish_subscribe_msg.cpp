@@ -31,9 +31,8 @@ public:
 
 int main()
 {
-    registerAllPlugins();
+    zcm::RegisterAllPlugins();
     const char *URL = "serial:///dev/ttyUSB0?baud=460800"; // port is /dev/ttyUSB0
-
     zcm::ZCM zcm{URL};
     if (!zcm.good())
         return 1;

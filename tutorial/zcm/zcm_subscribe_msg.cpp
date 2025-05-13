@@ -57,7 +57,7 @@ public:
 
 int main(int argc, char *argv[])
 {
-    registerAllPlugins();
+    zcm::RegisterAllPlugins();
     zcm::ZCM zcm("ipc");
     //    zcm::ZCM zcm("udp://127.0.0.1:9001:9000?ttl=1");
     //    zcm::ZCM zcm("ipcshm://");

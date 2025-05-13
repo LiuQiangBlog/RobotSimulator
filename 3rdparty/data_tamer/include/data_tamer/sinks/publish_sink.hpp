@@ -14,6 +14,7 @@
 #include <Eigen/Dense>
 #include <deque>
 #include <zcm/zcm-cpp.hpp>
+#include "timed_value.hpp"
 
 namespace DataTamer
 {
@@ -32,10 +33,11 @@ public:
     std::unordered_map<uint64_t, long> snapshots_count;
     Snapshot latest_snapshot;
     Mutex schema_mutex;
-    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
-    std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
+//    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+//    std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     uint64_t start_time;
     std::unique_ptr<zcm::ZCM> publisher;
+    timed_value data;
 
     PublishSink()
     {
@@ -108,17 +110,20 @@ public:
             DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
             for (auto &[key, pair] : parsed_values)
             {
-                channel_data[key].first.push_back(pair.first);
-                channel_data[key].second.push_back(pair.second);
-                if (channel_data[key].first.size() > 10000)
-                {
-                    channel_data[key].first.pop_front();
-                    channel_data[key].second.pop_front();
-                }
-                auto timestamps = std::vector<double>(channel_data[key].first.begin(), channel_data[key].first.end());
-                auto values = std::vector<double>(channel_data[key].second.begin(), channel_data[key].second.end());
-                channel_plot_data[key].first = timestamps;
-                channel_plot_data[key].second = values;
+                data.set(pair.first, pair.second);
+                publisher->publish(key, &data);
+//                channel_data[key].first.push_back(pair.first);
+//                channel_data[key].second.push_back(pair.second);
+//                if (channel_data[key].first.size() > 10000)
+//                {
+//                    channel_data[key].first.pop_front();
+//                    channel_data[key].second.pop_front();
+//                }
+//                auto timestamps = std::vector<double>(channel_data[key].first.begin(), channel_data[key].first.end());
+//                auto values = std::vector<double>(channel_data[key].second.begin(), channel_data[key].second.end());
+//                channel_plot_data[key].first = timestamps;
+//                channel_plot_data[key].second = values;
+
             }
         }
         return true;
