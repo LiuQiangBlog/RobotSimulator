@@ -7,6 +7,7 @@
 
 #include "data_tamer/data_sink.hpp"
 #include <data_tamer_parser/data_tamer_parser.hpp>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <shared_mutex>
@@ -34,6 +35,7 @@ public:
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     uint64_t start_time;
+    std::unique_ptr<zcm::ZCM> publisher;
 
     PublishSink()
     {
@@ -44,6 +46,17 @@ public:
     ~PublishSink() override
     {
         stopThread();
+    }
+
+    bool init()
+    {
+        publisher = std::make_unique<zcm::ZCM>("ipcshm://");
+        if (!publisher->good())
+        {
+            CLOG_ERROR << "Failed to create zcm::ZCM()";
+            publisher.reset();
+            return false;
+        }
     }
 
     void addChannel(std::string const &name, Schema const &schema) override

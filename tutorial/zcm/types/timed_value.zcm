@@ -1,0 +1,5 @@
+struct timed_value
+{
+    double timestamp;
+    double value;
+}
