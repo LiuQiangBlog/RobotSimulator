@@ -6,6 +6,14 @@
 #include <zcm/transport_register.hpp>
 #include <zcm/transport/udp/udp.hpp>
 #include "types/example_t.hpp"
+#include "types/all_channels_t.hpp"
+#include <set>
+
+inline int64_t zcm_now()
+{
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch())
+        .count();
+}
 
 int main(int argc, char *argv[])
 {
@@ -44,7 +52,14 @@ int main(int argc, char *argv[])
 #endif
 
     my_data.enabled = true;
+    all_channels_t data;
+    data.channels.push_back(channel);
+    data.channels.emplace_back("aaa");
+    data.channels.emplace_back("bbb");
+    data.cnt = 3;
+    data.timestamp = zcm_now();
 
+    bool published{false};
     while (1)
     {
         zcm.publish(channel, &my_data);
@@ -52,6 +67,12 @@ int main(int argc, char *argv[])
         zcm.publish("bbb", &my_data);
         for (auto &val : my_data.position)
             val++;
+
+        if (!published)
+        {
+            zcm.publish("channels", &data);
+            published = true;
+        }
         usleep(1000 * 1000);
     }
 
