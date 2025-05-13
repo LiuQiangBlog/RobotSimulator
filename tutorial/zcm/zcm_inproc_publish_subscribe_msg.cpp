@@ -37,7 +37,8 @@ inline int64_t zcm_now()
 int main(int argc, char *argv[])
 {
     registerAllPlugins();
-    zcm::ZCM zcm("inproc");
+    zcm::ZCM zcm("nonblock-inproc");
+//    zcm::ZCM zcm("inproc");
 
     if (!zcm.good())
     {

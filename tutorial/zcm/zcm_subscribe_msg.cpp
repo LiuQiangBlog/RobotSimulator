@@ -32,7 +32,7 @@ public:
 int main(int argc, char *argv[])
 {
     registerAllPlugins();
-    zcm::ZCM zcm("inproc");
+    zcm::ZCM zcm("ipc");
 //    zcm::ZCM zcm("udp://127.0.0.1:9001:9000?ttl=1");
 //    zcm::ZCM zcm("ipcshm://");
 //    zcm::ZCM zcm("udpm://239.255.76.67:7654?ttl=1");

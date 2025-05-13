@@ -32,7 +32,7 @@ public:
 int main()
 {
     registerAllPlugins();
-    const char *URL = "serial:/dev/ttyUSB0?baud=460800";
+    const char *URL = "serial:///dev/ttyUSB0?baud=460800"; // port is /dev/ttyUSB0
 
     zcm::ZCM zcm{URL};
     if (!zcm.good())
