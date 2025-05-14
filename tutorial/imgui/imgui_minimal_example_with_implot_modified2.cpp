@@ -47,9 +47,9 @@ public:
                         ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
 
                         ImVec4 color = ImPlot::GetColormapColor(0);
-                        ImPlot::SetNextLineStyle(color, 2.0f);
+                        ImPlot::SetNextLineStyle(color, 1.0f);
                         ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+                        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, 1.5f, color);
                         ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
                     }
                 }
@@ -244,11 +244,10 @@ public:
                             auto &[ts, vals] = channel_plot_data[channel];
                             if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                             {
-                                ImVec4 color = ImPlot::GetColormapColor(int(i));
-                                ImPlot::SetNextLineStyle(color, 2.0f);
+                                ImPlot::SetNextLineStyle(ImPlot::GetColormapColor(i), 1.f);
+//                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 4.0f);
+                                //ImPlot::PlotScatter(scatter_id.c_str(), ts.data(), vals.data(), (int)ts.size());
                                 ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
-                                ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
                             }
                         }
                     }
@@ -591,9 +590,10 @@ int main(int, char **)
     {
         return -1;
     }
-    plot.subscribe({"pos/x", "pos/y", "pos/z"});
+    plot.subscribe({"pos"});
+//    plot.subscribe({"pos/x", "pos/y", "pos/z"});
     plot.plot("pos/x", "pos/x");
-    plot.plot("pos", {"pos/x", "pos/y", "pos/z"});
+//    plot.plot("pos", {"pos/x", "pos/y", "pos/z"});
     while (!plot.shouldClose())
     {
         plot.render();

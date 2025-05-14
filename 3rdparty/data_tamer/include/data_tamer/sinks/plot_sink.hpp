@@ -48,6 +48,13 @@ std::string_view TypeDefinition(Eigen::Quaterniond &qua, AddField &add)
     add("z", &qua.z());
     return "Eigen::Quaterniond";
 }
+
+template <typename AddField>
+std::string_view TypeDefinition(Eigen::VectorXd &vec, AddField &add) {
+    add("data", vec.data(), vec.size());
+    return "Eigen::VectorXd";
+}
+
 } // namespace Eigen
 
 struct Pose
