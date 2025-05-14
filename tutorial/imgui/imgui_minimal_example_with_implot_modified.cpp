@@ -32,7 +32,7 @@ public:
             if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
             {
                 ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
-                //ImPlot::SetupAxisFormat(ImAxis_Y1, "%.5f");
+                // ImPlot::SetupAxisFormat(ImAxis_Y1, "%.5f");
                 ImPlot::SetupAxes("Time(s)", "");
                 if (channel_plot_data.count(channel) > 0)
                 {
@@ -55,6 +55,130 @@ public:
         }
     }
 
+    //    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
+    //    {
+    //        static bool show_plot = true;
+    //        if (show_plot)
+    //        {
+    //            ImGui::Begin(title.c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
+    //            ImPlot::SetNextAxisToFit(ImAxis_Y1);
+    //            if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
+    //            {
+    //                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+    //                //ImPlot::SetupAxisFormat(ImAxis_Y1, "%.5f");
+    //                ImPlot::SetupAxes("Time(s)", "Value");
+    //                for (auto &channel : channels)
+    //                {
+    //                    if (channel_plot_data.count(channel) > 0)
+    //                    {
+    //                        std::lock_guard<std::shared_mutex> lock(mtx);
+    //                        auto &[ts, vals] = channel_plot_data[channel];
+    //                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+    //                        {
+    //                            double min_time = *std::min_element(ts.begin(), ts.end());
+    //                            double max_time = *std::max_element(ts.begin(), ts.end());
+    //                            ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
+    //                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+    //                            ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
+    //                            ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+    //                            ImPlot::PlotScatter("##Debug", ts.data(), vals.data(), (int)ts.size());
+    //                        }
+    //                    }
+    //                }
+    //                ImPlot::EndPlot();
+    //            }
+    //            ImGui::End();
+    //        }
+    //    }
+
+    //    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
+    //    {
+    //        static bool show_plot = true;
+    //        if (show_plot)
+    //        {
+    //            ImGui::Begin(title.c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
+    //            ImPlot::SetNextAxisToFit(ImAxis_Y1);
+    //
+    //            // 初始化全局范围
+    //            auto global_x_min = DBL_MAX;
+    //            auto global_x_max = -DBL_MAX;
+    //            auto global_y_min = DBL_MAX;
+    //            auto global_y_max = -DBL_MAX;
+    //
+    //            // 使用静态变量存储各通道的显示状态
+    //            static std::unordered_map<std::string, bool> channel_visible;
+    //            // 初始化新添加的通道显示状态
+    //            for (const auto &channel : channels)
+    //            {
+    //                if (channel_visible.find(channel) == channel_visible.end())
+    //                {
+    //                    channel_visible[channel] = true;
+    //                }
+    //            }
+    //
+    //            // 第一遍遍历：计算所有通道的全局范围
+    //            {
+    //                std::shared_lock<std::shared_mutex> lock(mtx);
+    //                for (auto &channel : channels)
+    //                {
+    //                    if (channel_visible[channel] && channel_plot_data.count(channel) > 0)
+    //                    {
+    //                        auto &[ts, vals] = channel_plot_data[channel];
+    //                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+    //                        {
+    //                            double min_time = *std::min_element(ts.begin(), ts.end());
+    //                            double max_time = *std::max_element(ts.begin(), ts.end());
+    //                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+    //
+    //                            global_x_min = std::min(global_x_min, min_time);
+    //                            global_x_max = std::max(global_x_max, max_time);
+    //                            global_y_min = std::min(global_y_min, *y_min);
+    //                            global_y_max = std::max(global_y_max, *y_max);
+    //                        }
+    //                    }
+    //                }
+    //            }
+    //
+    //            if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400), ImPlotFlags_None))
+    //                {
+    //                    ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+    //                    ImPlot::SetupAxes("Time(s)", "Value");
+    //
+    //                    // 设置全局范围
+    //                    if (global_x_min <= global_x_max && global_y_min <= global_y_max)
+    //                    {
+    //                        ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
+    //                        ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
+    //                    }
+    //                    // 存储各通道的颜色
+    //                    static std::unordered_map<std::string, ImU32> channel_colors;
+    //
+    //                    // 第二遍遍历：绘制所有通道
+    //                    {
+    //                        std::shared_lock<std::shared_mutex> lock(mtx);
+    //                        for (auto &channel : channels)
+    //                        {
+    //                            if (channel_plot_data.count(channel) > 0)
+    //                            {
+    //                                auto &[ts, vals] = channel_plot_data[channel];
+    //                                if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+    //                                {
+    //                                    // 使用唯一ID绘制散点图
+    //                                    std::string scatter_id = "##Debug_" + channel;
+    //
+    //                                    ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(),
+    //                                    (int)ts.size()); ImPlot::PlotScatter(scatter_id.c_str(),
+    //                                    ts.data(), vals.data(), (int)ts.size());
+    //                                }
+    //                            }
+    //                        }
+    //                    }
+    //                    ImPlot::EndPlot();
+    //                }
+    //            ImGui::End();
+    //        }
+    //    }
+
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
         static bool show_plot = true;
@@ -62,26 +186,65 @@ public:
         {
             ImGui::Begin(title.c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
             ImPlot::SetNextAxisToFit(ImAxis_Y1);
-            if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
+
+            // 初始化全局范围
+            auto global_x_min = DBL_MAX;
+            auto global_x_max = -DBL_MAX;
+            auto global_y_min = DBL_MAX;
+            auto global_y_max = -DBL_MAX;
+
+            // 计算所有通道的全局范围
             {
-                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
-                //ImPlot::SetupAxisFormat(ImAxis_Y1, "%.5f");
-                ImPlot::SetupAxes("Time (s)", "Value");
-                for (auto &channel : channels)
+                std::shared_lock<std::shared_mutex> lock(mtx);
+                for (const auto &channel : channels)
                 {
                     if (channel_plot_data.count(channel) > 0)
                     {
-                        std::lock_guard<std::shared_mutex> lock(mtx);
                         auto &[ts, vals] = channel_plot_data[channel];
                         if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                         {
                             double min_time = *std::min_element(ts.begin(), ts.end());
                             double max_time = *std::max_element(ts.begin(), ts.end());
-                            ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
                             auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
-                            ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
-                            ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                            ImPlot::PlotScatter("##Debug", ts.data(), vals.data(), (int)ts.size());
+
+                            global_x_min = std::min(global_x_min, min_time);
+                            global_x_max = std::max(global_x_max, max_time);
+                            global_y_min = std::min(global_y_min, *y_min);
+                            global_y_max = std::max(global_y_max, *y_max);
+                        }
+                    }
+                }
+            }
+
+            // 绘制图表
+            if (ImPlot::BeginPlot("##ChannelPlot", ImVec2(600, 400)))
+            {
+                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+                ImPlot::SetupAxes("Time(s)", "Value");
+                ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
+                // 设置全局范围
+                if (global_x_min <= global_x_max && global_y_min <= global_y_max)
+                {
+                    ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
+                    ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
+                }
+
+                // 绘制所有通道
+                {
+                    std::shared_lock<std::shared_mutex> lock(mtx);
+                    for (size_t i = 0; i < channels.size(); i++)
+                    {
+                        const auto &channel = channels[i];
+                        if (channel_plot_data.count(channel) > 0)
+                        {
+                            auto &[ts, vals] = channel_plot_data[channel];
+                            if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                            {
+                                ImPlot::SetNextLineStyle(ImPlot::GetColormapColor(i), 1.f);
+//                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 4.0f);
+                                //ImPlot::PlotScatter(scatter_id.c_str(), ts.data(), vals.data(), (int)ts.size());
+                                ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                            }
                         }
                     }
                 }
@@ -188,7 +351,7 @@ public:
 
         const char *glsl_version = "#version 130";
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0); // or 3
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);                // or 3
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE); // or GLFW_OPENGL_COMPAT_PROFILE
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         window = glfwCreateWindow(window_width, window_height, "Viewer", nullptr, nullptr);
@@ -202,6 +365,11 @@ public:
         glfwShowWindow(window);
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
+        // 1. 创建窗口前设置多重采样
+        glfwWindowHint(GLFW_SAMPLES, 4); // 开启 4x MSAA
+
+        // 2. 创建 OpenGL 上下文之后，启用多重采样
+        glEnable(GL_MULTISAMPLE);
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -213,7 +381,7 @@ public:
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
         // Setup Dear ImGui style
-        ImGui::StyleColorsDark(); //ImGui::StyleColorsLight();
+        ImGui::StyleColorsDark(); // ImGui::StyleColorsLight();
 
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         ImGui_ImplOpenGL3_Init(glsl_version);
@@ -309,9 +477,9 @@ public:
     }
 
 protected:
-    static void centerWindow(GLFWwindow* window)
+    static void centerWindow(GLFWwindow *window)
     {
-        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        GLFWmonitor *monitor = glfwGetPrimaryMonitor();
         if (!monitor)
         {
             return;
@@ -352,7 +520,7 @@ protected:
         }
     }
 
-    static void errorCallback(int error, const char* description)
+    static void errorCallback(int error, const char *description)
     {
         fprintf(stderr, "GLFW Error %d: %s\n", error, description);
     }
@@ -411,7 +579,7 @@ private:
     std::unordered_map<std::string, std::string> plotChannel;
 };
 
-int main(int, char**)
+int main(int, char **)
 {
     Plotter plot;
     if (!plot.init())
@@ -420,7 +588,7 @@ int main(int, char**)
     }
     plot.subscribe({"pos/x", "pos/y", "pos/z"});
     plot.plot("pos/x", "pos/x");
-//    plot.plot("pos", {"pos/x", "pos/y", "pos/z"});
+    plot.plot("pos", {"pos/x", "pos/y", "pos/z"});
     while (!plot.shouldClose())
     {
         plot.render();

@@ -21,6 +21,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
+#include "implot_demo.cpp"
 
 #define GL_SILENCE_DEPRECATION
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -333,6 +334,7 @@ int main(int, char**)
             ImGui::End();
         }
         h.plotChannelData(channel);
+        ImPlot::Demo_RealtimePlots();
         // Rendering
         ImGui::Render();
         int display_w, display_h;
