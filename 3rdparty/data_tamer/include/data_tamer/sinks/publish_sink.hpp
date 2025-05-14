@@ -15,6 +15,8 @@
 #include <deque>
 #include <zcm/zcm-cpp.hpp>
 #include "timed_value.hpp"
+#include <Logging.h>
+#include "data_fields.hpp"
 
 namespace DataTamer
 {

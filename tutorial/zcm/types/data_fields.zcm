@@ -1,0 +1,5 @@
+struct data_fields
+{
+    int32_t cnt;
+    string channels[cnt];
+}

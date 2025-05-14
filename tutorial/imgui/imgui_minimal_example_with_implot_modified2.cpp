@@ -16,6 +16,7 @@
 #include "GLFW/glfw3.h"
 #include <Logging.h>
 #include <set>
+#include "data_fields.hpp"
 
 class Handler
 {
@@ -58,130 +59,6 @@ public:
             ImGui::End();
         }
     }
-
-    //    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
-    //    {
-    //        static bool show_plot = true;
-    //        if (show_plot)
-    //        {
-    //            ImGui::Begin(title.c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
-    //            ImPlot::SetNextAxisToFit(ImAxis_Y1);
-    //            if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
-    //            {
-    //                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
-    //                //ImPlot::SetupAxisFormat(ImAxis_Y1, "%.5f");
-    //                ImPlot::SetupAxes("Time(s)", "Value");
-    //                for (auto &channel : channels)
-    //                {
-    //                    if (channel_plot_data.count(channel) > 0)
-    //                    {
-    //                        std::lock_guard<std::shared_mutex> lock(mtx);
-    //                        auto &[ts, vals] = channel_plot_data[channel];
-    //                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
-    //                        {
-    //                            double min_time = *std::min_element(ts.begin(), ts.end());
-    //                            double max_time = *std::max_element(ts.begin(), ts.end());
-    //                            ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
-    //                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
-    //                            ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
-    //                            ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-    //                            ImPlot::PlotScatter("##Debug", ts.data(), vals.data(), (int)ts.size());
-    //                        }
-    //                    }
-    //                }
-    //                ImPlot::EndPlot();
-    //            }
-    //            ImGui::End();
-    //        }
-    //    }
-
-    //    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
-    //    {
-    //        static bool show_plot = true;
-    //        if (show_plot)
-    //        {
-    //            ImGui::Begin(title.c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
-    //            ImPlot::SetNextAxisToFit(ImAxis_Y1);
-    //
-    //            // 初始化全局范围
-    //            auto global_x_min = DBL_MAX;
-    //            auto global_x_max = -DBL_MAX;
-    //            auto global_y_min = DBL_MAX;
-    //            auto global_y_max = -DBL_MAX;
-    //
-    //            // 使用静态变量存储各通道的显示状态
-    //            static std::unordered_map<std::string, bool> channel_visible;
-    //            // 初始化新添加的通道显示状态
-    //            for (const auto &channel : channels)
-    //            {
-    //                if (channel_visible.find(channel) == channel_visible.end())
-    //                {
-    //                    channel_visible[channel] = true;
-    //                }
-    //            }
-    //
-    //            // 第一遍遍历：计算所有通道的全局范围
-    //            {
-    //                std::shared_lock<std::shared_mutex> lock(mtx);
-    //                for (auto &channel : channels)
-    //                {
-    //                    if (channel_visible[channel] && channel_plot_data.count(channel) > 0)
-    //                    {
-    //                        auto &[ts, vals] = channel_plot_data[channel];
-    //                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
-    //                        {
-    //                            double min_time = *std::min_element(ts.begin(), ts.end());
-    //                            double max_time = *std::max_element(ts.begin(), ts.end());
-    //                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
-    //
-    //                            global_x_min = std::min(global_x_min, min_time);
-    //                            global_x_max = std::max(global_x_max, max_time);
-    //                            global_y_min = std::min(global_y_min, *y_min);
-    //                            global_y_max = std::max(global_y_max, *y_max);
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //
-    //            if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400), ImPlotFlags_None))
-    //                {
-    //                    ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
-    //                    ImPlot::SetupAxes("Time(s)", "Value");
-    //
-    //                    // 设置全局范围
-    //                    if (global_x_min <= global_x_max && global_y_min <= global_y_max)
-    //                    {
-    //                        ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
-    //                        ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
-    //                    }
-    //                    // 存储各通道的颜色
-    //                    static std::unordered_map<std::string, ImU32> channel_colors;
-    //
-    //                    // 第二遍遍历：绘制所有通道
-    //                    {
-    //                        std::shared_lock<std::shared_mutex> lock(mtx);
-    //                        for (auto &channel : channels)
-    //                        {
-    //                            if (channel_plot_data.count(channel) > 0)
-    //                            {
-    //                                auto &[ts, vals] = channel_plot_data[channel];
-    //                                if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
-    //                                {
-    //                                    // 使用唯一ID绘制散点图
-    //                                    std::string scatter_id = "##Debug_" + channel;
-    //
-    //                                    ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(),
-    //                                    (int)ts.size()); ImPlot::PlotScatter(scatter_id.c_str(),
-    //                                    ts.data(), vals.data(), (int)ts.size());
-    //                                }
-    //                            }
-    //                        }
-    //                    }
-    //                    ImPlot::EndPlot();
-    //                }
-    //            ImGui::End();
-    //        }
-    //    }
 
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
@@ -244,10 +121,11 @@ public:
                             auto &[ts, vals] = channel_plot_data[channel];
                             if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                             {
-                                ImPlot::SetNextLineStyle(ImPlot::GetColormapColor(i), 1.f);
-//                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 4.0f);
-                                //ImPlot::PlotScatter(scatter_id.c_str(), ts.data(), vals.data(), (int)ts.size());
+                                ImVec4 color = ImPlot::GetColormapColor(int(i));
+                                ImPlot::SetNextLineStyle(color, 2.0f);
                                 ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+                                ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
                             }
                         }
                     }
@@ -276,9 +154,22 @@ public:
         }
     }
 
+    void handle_once(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
+    {
+        if (zcm && map_channels.count(channel) > 0 && map_fields.count(channel) > 0)
+        {
+            zcm->unsubscribe(map_channels[channel]);
+            return;
+        }
+        map_fields.insert({channel, msg->channels});
+    }
+
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::shared_mutex mtx;
+    std::unordered_map<std::string, std::vector<std::string>> map_fields;
+    std::unordered_map<std::string, zcm::Subscription *> map_channels;
+    zcm::ZCM *zcm;
 };
 
 template <typename T>
@@ -406,39 +297,47 @@ public:
 
     void subscribe(const std::vector<std::string> &channels)
     {
-        for (auto &channel : channels)
+        metaChannels = channels;
+        for (auto &channel : metaChannels)
         {
-            availableChannels.insert(channel);
-            zcm->subscribe(channel, &Handler::handle, &h);
+            auto subscription = zcm->subscribe(channel, &Handler::handle_once, &h);
+            h.map_channels.insert({channel, subscription});
         }
+        h.zcm = zcm.get();
         th = std::thread(
             [&]()
             {
                 zcm->run();
             });
-    }
-
-    bool plot(const std::string &title, const std::vector<std::string> &channels)
-    {
-        for (auto &channel : channels)
-        {
-            if (availableChannels.count(channel) <= 0)
+        th2 = std::thread(
+            [&]()
             {
-                return false;
-            }
-        }
-        plotChannels.insert({title, channels});
-        return true;
-    }
-
-    bool plot(const std::string &title, const std::string &channel)
-    {
-        if (availableChannels.count(channel) <= 0)
-        {
-            return false;
-        }
-        plotChannel.insert({title, channel});
-        return true;
+                while(true)
+                {
+                    static std::set<std::string> gotChannels;
+                    for (auto &channel : metaChannels)
+                    {
+                        if (gotChannels.count(channel) > 0)
+                        {
+                            continue;
+                        }
+                        if (h.map_fields.count(channel) > 0)
+                        {
+                            plotChannels.insert({channel, h.map_fields[channel]});
+                            for (auto &fieldChannel : h.map_fields[channel])
+                            {
+                                zcm->subscribe(fieldChannel, &Handler::handle, &h);
+                            }
+                            gotChannels.insert(channel);
+                        }
+                    }
+                    if (gotChannels.size() == metaChannels.size())
+                    {
+                        return;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
+            });
     }
 
     void render()
@@ -577,6 +476,8 @@ private:
     std::unique_ptr<zcm::ZCM> zcm;
     Handler h;
     std::thread th;
+    std::thread th2;
+    std::vector<std::string> metaChannels;
     ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
     std::set<std::string> availableChannels;
     std::unordered_map<std::string, std::vector<std::string>> plotChannels;
@@ -591,9 +492,6 @@ int main(int, char **)
         return -1;
     }
     plot.subscribe({"pos"});
-//    plot.subscribe({"pos/x", "pos/y", "pos/z"});
-    plot.plot("pos/x", "pos/x");
-//    plot.plot("pos", {"pos/x", "pos/y", "pos/z"});
     while (!plot.shouldClose())
     {
         plot.render();

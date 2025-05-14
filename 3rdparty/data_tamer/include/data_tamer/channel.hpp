@@ -2,6 +2,7 @@
 
 #include "data_tamer/values.hpp"
 #include "data_tamer/data_sink.hpp"
+#include "data_tamer/sinks/publish_sink.hpp"
 #include "data_tamer/logged_value.hpp"
 
 #include <chrono>
@@ -187,6 +188,9 @@ private:
 
     TypesRegistry _type_registry;
 
+    std::shared_ptr<PublishSink> _publish_sink;
+    std::unordered_map<std::string, data_fields> _data_fields;
+
     template <typename T>
     void updateTypeRegistry();
 
@@ -285,16 +289,27 @@ LogChannel::registerCustomValue(const std::string &name, const T *value_ptr, Cus
 template <template <class, class> class Container, class T, class... TArgs>
 inline RegistrationID LogChannel::registerValue(const std::string &prefix, const Container<T, TArgs...> *vect)
 {
+    RegistrationID id;
     if constexpr (IsNumericType<T>())
     {
-        return registerValueImpl(prefix, ValuePtr(vect), {});
+        id = registerValueImpl(prefix, ValuePtr(vect), {});
     }
     else
     {
         updateTypeRegistry<T>();
         auto def = _type_registry.getSerializer<T>();
-        return registerValueImpl(prefix, ValuePtr(vect), def);
+        id = registerValueImpl(prefix, ValuePtr(vect), def);
     }
+    auto schema = getSchema();
+    data_fields fields;
+    for (auto &field : schema.fields)
+    {
+        fields.channels.push_back(prefix + "/" + field.field_name);
+    }
+    fields.cnt = (int)fields.channels.size();
+    _data_fields.insert({prefix, fields});
+    _publish_sink->publisher->publish(prefix, &_data_fields[prefix]);
+    return id;
 }
 
 template <typename T, size_t N>

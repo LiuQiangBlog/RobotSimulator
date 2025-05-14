@@ -49,12 +49,12 @@ int main()
     auto sink = std::make_shared<DataTamer::PlotSink>();
     channel->addDataSink(sink);
 
-    auto publisher = std::make_shared<DataTamer::PublishSink>();
-    if (!publisher->init())
-    {
-        return -1;
-    }
-    channel->addDataSink(publisher);
+//    auto publisher = std::make_shared<DataTamer::PublishSink>();
+//    if (!publisher->init())
+//    {
+//        return -1;
+//    }
+//    channel->addDataSink(publisher);
 
     viewer.addFunction(
         [&]()
