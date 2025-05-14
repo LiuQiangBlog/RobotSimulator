@@ -308,7 +308,10 @@ inline RegistrationID LogChannel::registerValue(const std::string &prefix, const
     }
     fields.cnt = (int)fields.channels.size();
     _data_fields.insert({prefix, fields});
-    _publish_sink->publisher->publish(prefix, &_data_fields[prefix]);
+    if (_publish_sink)
+    {
+        _publish_sink->publisher->publish(prefix, &_data_fields[prefix]);
+    }
     return id;
 }
 
