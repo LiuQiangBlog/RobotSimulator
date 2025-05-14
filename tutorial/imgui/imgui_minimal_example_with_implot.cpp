@@ -27,7 +27,7 @@
 #include <GLES2/gl2.h>
 #endif
 #include "GLFW/glfw3.h" // Will drag system OpenGL headers
-
+#include <Logging.h>
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
 // Your own project should not be affected, as you are likely to link with a newer binary of GLFW that is adequate for your version of Visual Studio.
@@ -217,6 +217,7 @@ int main(int, char**)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -267,7 +268,8 @@ int main(int, char**)
         return -1;
     }
     Handler h;
-    zcm.subscribe("pos/x", &Handler::handle, &h);
+    std::string channel("pos/x");
+    zcm.subscribe(channel, &Handler::handle, &h);
     std::thread zcm_thread(
         [&]()
         {
@@ -330,7 +332,7 @@ int main(int, char**)
                 show_another_window = false;
             ImGui::End();
         }
-        h.plotChannelData("pos/x");
+        h.plotChannelData(channel);
         // Rendering
         ImGui::Render();
         int display_w, display_h;
@@ -349,10 +351,12 @@ int main(int, char**)
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 
     glfwDestroyWindow(window);
     glfwTerminate();
-
+    zcm.stop();
+    zcm_thread.join();
     return 0;
 }
