@@ -146,7 +146,7 @@ protected:
 
     static void mouseScrollCallback(GLFWwindow *win, double xOffset, double yOffset);
 
-    static void keyboardKeyDownCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+    static void keyboardKeyDownCallback(GLFWwindow *win, int key, int scancode, int action, int mods);
 
     void mouseClick(GLFWwindow *win, int button, int action, int mods);
 
