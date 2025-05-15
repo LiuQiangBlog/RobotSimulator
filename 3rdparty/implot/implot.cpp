@@ -1849,15 +1849,16 @@ bool UpdateInput(ImPlotPlot& plot) {
 #endif
 
     if (plot_clicked) {
-        if (IO.KeyCtrl) // disable area select when ctrl + right clicked
+        if (!IO.KeyCtrl) // disable area select when ctrl + mouse right click
         {
+            if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) && IO.MouseClicked[gp.InputMap.Select] &&
+                ImHasFlag(IO.KeyMods, gp.InputMap.SelectMod)) {
+                plot.Selecting   = true;
+                plot.SelectStart = IO.MousePos;
+                plot.SelectRect  = ImRect(0,0,0,0);
+            }
+        }
 
-        }
-        else if (!ImHasFlag(plot.Flags, ImPlotFlags_NoBoxSelect) && IO.MouseClicked[gp.InputMap.Select] && ImHasFlag(IO.KeyMods, gp.InputMap.SelectMod)) {
-            plot.Selecting   = true;
-            plot.SelectStart = IO.MousePos;
-            plot.SelectRect  = ImRect(0,0,0,0);
-        }
         if (IO.MouseDoubleClicked[gp.InputMap.Fit]) {
             plot.FitThisFrame = true;
             for (int i = 0; i < ImAxis_COUNT; ++i)
