@@ -309,11 +309,11 @@ public:
 //            h.map_channels.insert({channel, subscription});
 //        }
 //        h.zcm = zcm.get();
-//        th = std::thread(
-//            [&]()
-//            {
-//                zcm->run();
-//            });
+        th = std::thread(
+            [&]()
+            {
+                zcm->run();
+            });
 //        th2 = std::thread(
 //            [&]()
 //            {
@@ -366,6 +366,85 @@ public:
 //        {
 //            h.plotChannelData(key, val);
 //        }
+//        ImGui::Button("Right Click Me");
+//        static bool isEnabled{false};
+//        if (ImGui::BeginPopupContextItem("MyPopup"))
+//        {
+//            // 菜单项
+//            if (ImGui::MenuItem("Item One"))
+//            {
+//                // 处理逻辑
+//            }
+//            if (ImGui::MenuItem("Item Two", nullptr, false, isEnabled))
+//            {
+//                // 处理逻辑
+//            }
+//            ImGui::EndPopup();
+//        }
+
+        ImGuiIO& io = ImGui::GetIO();
+        ImVec2 display_size = io.DisplaySize;
+
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(display_size);
+        bool shiftHeld = (io.KeyMods & ImGuiMod_Ctrl) != 0;
+
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+                                        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
+                                        ImGuiWindowFlags_NoBackground;
+
+        if (ImGui::Begin("##Fullscreen", nullptr, window_flags))
+        {
+            bool show_popup = false;
+            static bool popup_open = false;
+            ImPlot::SetNextAxisToFit(ImAxis_Y1);
+            ImVec2 plot_size(600, 400);
+            ImGui::InvisibleButton("PlotOverlay", plot_size);
+            bool hovered = ImGui::IsItemHovered();
+            bool ctrl_right_click = hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && (io.KeyMods & ImGuiMod_Ctrl);
+            if (ctrl_right_click)
+            {
+                ImGui::OpenPopup("ChannelPopup");
+                // 设置一个标志位，表示我们正在“自定义交互”，需要屏蔽 ImPlot 行为
+            }
+            if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
+            {
+                if (ImGui::IsPopupOpen("ChannelPopup"))
+                {
+                }
+
+                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+                ImPlot::SetupAxes("Time (s)", "Value");
+                ImPlot::EndPlot();
+            }
+
+            // 如何上面的ImGui::Begin()是在ImPlot()窗口中，那么鼠标右键点击是不是关联的就是此窗口中ImPlot的数据
+            static std::vector<std::string> zcm_channels = {"camera/left", "camera/right", "lidar/scan", "imu/data"};
+            static std::unordered_map<std::string, bool> channel_enabled;
+            ImGui::GetStyle().Colors[ImGuiCol_PopupBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.4f);
+            if (shiftHeld && ImGui::BeginPopupContextWindow("MyWindowPopup", ImGuiPopupFlags_MouseButtonRight))
+            {
+                ImGui::Text("Hello World");
+                ImGui::Separator();
+                for (const std::string& channel : zcm_channels)
+                {
+                    // 初始化 map 中的默认值（第一次使用）
+                    if (channel_enabled.find(channel) == channel_enabled.end())
+                    {
+                        channel_enabled[channel] = true; // 默认开启
+                    }
+                    std::string unique_id = "##" + channel;  // 不显示 ID，只用于内部唯一性
+                    // 将复选框和名称放在一行
+                    bool* checked = &channel_enabled[channel];
+                    ImGui::Checkbox(unique_id.c_str(), checked);  // 显示复选框
+                    ImGui::SameLine();
+                    ImGui::TextUnformatted(channel.c_str());      // 显示通道名
+                }
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::End();
 
         // ImGui render
         ImGui::Render();
@@ -375,7 +454,10 @@ public:
         glClearColor(clear.x * clear.w, clear.y * clear.w, clear.z * clear.w, clear.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (!ImGui::GetIO().WantCaptureMouse)
+        {
 
+        }
         glfwSwapBuffers(window);
         glfwPollEvents(); // process events
     }

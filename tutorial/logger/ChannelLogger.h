@@ -117,12 +117,61 @@ public:
     {
         std::vector<std::string> result;
         auto schema = channel->getSchema();
-        result.reserve(schema.fields.size());
-        for (const auto& field : schema.fields)
+        for (const auto& variable : schema.fields)
         {
-            result.push_back(field.field_name);
+            if (schema.custom_types.count(variable.type_name) > 0)
+            {
+                for (auto &element : schema.custom_types[variable.type_name])
+                {
+                    result.push_back(variable.field_name + "/" + element.field_name);
+                }
+            }
+            else
+            {
+                result.push_back(variable.field_name);
+            }
         }
         return result;
+    }
+
+    void ExtractFlatFieldPathsRecursive(const DataTamer::TypeField &field,
+                                        const std::map<std::string, DataTamer::FieldsVector> &types_list,
+                                        const std::string &prefix,
+                                        std::vector<std::string> &out_paths)
+    {
+        uint32_t vect_size = field.array_size;
+        std::string new_prefix = prefix.empty() ? field.field_name : (prefix + "/" + field.field_name);
+
+        auto doExtract = [&](const std::string &var_name)
+        {
+            if (field.type != DataTamer::BasicType::OTHER)
+            {
+                // 基础类型，直接输出路径
+                out_paths.push_back(var_name);
+            }
+            else
+            {
+                // 自定义结构体类型，递归展开
+                const DataTamer::FieldsVector &fields = types_list.at(field.type_name);
+                for (const auto &sub_field : fields)
+                {
+                    ExtractFlatFieldPathsRecursive(sub_field, types_list, var_name, out_paths);
+                }
+            }
+        };
+
+        if (!field.is_vector)
+        {
+            doExtract(new_prefix);
+        }
+        else
+        {
+            for (uint32_t i = 0; i < vect_size; ++i)
+            {
+                const auto indexed_name = new_prefix + "[" + std::to_string(i) + "]";
+                doExtract(indexed_name);
+            }
+        }
     }
 
 private:

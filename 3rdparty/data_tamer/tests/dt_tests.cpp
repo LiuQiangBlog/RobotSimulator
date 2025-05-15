@@ -162,6 +162,7 @@ TEST(DataTamerBasic, Vector)
     std::vector<float> vect = {1, 2, 3, 4};
 
     channel->registerValue("vect", &vect);
+    std::cout << channel->getSchema();
 
     const auto expected_size = 4 * sizeof(float) + sizeof(uint32_t);
 

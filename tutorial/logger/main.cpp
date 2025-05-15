@@ -9,30 +9,31 @@
 int main()
 {
     Eigen::Vector3d tip;
+    tip << 1, 2, 3;
     ChannelLogger logger("channel");
     logger.registerValue("pos", &tip);
-    tip << 1, 2, 3;
-    logger.takeSnapshot();
+    double a, b, c;
+    logger.registerValue("a", &a);
+    logger.registerValue("b", &b);
+    std::vector<double> vec(7);
+    logger.registerValue("q", &vec);
+//    logger.takeSnapshot();
 //    CLOG_INFO << logger.getSchema();
     auto schema = logger.getSchema();
-    for (const auto& field : schema.fields)
+    for (const auto& variable : schema.fields)
     {
-        CLOG_INFO << field.type_name;
-        CLOG_INFO << field.field_name;
-    }
-    for (auto &[name, vec] : schema.custom_types)
-    {
-        CLOG_INFO << name; // variable tip's type_name
-        for (auto &filed : vec)
+        if (schema.custom_types.count(variable.type_name) > 0)
         {
-            CLOG_INFO << filed.field_name;
+            for (auto &element : schema.custom_types[variable.type_name])
+            {
+                CLOG_INFO << variable.field_name + "/" + element.field_name;
+            }
+        }
+        else
+        {
+           CLOG_INFO << variable.field_name;
         }
     }
-//    CLOG_INFO << logger.getSchema().custom_types["pos"][0];
-//    for (const auto &field : logger.getSchema().fields)
-//    {
-//        CLOG_INFO << field.field_name;
-//    }
 //    for (auto &item : logger.getFlatFieldNames())
 //    {
 //        CLOG_INFO << item;
