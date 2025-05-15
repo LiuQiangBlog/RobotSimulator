@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <zcm/zcm-cpp.hpp>
 #include "timed_value.hpp"
+#include "data_fields.hpp"
 #include <deque>
 #include <implot.h>
 #include <mutex>
@@ -277,6 +278,13 @@ public:
         }
     }
 
+    void handle_once(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
+    {
+        CLOG_INFO << "handle_once...";
+
+        CLOG_INFO << "channel handled.....";
+    }
+
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::shared_mutex mtx;
@@ -407,6 +415,7 @@ public:
 
     void subscribe(const std::vector<std::string> &channels)
     {
+        zcm->subscribe("pos", &Handler::handle_once, &h);
         for (auto &channel : channels)
         {
             availableChannels.insert(channel);

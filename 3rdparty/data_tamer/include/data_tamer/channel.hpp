@@ -188,9 +188,6 @@ private:
 
     TypesRegistry _type_registry;
 
-    std::shared_ptr<PublishSink> _publish_sink;
-    std::unordered_map<std::string, data_fields> _data_fields;
-
     template <typename T>
     void updateTypeRegistry();
 
@@ -262,19 +259,22 @@ inline void LogChannel::updateTypeRegistry()
 template <typename T>
 inline RegistrationID LogChannel::registerValue(const std::string &name, const T *value_ptr)
 {
+    CLOG_INFO << "registerValue";
     using namespace SerializeMe;
     static_assert(has_TypeDefinition<T>() || IsNumericType<T>(), "Missing TypeDefinition");
-
+    RegistrationID id;
     if constexpr (IsNumericType<T>())
     {
-        return registerValueImpl(name, ValuePtr(value_ptr), {});
+        id = registerValueImpl(name, ValuePtr(value_ptr), {});
     }
     else
     {
         updateTypeRegistry<T>();
         auto def = _type_registry.getSerializer<T>();
-        return registerValueImpl(name, ValuePtr(value_ptr, def), def);
+        id = registerValueImpl(name, ValuePtr(value_ptr, def), def);
     }
+    publishFields(name);
+    return id;
 }
 
 template <typename T>
@@ -289,6 +289,7 @@ LogChannel::registerCustomValue(const std::string &name, const T *value_ptr, Cus
 template <template <class, class> class Container, class T, class... TArgs>
 inline RegistrationID LogChannel::registerValue(const std::string &prefix, const Container<T, TArgs...> *vect)
 {
+    CLOG_INFO << "registerValue";
     RegistrationID id;
     if constexpr (IsNumericType<T>())
     {
@@ -300,24 +301,14 @@ inline RegistrationID LogChannel::registerValue(const std::string &prefix, const
         auto def = _type_registry.getSerializer<T>();
         id = registerValueImpl(prefix, ValuePtr(vect), def);
     }
-    auto schema = getSchema();
-    data_fields fields;
-    for (auto &field : schema.fields)
-    {
-        fields.channels.push_back(prefix + "/" + field.field_name);
-    }
-    fields.cnt = (int)fields.channels.size();
-    _data_fields.insert({prefix, fields});
-    if (_publish_sink)
-    {
-        _publish_sink->publisher->publish(prefix, &_data_fields[prefix]);
-    }
+
     return id;
 }
 
 template <typename T, size_t N>
 inline RegistrationID LogChannel::registerValue(const std::string &prefix, const std::array<T, N> *vect)
 {
+    CLOG_INFO << "registerValue";
     if constexpr (IsNumericType<T>())
     {
         return registerValueImpl(prefix, ValuePtr(vect), {});

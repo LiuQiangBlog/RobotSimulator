@@ -117,15 +117,6 @@ LogChannel::LogChannel(std::string name) : _p(new Pimpl)
     _p->schema.hash = std::hash<std::string>()(name);
     _p->schema.channel_name = name;
     _p->channel_name = std::move(name);
-    _publish_sink = std::make_shared<PublishSink>();
-    if (_publish_sink->init())
-    {
-        _p->sinks.insert(_publish_sink);
-    }
-    else
-    {
-        _publish_sink.reset();
-    }
 }
 
 std::shared_ptr<LogChannel> LogChannel::create(std::string name)

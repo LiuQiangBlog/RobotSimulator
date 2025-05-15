@@ -7,6 +7,7 @@
 #include <zcm/transport/udp/udp.hpp>
 #include "types/example_t.hpp"
 #include "types/all_channels_t.hpp"
+#include "types/data_fields.hpp"
 #include <set>
 
 inline int64_t zcm_now()
@@ -18,9 +19,9 @@ inline int64_t zcm_now()
 int main(int argc, char *argv[])
 {
     zcm::RegisterAllPlugins();
-    zcm::ZCM zcm("ipc");
+//    zcm::ZCM zcm("ipc");
 //    zcm::ZCM zcm("udp://127.0.0.1:9000:9001?ttl=1");
-//    zcm::ZCM zcm("ipcshm://");
+    zcm::ZCM zcm("ipcshm://");
 //    zcm::ZCM zcm("udpm://239.255.76.67:7654?ttl=1");
     if (!zcm.good())
         return 1;
@@ -58,13 +59,17 @@ int main(int argc, char *argv[])
     data.channels.emplace_back("bbb");
     data.cnt = 3;
     data.timestamp = zcm_now();
-
+    data_fields dd;
+    dd.channels.push_back("pos/x");
+    dd.channels.push_back("pos/y");
+    dd.channels.push_back("pos/z");
+    dd.cnt = 3;
     bool published{false};
     while (1)
     {
         zcm.publish(channel, &my_data);
         zcm.publish("aaa", &my_data);
-        zcm.publish("bbb", &my_data);
+        zcm.publish("pos", &dd);
         for (auto &val : my_data.position)
             val++;
 

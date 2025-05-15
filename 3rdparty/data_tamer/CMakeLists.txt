@@ -75,12 +75,12 @@ add_library(data_tamer STATIC
 )
 
 
-if (MSVC)
-    target_compile_options(data_tamer PRIVATE /W4 /WX)
-else()
-    target_compile_options(data_tamer PRIVATE -Wall -Wconversion -Wextra -Wsign-conversion -Werror -Wpedantic -Wno-sign-conversion)
-endif()
-
+#if (MSVC)
+#    target_compile_options(data_tamer PRIVATE /W4 /WX)
+#else()
+#    target_compile_options(data_tamer PRIVATE -Wall -Wconversion -Wextra -Wsign-conversion -Werror -Wpedantic -Wno-sign-conversion)
+#endif()
+target_compile_options(data_tamer PRIVATE -Wno-conversion)
 target_compile_features(data_tamer PUBLIC cxx_std_17)
 target_include_directories(data_tamer
  PUBLIC

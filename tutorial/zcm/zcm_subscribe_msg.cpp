@@ -7,6 +7,7 @@
 #include <zcm/zcm-cpp.hpp>
 #include "types/example_t.hpp"
 #include "types/all_channels_t.hpp"
+#include "types/data_fields.hpp"
 #include <set>
 #include <Logging.h>
 
@@ -49,18 +50,26 @@ public:
             CLOG_INFO << "unsubscribe channels success.";
         }
     }
+    void handle_once(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
+    {
+        CLOG_INFO << "handle_once...";
+
+        CLOG_INFO << "channel handled.....";
+    }
+
     std::set<std::string> discovered_channels;
     bool already_received = false;
     zcm::Subscription *channelsSubed = nullptr;
     zcm::ZCM *zcmPtr;
+
 };
 
 int main(int argc, char *argv[])
 {
     zcm::RegisterAllPlugins();
-    zcm::ZCM zcm("ipc");
+//    zcm::ZCM zcm("ipc");
     //    zcm::ZCM zcm("udp://127.0.0.1:9001:9000?ttl=1");
-    //    zcm::ZCM zcm("ipcshm://");
+        zcm::ZCM zcm("ipcshm://");
     //    zcm::ZCM zcm("udpm://239.255.76.67:7654?ttl=1");
     if (!zcm.good())
         return 1;
@@ -69,7 +78,7 @@ int main(int argc, char *argv[])
     hd.zcmPtr = &zcm;
     zcm.subscribe("EXAMPLE", &Handler::handleMessage, &hd);
     hd.channelsSubed = zcm.subscribe("channels", &Handler::handleMessage2, &hd);
-
+    zcm.subscribe("pos", &Handler::handle_once, &hd);
     zcm.run();
     CLOG_INFO << "channels: ";
     for (const auto &ch : hd.discovered_channels)

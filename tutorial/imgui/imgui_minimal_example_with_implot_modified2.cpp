@@ -156,12 +156,14 @@ public:
 
     void handle_once(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
     {
+        CLOG_INFO << "handle_once...";
         if (zcm && map_channels.count(channel) > 0 && map_fields.count(channel) > 0)
         {
             zcm->unsubscribe(map_channels[channel]);
             return;
         }
         map_fields.insert({channel, msg->channels});
+        CLOG_INFO << "channel handled.....";
     }
 
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
@@ -169,7 +171,7 @@ public:
     std::shared_mutex mtx;
     std::unordered_map<std::string, std::vector<std::string>> map_fields;
     std::unordered_map<std::string, zcm::Subscription *> map_channels;
-    zcm::ZCM *zcm;
+    zcm::ZCM *zcm{nullptr};
 };
 
 template <typename T>
@@ -260,6 +262,7 @@ public:
         glfwShowWindow(window);
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
+        glfwSetWindowTitle(window, winTitle.c_str());
         // 1. 创建窗口前设置多重采样
         glfwWindowHint(GLFW_SAMPLES, 4); // 开启 4x MSAA
 
@@ -297,47 +300,50 @@ public:
 
     void subscribe(const std::vector<std::string> &channels)
     {
+        zcm->subscribe("pos", &Handler::handle_once, &h);
         metaChannels = channels;
-        for (auto &channel : metaChannels)
-        {
-            auto subscription = zcm->subscribe(channel, &Handler::handle_once, &h);
-            h.map_channels.insert({channel, subscription});
-        }
-        h.zcm = zcm.get();
-        th = std::thread(
-            [&]()
-            {
-                zcm->run();
-            });
-        th2 = std::thread(
-            [&]()
-            {
-                while(true)
-                {
-                    static std::set<std::string> gotChannels;
-                    for (auto &channel : metaChannels)
-                    {
-                        if (gotChannels.count(channel) > 0)
-                        {
-                            continue;
-                        }
-                        if (h.map_fields.count(channel) > 0)
-                        {
-                            plotChannels.insert({channel, h.map_fields[channel]});
-                            for (auto &fieldChannel : h.map_fields[channel])
-                            {
-                                zcm->subscribe(fieldChannel, &Handler::handle, &h);
-                            }
-                            gotChannels.insert(channel);
-                        }
-                    }
-                    if (gotChannels.size() == metaChannels.size())
-                    {
-                        return;
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-            });
+//        for (auto &channel : metaChannels)
+//        {
+//            CLOG_INFO << "subscribe: " << channel;
+//            auto subscription = zcm->subscribe(channel, &Handler::handle_once, &h);
+//            h.map_channels.insert({channel, subscription});
+//        }
+//        h.zcm = zcm.get();
+//        th = std::thread(
+//            [&]()
+//            {
+//                zcm->run();
+//            });
+//        th2 = std::thread(
+//            [&]()
+//            {
+//                while(true)
+//                {
+//                    static std::set<std::string> gotChannels;
+//                    for (auto &channel : metaChannels)
+//                    {
+//                        if (gotChannels.count(channel) > 0)
+//                        {
+//                            continue;
+//                        }
+//                        if (h.map_fields.count(channel) > 0)
+//                        {
+//                            plotChannels.insert({channel, h.map_fields[channel]});
+//                            for (auto &fieldChannel : h.map_fields[channel])
+//                            {
+//                                zcm->subscribe(fieldChannel, &Handler::handle, &h);
+//                            }
+//                            gotChannels.insert(channel);
+//                        }
+//                    }
+//                    if (gotChannels.size() == metaChannels.size())
+//                    {
+//                        return;
+//                    }
+//                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//                }
+//            });
+//        CLOG_INFO << "subscribe done...";
     }
 
     void render()
@@ -352,14 +358,14 @@ public:
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        for (auto &[key, val] : plotChannel)
-        {
-            h.plotChannelData(key, val);
-        }
-        for (auto &[key, val] : plotChannels)
-        {
-            h.plotChannelData(key, val);
-        }
+//        for (auto &[key, val] : plotChannel)
+//        {
+//            h.plotChannelData(key, val);
+//        }
+//        for (auto &[key, val] : plotChannels)
+//        {
+//            h.plotChannelData(key, val);
+//        }
 
         // ImGui render
         ImGui::Render();
