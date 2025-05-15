@@ -34,6 +34,7 @@ using MCAPSinkPtr = std::shared_ptr<DataTamer::MCAPSink>;
 using PlotSinkPtr = std::shared_ptr<DataTamer::PlotSink>;
 using PublishSinkPtr = std::shared_ptr<DataTamer::PublishSink>;
 using RegistrationID = DataTamer::RegistrationID;
+using Schema = DataTamer::Schema;
 
 class ChannelLogger
 {
@@ -102,6 +103,27 @@ public:
         channel->unregister(id);
     }
 
+    Schema getSchema() const
+    {
+        return channel->getSchema();
+    }
+
+    const std::unordered_map<std::string, size_t> &getRegisteredValues() const
+    {
+        return channel->getRegisteredValues();
+    }
+
+    std::vector<std::string> getFlatFieldNames()
+    {
+        std::vector<std::string> result;
+        auto schema = channel->getSchema();
+        result.reserve(schema.fields.size());
+        for (const auto& field : schema.fields)
+        {
+            result.push_back(field.field_name);
+        }
+        return result;
+    }
 
 private:
     LogChannelPtr channel;

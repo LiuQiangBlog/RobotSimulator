@@ -18,10 +18,10 @@ namespace Eigen
 template <typename AddField>
 std::string_view TypeDefinition(Eigen::Vector3d &pos, AddField &add)
 {
-    add("x", &pos[0]);
-    add("y", &pos[1]);
-    add("z", &pos[2]);
-    return "Eigen::Vector3d";
+    add("x", &pos[0]); // define first field nane
+    add("y", &pos[1]); // define second field nane
+    add("z", &pos[2]); // define third field nane
+    return "Eigen::Vector3d"; // define type name
 }
 
 template <typename AddField>
