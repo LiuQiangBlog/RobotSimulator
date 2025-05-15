@@ -161,10 +161,22 @@ void LogChannel::addDataSink(std::shared_ptr<DataSinkBase> sink)
     _p->sinks.insert(sink);
 }
 
+const ActiveMask &LogChannel::getActiveFlags()
+{
+    std::lock_guard const lock(_p->mutex);
+    return _p->snapshot.active_mask;
+}
+
 Schema LogChannel::getSchema() const
 {
     std::lock_guard const lock(_p->mutex);
     return _p->schema;
+}
+
+const std::unordered_map<std::string, size_t> &LogChannel::getRegisteredValues() const
+{
+    std::lock_guard const lock(_p->mutex);
+    return _p->registered_values;
 }
 
 Mutex &LogChannel::writeMutex()

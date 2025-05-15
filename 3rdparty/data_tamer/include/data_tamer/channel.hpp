@@ -2,7 +2,6 @@
 
 #include "data_tamer/values.hpp"
 #include "data_tamer/data_sink.hpp"
-#include "data_tamer/sinks/publish_sink.hpp"
 #include "data_tamer/logged_value.hpp"
 
 #include <chrono>
@@ -173,6 +172,8 @@ public:
      */
     [[nodiscard]] Schema getSchema() const;
 
+    [[nodiscard]] const std::unordered_map<std::string, size_t> &getRegisteredValues() const;
+
     /** You will need to use this if:
      *
      * - your variables were registered using LogChannel::registerValue AND
@@ -248,7 +249,7 @@ inline void LogChannel::updateTypeRegistry()
         auto func = [this, &fields](const char *field_name, const auto *member)
         {
             using MemberType = typename std::remove_cv_t<std::remove_reference_t<decltype(*member)>>;
-            updateTypeRegistryImpl<MemberType>(fields, field_name);
+            this->updateTypeRegistryImpl<MemberType>(fields, field_name);
         };
         T dummy;
         TypeDefinition(dummy, func);
@@ -259,22 +260,19 @@ inline void LogChannel::updateTypeRegistry()
 template <typename T>
 inline RegistrationID LogChannel::registerValue(const std::string &name, const T *value_ptr)
 {
-    CLOG_INFO << "registerValue";
     using namespace SerializeMe;
     static_assert(has_TypeDefinition<T>() || IsNumericType<T>(), "Missing TypeDefinition");
-    RegistrationID id;
+
     if constexpr (IsNumericType<T>())
     {
-        id = registerValueImpl(name, ValuePtr(value_ptr), {});
+        return registerValueImpl(name, ValuePtr(value_ptr), {});
     }
     else
     {
         updateTypeRegistry<T>();
         auto def = _type_registry.getSerializer<T>();
-        id = registerValueImpl(name, ValuePtr(value_ptr, def), def);
+        return registerValueImpl(name, ValuePtr(value_ptr, def), def);
     }
-    publishFields(name);
-    return id;
 }
 
 template <typename T>
@@ -289,26 +287,21 @@ LogChannel::registerCustomValue(const std::string &name, const T *value_ptr, Cus
 template <template <class, class> class Container, class T, class... TArgs>
 inline RegistrationID LogChannel::registerValue(const std::string &prefix, const Container<T, TArgs...> *vect)
 {
-    CLOG_INFO << "registerValue";
-    RegistrationID id;
     if constexpr (IsNumericType<T>())
     {
-        id = registerValueImpl(prefix, ValuePtr(vect), {});
+        return registerValueImpl(prefix, ValuePtr(vect), {});
     }
     else
     {
         updateTypeRegistry<T>();
         auto def = _type_registry.getSerializer<T>();
-        id = registerValueImpl(prefix, ValuePtr(vect), def);
+        return registerValueImpl(prefix, ValuePtr(vect), def);
     }
-
-    return id;
 }
 
 template <typename T, size_t N>
 inline RegistrationID LogChannel::registerValue(const std::string &prefix, const std::array<T, N> *vect)
 {
-    CLOG_INFO << "registerValue";
     if constexpr (IsNumericType<T>())
     {
         return registerValueImpl(prefix, ValuePtr(vect), {});
