@@ -69,7 +69,7 @@ int main()
     {
         Eigen::Vector3d tip;
         channel->registerValue("pos", &tip);
-        CLOG_INFO << channel->getSchema();
+//        CLOG_INFO << channel->getSchema();
         while (!exit.load(std::memory_order_relaxed))
         {
             auto loop_start_time = std::chrono::high_resolution_clock::now();

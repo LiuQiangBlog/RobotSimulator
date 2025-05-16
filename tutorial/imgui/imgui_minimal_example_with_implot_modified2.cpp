@@ -265,7 +265,9 @@ public:
     void new_channel(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_channel *msg)
     {
         std::lock_guard<std::shared_mutex> lck(mtx);
+        zcm->pause();
         zcm->subscribe(msg->channel, &Handler::handle, this);
+        zcm->resume();
         all_channels.insert(msg->channel);
         for (auto &[key, value] : plot_channels)
         {
@@ -296,6 +298,9 @@ public:
         std::lock_guard<std::shared_mutex> lck(mtx);
         for (auto &field : msg->channels)
         {
+            zcm->pause();
+            zcm->subscribe(field, &Handler::handle, this);
+            zcm->resume();
             all_channels.insert(field);
             for (auto &[key, value] : plot_channels)
             {
@@ -318,7 +323,6 @@ public:
                     }
                 }
             }
-            zcm->subscribe(field, &Handler::handle, this);
             CLOG_INFO << field;
         }
     }
@@ -403,7 +407,12 @@ public:
         glfwDestroyWindow(window);
         glfwTerminate();
         zcm->stop();
+        zcm_channels->stop();
         exit = true;
+        if (th_zcm.joinable())
+        {
+            th_zcm.join();
+        }
         if (th_zcm_channels.joinable())
         {
             th_zcm_channels.join();
@@ -474,7 +483,9 @@ public:
             zcm_channels.reset();
             return false;
         }
+        h.zcm = zcm.get();
         data_fields channels_req;
+        channels_req.cnt = 0;
         zcm_channels->publish("channels_req", &channels_req);
         zcm_channels->subscribe("channels_req", &Handler::channels_req, &h);
         zcm_channels->subscribe("new_channel", &Handler::new_channel, &h);

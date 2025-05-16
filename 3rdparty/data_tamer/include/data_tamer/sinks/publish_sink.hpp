@@ -29,6 +29,10 @@ using Mutex = std::shared_mutex;
 class Handler
 {
 public:
+    Handler()
+    {
+        fields.cnt = 0;
+    }
     ~Handler() = default;
     void channels_req(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
     {
@@ -52,7 +56,7 @@ public:
     std::unordered_map<uint64_t, std::string> schema_names;
     std::unordered_map<uint64_t, long> snapshots_count;
     Snapshot latest_snapshot;
-    Mutex schema_mutex;
+//    Mutex schema_mutex;
     // std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     // std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     uint64_t start_time;
@@ -64,6 +68,7 @@ public:
     std::thread th_zcm_channels, th_zcm;
     Handler h;
     std::atomic_bool exit{false};
+    std::condition_variable_any cv;
 
     PublishSink()
     {
@@ -74,6 +79,8 @@ public:
     ~PublishSink() override
     {
         stopThread();
+        zcm->stop();
+        zcm_channels->stop();
         exit = true;
         if (th_zcm_channels.joinable())
         {
@@ -108,23 +115,39 @@ public:
             {
                 while (!exit)
                 {
-                    std::scoped_lock lk(schema_mutex);
-                    while (!h.fields.channels.empty())
+                    std::vector<std::string> channels_to_publish;
                     {
-                        for (auto &channel : h.fields.channels)
+                        std::shared_lock<std::shared_mutex> lock(h.mtx);
+                        channels_to_publish = h.fields.channels;
+                    }
+                    for (auto &channel : channels_to_publish)
+                    {
+                        if (buffer_data.count(channel) > 0)
                         {
-                            if (buffer_data.count(channel) > 0)
+                            timed_value temp;
                             {
-                                zcm->publish(channel, &buffer_data[channel].front());
+                                std::shared_lock<std::shared_mutex> lock(h.mtx);
+                                if (buffer_data[channel].empty())
+                                {
+                                    continue;
+                                }
+                                temp = buffer_data[channel].front();
                                 buffer_data[channel].pop_front();
                             }
-                            else
-                            {
-                                CLOG_ERROR << "No channel: " << channel;
-                            }
+                            zcm->publish(channel, &temp);
+                        }
+                        else
+                        {
+                            CLOG_ERROR << "No channel: " << channel;
                         }
                     }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    if (exit)
+                    {
+                        CLOG_INFO << "aaaaaaa";
+                        return;
+                    }
+                    CLOG_INFO << "ccccccc";
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 }
             });
         return true;
@@ -132,7 +155,8 @@ public:
 
     void addChannel(std::string const &name, Schema const &schema) override
     {
-        std::scoped_lock lk(schema_mutex);
+//        std::scoped_lock lk(schema_mutex);
+        std::scoped_lock lk(h.mtx);
         schemas[schema.hash] = schema;
         schema_names[schema.hash] = name;
         snapshots_count[schema.hash] = 0;
@@ -148,7 +172,8 @@ public:
 
     bool storeSnapshot(const Snapshot &snapshot) override
     {
-        std::scoped_lock lk(schema_mutex);
+//        std::scoped_lock lk(schema_mutex);
+        std::unique_lock lk(h.mtx);
         latest_snapshot = snapshot;
 
         auto it = snapshots_count.find(snapshot.schema_hash);
@@ -191,47 +216,15 @@ public:
                     pub_channels.insert(key);
                     new_channel.channel = key;
                     zcm_channels->publish("new_channel", &new_channel);
+//                    std::scoped_lock lck(h.mtx);
                     h.fields.channels.push_back(key);
                     h.fields.cnt = (int)h.fields.channels.size();
 //                    publisher->publish("PubChannels", &fields); // if new channel generated, publish it to sub end
                     CLOG_INFO << key;
                 }
-//                if (publisher)
-//                {
-//                    data.set(pair.first, pair.second);
-//                    if (channels.count(key) <= 0)
-//                    {
-//                        fields.channels.push_back(key);
-//                        fields.cnt = (int)fields.channels.size();
-//                        publisher->publish("PubChannels", &fields); // publish all channels
-//
-//                        channels.insert(key);
-//                        buffer_data.insert({key, data});
-//                        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-//                    }
-//                    else
-//                    {
-//                        for (auto &[bufKey, bufVal] : buffer_data)
-//                        {
-//                            publisher->publish(bufKey, &bufVal);
-//                        }
-//                        buffer_data.clear();
-//                        publisher->publish(key, &data);
-//                    }
-//                }
-                //                channel_data[key].first.push_back(pair.first);
-                //                channel_data[key].second.push_back(pair.second);
-                //                if (channel_data[key].first.size() > 10000)
-                //                {
-                //                    channel_data[key].first.pop_front();
-                //                    channel_data[key].second.pop_front();
-                //                }
-                //                auto timestamps = std::vector<double>(channel_data[key].first.begin(),
-                //                channel_data[key].first.end()); auto values =
-                //                std::vector<double>(channel_data[key].second.begin(), channel_data[key].second.end());
-                //                channel_plot_data[key].first = timestamps;
-                //                channel_plot_data[key].second = values;
+                CLOG_INFO << "bbbbbb";
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         return true;
     }
