@@ -16,35 +16,54 @@
 #include "GLFW/glfw3.h"
 #include <Logging.h>
 #include <set>
+#include <atomic>
+#include <regex>
+#include <iomanip>
 #include <unordered_set>
 #include "data_fields.hpp"
 #include "data_channel.hpp"
 
-static inline bool ends_with(const std::string & str, const char suffix)
+static inline bool contains(const std::string & str, const std::string & substring)
+{
+    return str.find(substring) != std::string::npos;
+}
+
+static inline bool contains(const std::string & str, const char character)
+{
+    return contains(str, std::string(1, character));
+}
+
+static inline bool starts_with(const std::string & str, const std::string & prefix)
+{
+    return str.rfind(prefix, 0) == 0;
+}
+
+static inline bool ends_with(const std::string &str, const char suffix)
 {
     return !str.empty() && (str.back() == suffix);
 }
 
-static inline std::vector<std::string> split(const std::string & str, const char delim)
+static inline std::vector<std::string> split(const std::string &str, const char delim)
 {
     std::vector<std::string> tokens;
     std::stringstream ss(str);
 
     std::string token;
-    while(std::getline(ss, token, delim))
+    while (std::getline(ss, token, delim))
     {
         tokens.push_back(token);
     }
 
     // Match semantics of split(str,str)
-    if (str.empty() || ends_with(str, delim)) {
+    if (str.empty() || ends_with(str, delim))
+    {
         tokens.emplace_back();
     }
 
     return tokens;
 }
 
-static inline std::vector<std::string> split(const std::string & str, const std::string & delim)
+static inline std::vector<std::string> split(const std::string &str, const std::string &delim)
 {
     size_t pos_start = 0, pos_end, delim_len = delim.length();
     std::string token;
@@ -71,6 +90,39 @@ std::pair<std::string, std::string> split_last(const std::string &str, char deli
     std::string before = str.substr(0, last_slash_pos);
     std::string after = str.substr(last_slash_pos + 1);
     return {before, after};
+}
+
+std::vector<std::string> expand_range_expression(const std::string &expr)
+{
+    std::vector<std::string> result;
+    std::regex pattern(R"(^([^\d]+)(\d+)-(\d+)$)");
+    std::smatch matches;
+    if (std::regex_match(expr, matches, pattern))
+    {
+        if (matches.size() != 4)
+        {
+            throw std::invalid_argument("无效的范围表达式格式");
+        }
+        std::string prefix = matches[1].str();
+        int start = std::stoi(matches[2].str());
+        int end = std::stoi(matches[3].str());
+        if (start > end)
+        {
+            throw std::invalid_argument("起始数字不能大于结束数字");
+        }
+        size_t width = matches[2].str().length();
+        for (int i = start; i <= end; ++i)
+        {
+            std::stringstream ss;
+            ss << prefix << std::setw(int(width)) << std::setfill('0') << i;
+            result.push_back(ss.str());
+        }
+    }
+    else
+    {
+        result.push_back(expr);
+    }
+    return result;
 }
 
 class Handler
@@ -116,7 +168,7 @@ public:
     }
 
     // plot all channels
-    void plotChannelData(const std::string &title)
+    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
         static bool show_plot = true;
         if (show_plot)
@@ -212,42 +264,74 @@ public:
 
     void new_channel(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_channel *msg)
     {
-        if (msg->channel.find_last_of('/') != std::string::npos)
+        std::lock_guard<std::shared_mutex> lck(mtx);
+        zcm->subscribe(msg->channel, &Handler::handle, this);
+        all_channels.insert(msg->channel);
+        for (auto &[key, value] : plot_channels)
         {
-            auto res = split_last(msg->channel, '/');
-            group_channels[res.first].insert(res.second);
-        }
-        else
-        {
-            group_channels[msg->channel].insert(msg->channel);
+            if (contains(key, "*"))
+            {
+                auto lhd = split_last(key, '*').first;
+                if (contains(msg->channel, lhd))
+                {
+                    plot_channels[key].push_back(msg->channel);
+                }
+            }
+            if (contains(key, "-"))
+            {
+                for (auto &element : expand_range_expression(key))
+                {
+                    if (msg->channel == element)
+                    {
+                        plot_channels[key].push_back(msg->channel);
+                    }
+                }
+            }
         }
         CLOG_INFO << msg->channel;
     }
 
     void channels_req(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
     {
-        channels = msg->channels;
+        std::lock_guard<std::shared_mutex> lck(mtx);
         for (auto &field : msg->channels)
         {
-            if (field.find_last_of('/') != std::string::npos)
+            all_channels.insert(field);
+            for (auto &[key, value] : plot_channels)
             {
-                auto res = split_last(field, '/');
-                group_channels[res.first].insert(res.second);
+                if (contains(key, "*"))
+                {
+                    auto lhd = split_last(key, '*').first;
+                    if (contains(field, lhd))
+                    {
+                        plot_channels[key].push_back(field);
+                    }
+                }
+                if (contains(key, "-"))
+                {
+                    for (auto &element : expand_range_expression(key))
+                    {
+                        if (field == element)
+                        {
+                            plot_channels[key].push_back(field);
+                        }
+                    }
+                }
             }
-            else
-            {
-                group_channels[field].insert(field);
-            }
+            zcm->subscribe(field, &Handler::handle, this);
             CLOG_INFO << field;
         }
     }
 
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
-    std::shared_mutex mtx;
-    std::unordered_map<std::string, std::unordered_set<std::string>> group_channels;
-    std::vector<std::string> channels;
+
+    std::unordered_set<std::string> all_channels;
+    std::unordered_map<std::string, std::vector<std::string>> plot_channels;
+//    std::vector<std::string> channels;
+
     zcm::ZCM *zcm{nullptr};
+    std::shared_mutex mtx;
 };
 
 template <typename T>
@@ -292,13 +376,10 @@ private:
     double last_y{0};
     std::unique_ptr<zcm::ZCM> zcm, zcm_channels;
     Handler h;
-    std::thread th;
-    std::thread th2;
-    data_fields channels_req;
+    std::thread th_zcm, th_zcm_channels;
     ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
     std::set<std::string> availableChannels;
-    std::unordered_map<std::string, std::vector<std::string>> plotChannels;
-    std::unordered_map<std::string, std::string> plotChannel;
+    std::atomic_bool exit{false};
 
 public:
     explicit Plotter(const std::string &name)
@@ -322,7 +403,11 @@ public:
         glfwDestroyWindow(window);
         glfwTerminate();
         zcm->stop();
-        th.join();
+        exit = true;
+        if (th_zcm_channels.joinable())
+        {
+            th_zcm_channels.join();
+        }
     }
 
     bool init()
@@ -357,10 +442,7 @@ public:
         glfwMakeContextCurrent(window);
         glfwSwapInterval(1);
         glfwSetWindowTitle(window, winTitle.c_str());
-        // 1. 创建窗口前设置多重采样
-        glfwWindowHint(GLFW_SAMPLES, 4); // 开启 4x MSAA
-
-        // 2. 创建 OpenGL 上下文之后，启用多重采样
+        glfwWindowHint(GLFW_SAMPLES, 4);
         glEnable(GL_MULTISAMPLE);
 
         IMGUI_CHECKVERSION();
@@ -378,7 +460,7 @@ public:
         ImGui_ImplGlfw_InitForOpenGL(window, true);
         ImGui_ImplOpenGL3_Init(glsl_version);
 
-        glfwSetWindowUserPointer(window, this); // 设置窗口用户指针
+        glfwSetWindowUserPointer(window, this);
         glfwSetMouseButtonCallback(window, mouseClickCallback);
         glfwSetCursorPosCallback(window, mouseMoveCallback);
         glfwSetScrollCallback(window, mouseScrollCallback);
@@ -392,62 +474,55 @@ public:
             zcm_channels.reset();
             return false;
         }
+        data_fields channels_req;
         zcm_channels->publish("channels_req", &channels_req);
+        zcm_channels->subscribe("channels_req", &Handler::channels_req, &h);
         zcm_channels->subscribe("new_channel", &Handler::new_channel, &h);
-        th = std::thread(
+        th_zcm_channels = std::thread(
             [&]()
             {
                 zcm_channels->run();
             });
-        return true;
-    }
-
-    void subscribe(const std::vector<std::string> &channels)
-    {
-
-//        metaChannels = channels;
-//        for (auto &channel : metaChannels)
-//        {
-//            CLOG_INFO << "subscribe: " << channel;
-//            auto subscription = zcm->subscribe(channel, &Handler::handle_once, &h);
-//            h.map_channels.insert({channel, subscription});
-//        }
-//        h.zcm = zcm.get();
-        th = std::thread(
+        th_zcm = std::thread(
             [&]()
             {
                 zcm->run();
             });
-//        th2 = std::thread(
-//            [&]()
-//            {
-//                while(true)
-//                {
-//                    static std::set<std::string> gotChannels;
-//                    for (auto &channel : metaChannels)
-//                    {
-//                        if (gotChannels.count(channel) > 0)
-//                        {
-//                            continue;
-//                        }
-//                        if (h.map_fields.count(channel) > 0)
-//                        {
-//                            plotChannels.insert({channel, h.map_fields[channel]});
-//                            for (auto &fieldChannel : h.map_fields[channel])
-//                            {
-//                                zcm->subscribe(fieldChannel, &Handler::handle, &h);
-//                            }
-//                            gotChannels.insert(channel);
-//                        }
-//                    }
-//                    if (gotChannels.size() == metaChannels.size())
-//                    {
-//                        return;
-//                    }
-//                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//                }
-//            });
-//        CLOG_INFO << "subscribe done...";
+        return true;
+    }
+
+    // support fuzzy subscription e.g. "pos/*", "q/1-7", but do not support the inclusion of both "*" and "-"
+    bool plot(const std::string &channel)
+    {
+        if (!(contains(channel, "*") || contains(channel, "-")))
+        {
+            h.plot_channels[channel].push_back(channel);
+        }
+        if (contains(channel, "*") && contains(channel, "-"))
+        {
+            CLOG_ERROR << R"(Do not support the inclusion of both "*" and "-")";
+            return false;
+        }
+        if (contains(channel, "*"))
+        {
+            auto [lhd, rhd] = split_last(channel, '*');
+            if (contains(lhd, "*"))
+            {
+                CLOG_ERROR << "Do not support the inclusion of multiple \"*\"";
+                return false;
+            }
+        }
+        if (contains(channel, "-"))
+        {
+            auto [lhd, rhd] = split_last(channel, '-');
+            if (contains(lhd, "-"))
+            {
+                CLOG_ERROR << "Do not support the inclusion of multiple \"-\"";
+                return false;
+            }
+        }
+        h.plot_channels[channel];
+        return true;
     }
 
     void render()
@@ -462,31 +537,31 @@ public:
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-//        for (auto &[key, val] : plotChannel)
-//        {
-//            h.plotChannelData(key, val);
-//        }
-//        for (auto &[key, val] : plotChannels)
-//        {
-//            h.plotChannelData(key, val);
-//        }
-//        ImGui::Button("Right Click Me");
-//        static bool isEnabled{false};
-//        if (ImGui::BeginPopupContextItem("MyPopup"))
-//        {
-//            // 菜单项
-//            if (ImGui::MenuItem("Item One"))
-//            {
-//                // 处理逻辑
-//            }
-//            if (ImGui::MenuItem("Item Two", nullptr, false, isEnabled))
-//            {
-//                // 处理逻辑
-//            }
-//            ImGui::EndPopup();
-//        }
+        //        for (auto &[key, val] : plotChannel)
+        //        {
+        //            h.plotChannelData(key, val);
+        //        }
+        for (auto &[key, val] : h.plot_channels)
+        {
+            h.plotChannelData(key, val);
+        }
+        //        ImGui::Button("Right Click Me");
+        //        static bool isEnabled{false};
+        //        if (ImGui::BeginPopupContextItem("MyPopup"))
+        //        {
+        //            // 菜单项
+        //            if (ImGui::MenuItem("Item One"))
+        //            {
+        //                // 处理逻辑
+        //            }
+        //            if (ImGui::MenuItem("Item Two", nullptr, false, isEnabled))
+        //            {
+        //                // 处理逻辑
+        //            }
+        //            ImGui::EndPopup();
+        //        }
 
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
         ImVec2 display_size = io.DisplaySize;
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -506,7 +581,8 @@ public:
             ImVec2 plot_size(600, 400);
             ImGui::InvisibleButton("PlotOverlay", plot_size);
             bool hovered = ImGui::IsItemHovered();
-            bool ctrl_right_click = hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && (io.KeyMods & ImGuiMod_Ctrl);
+            bool ctrl_right_click =
+                hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && (io.KeyMods & ImGuiMod_Ctrl);
             if (ctrl_right_click)
             {
                 ImGui::OpenPopup("ChannelPopup");
@@ -524,26 +600,26 @@ public:
             }
 
             // 如何上面的ImGui::Begin()是在ImPlot()窗口中，那么鼠标右键点击是不是关联的就是此窗口中ImPlot的数据
-            static std::vector<std::string> zcm_channels = {"camera/left", "camera/right", "lidar/scan", "imu/data"};
+            static std::vector<std::string> all_channels = {"camera/left", "camera/right", "lidar/scan", "imu/data"};
             static std::unordered_map<std::string, bool> channel_enabled;
             ImGui::GetStyle().Colors[ImGuiCol_PopupBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.4f);
             if (shiftHeld && ImGui::BeginPopupContextWindow("MyWindowPopup", ImGuiPopupFlags_MouseButtonRight))
             {
                 ImGui::Text("Hello World");
                 ImGui::Separator();
-                for (const std::string& channel : zcm_channels)
+                for (const std::string &channel : all_channels)
                 {
                     // 初始化 map 中的默认值（第一次使用）
                     if (channel_enabled.find(channel) == channel_enabled.end())
                     {
                         channel_enabled[channel] = true; // 默认开启
                     }
-                    std::string unique_id = "##" + channel;  // 不显示 ID，只用于内部唯一性
+                    std::string unique_id = "##" + channel; // 不显示 ID，只用于内部唯一性
                     // 将复选框和名称放在一行
-                    bool* checked = &channel_enabled[channel];
-                    ImGui::Checkbox(unique_id.c_str(), checked);  // 显示复选框
+                    bool *checked = &channel_enabled[channel];
+                    ImGui::Checkbox(unique_id.c_str(), checked); // 显示复选框
                     ImGui::SameLine();
-                    ImGui::TextUnformatted(channel.c_str());      // 显示通道名
+                    ImGui::TextUnformatted(channel.c_str()); // 显示通道名
                 }
                 ImGui::EndPopup();
             }
@@ -560,7 +636,6 @@ public:
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         if (!ImGui::GetIO().WantCaptureMouse)
         {
-
         }
         glfwSwapBuffers(window);
         glfwPollEvents(); // process events
@@ -660,15 +735,16 @@ protected:
 
 int main(int, char **)
 {
-    Plotter plot;
-    if (!plot.init())
+    Plotter pt;
+    if (!pt.init())
     {
         return -1;
     }
-    plot.subscribe({"pos"});
-    while (!plot.shouldClose())
+    pt.plot("pos/*");
+//    pt.plot("joint_position", "q/1-7");
+    while (!pt.shouldClose())
     {
-        plot.render();
+        pt.render();
     }
     return 0;
 }

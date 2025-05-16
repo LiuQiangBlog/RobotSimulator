@@ -108,7 +108,7 @@ public:
             {
                 while (!exit)
                 {
-                    std::lock_guard<std::shared_mutex> lock(h.mtx);
+                    std::scoped_lock lk(schema_mutex);
                     while (!h.fields.channels.empty())
                     {
                         for (auto &channel : h.fields.channels)
