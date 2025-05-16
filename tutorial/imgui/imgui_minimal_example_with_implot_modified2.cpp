@@ -16,7 +16,62 @@
 #include "GLFW/glfw3.h"
 #include <Logging.h>
 #include <set>
+#include <unordered_set>
 #include "data_fields.hpp"
+#include "data_channel.hpp"
+
+static inline bool ends_with(const std::string & str, const char suffix)
+{
+    return !str.empty() && (str.back() == suffix);
+}
+
+static inline std::vector<std::string> split(const std::string & str, const char delim)
+{
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+
+    std::string token;
+    while(std::getline(ss, token, delim))
+    {
+        tokens.push_back(token);
+    }
+
+    // Match semantics of split(str,str)
+    if (str.empty() || ends_with(str, delim)) {
+        tokens.emplace_back();
+    }
+
+    return tokens;
+}
+
+static inline std::vector<std::string> split(const std::string & str, const std::string & delim)
+{
+    size_t pos_start = 0, pos_end, delim_len = delim.length();
+    std::string token;
+    std::vector<std::string> tokens;
+
+    while ((pos_end = str.find(delim, pos_start)) != std::string::npos)
+    {
+        token = str.substr(pos_start, pos_end - pos_start);
+        pos_start = pos_end + delim_len;
+        tokens.push_back(token);
+    }
+
+    tokens.push_back(str.substr(pos_start));
+    return tokens;
+}
+
+std::pair<std::string, std::string> split_last(const std::string &str, char delim)
+{
+    size_t last_slash_pos = str.find_last_of(delim);
+    if (last_slash_pos == std::string::npos)
+    {
+        return {"", str};
+    }
+    std::string before = str.substr(0, last_slash_pos);
+    std::string after = str.substr(last_slash_pos + 1);
+    return {before, after};
+}
 
 class Handler
 {
@@ -60,7 +115,8 @@ public:
         }
     }
 
-    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
+    // plot all channels
+    void plotChannelData(const std::string &title)
     {
         static bool show_plot = true;
         if (show_plot)
@@ -154,23 +210,43 @@ public:
         }
     }
 
-    void handle_once(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
+    void new_channel(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_channel *msg)
     {
-        CLOG_INFO << "handle_once...";
-        if (zcm && map_channels.count(channel) > 0 && map_fields.count(channel) > 0)
+        if (msg->channel.find_last_of('/') != std::string::npos)
         {
-            zcm->unsubscribe(map_channels[channel]);
-            return;
+            auto res = split_last(msg->channel, '/');
+            group_channels[res.first].insert(res.second);
         }
-        map_fields.insert({channel, msg->channels});
-        CLOG_INFO << "channel handled.....";
+        else
+        {
+            group_channels[msg->channel].insert(msg->channel);
+        }
+        CLOG_INFO << msg->channel;
+    }
+
+    void channels_req(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
+    {
+        channels = msg->channels;
+        for (auto &field : msg->channels)
+        {
+            if (field.find_last_of('/') != std::string::npos)
+            {
+                auto res = split_last(field, '/');
+                group_channels[res.first].insert(res.second);
+            }
+            else
+            {
+                group_channels[field].insert(field);
+            }
+            CLOG_INFO << field;
+        }
     }
 
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::shared_mutex mtx;
-    std::unordered_map<std::string, std::vector<std::string>> map_fields;
-    std::unordered_map<std::string, zcm::Subscription *> map_channels;
+    std::unordered_map<std::string, std::unordered_set<std::string>> group_channels;
+    std::vector<std::string> channels;
     zcm::ZCM *zcm{nullptr};
 };
 
@@ -206,6 +282,24 @@ public:
 
 class Plotter
 {
+private:
+    std::string winTitle;
+    GLFWwindow *window{nullptr};
+    bool button_left{false};
+    bool button_middle{false};
+    bool button_right{false};
+    double last_x{0};
+    double last_y{0};
+    std::unique_ptr<zcm::ZCM> zcm, zcm_channels;
+    Handler h;
+    std::thread th;
+    std::thread th2;
+    data_fields channels_req;
+    ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
+    std::set<std::string> availableChannels;
+    std::unordered_map<std::string, std::vector<std::string>> plotChannels;
+    std::unordered_map<std::string, std::string> plotChannel;
+
 public:
     explicit Plotter(const std::string &name)
     {
@@ -291,17 +385,27 @@ public:
         glfwSetErrorCallback(errorCallback);
 
         zcm = std::make_unique<zcm::ZCM>("ipcshm://");
-        if (!zcm->good())
+        zcm_channels = std::make_unique<zcm::ZCM>("ipcshm://");
+        if (!(zcm->good() && zcm_channels->good()))
         {
+            zcm.reset();
+            zcm_channels.reset();
             return false;
         }
+        zcm_channels->publish("channels_req", &channels_req);
+        zcm_channels->subscribe("new_channel", &Handler::new_channel, &h);
+        th = std::thread(
+            [&]()
+            {
+                zcm_channels->run();
+            });
         return true;
     }
 
     void subscribe(const std::vector<std::string> &channels)
     {
-        zcm->subscribe("pos", &Handler::handle_once, &h);
-        metaChannels = channels;
+
+//        metaChannels = channels;
 //        for (auto &channel : metaChannels)
 //        {
 //            CLOG_INFO << "subscribe: " << channel;
@@ -552,24 +656,6 @@ protected:
             return;
         }
     }
-
-private:
-    std::string winTitle;
-    GLFWwindow *window{nullptr};
-    bool button_left{false};
-    bool button_middle{false};
-    bool button_right{false};
-    double last_x{0};
-    double last_y{0};
-    std::unique_ptr<zcm::ZCM> zcm;
-    Handler h;
-    std::thread th;
-    std::thread th2;
-    std::vector<std::string> metaChannels;
-    ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
-    std::set<std::string> availableChannels;
-    std::unordered_map<std::string, std::vector<std::string>> plotChannels;
-    std::unordered_map<std::string, std::string> plotChannel;
 };
 
 int main(int, char **)

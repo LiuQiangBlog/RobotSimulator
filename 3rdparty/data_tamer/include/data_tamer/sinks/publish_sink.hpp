@@ -18,6 +18,7 @@
 #include "timed_value.hpp"
 #include <Logging.h>
 #include "data_fields.hpp"
+#include "data_channel.hpp"
 #include <thread>
 #include <atomic>
 
@@ -29,13 +30,15 @@ class Handler
 {
 public:
     ~Handler() = default;
-    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
+    void channels_req(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
     {
         std::lock_guard<std::shared_mutex> lock(mtx);
-        fields = msg->channels;
+        zcm->publish("channels_req", &fields);
     }
+
     std::shared_mutex mtx;
-    std::vector<std::string> fields;
+    data_fields fields;
+    zcm::ZCM *zcm{nullptr};
 };
 /**
  * @brief The PublishSink publish message, only counting the number of snapshots received.
@@ -53,15 +56,14 @@ public:
     // std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     // std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     uint64_t start_time;
-    std::unique_ptr<zcm::ZCM> publisher, subscriber;
+    std::unique_ptr<zcm::ZCM> zcm, zcm_channels;
     timed_value data;
-//    std::unordered_set<std::string> channels;
+    std::unordered_set<std::string> pub_channels;
     std::unordered_map<std::string, std::deque<timed_value>> buffer_data;
-//    data_fields fields;
-    std::thread threadForSub, threadForPub;
+    data_channel new_channel;
+    std::thread th_zcm_channels, th_zcm;
     Handler h;
     std::atomic_bool exit{false};
-    std::vector<std::string> channels;
 
     PublishSink()
     {
@@ -73,48 +75,47 @@ public:
     {
         stopThread();
         exit = true;
-        if (threadForSub.joinable())
+        if (th_zcm_channels.joinable())
         {
-            threadForSub.join();
+            th_zcm_channels.join();
         }
-        if (threadForPub.joinable())
+        if (th_zcm.joinable())
         {
-            threadForPub.join();
+            th_zcm.join();
         }
     }
 
     bool init()
     {
-        publisher = std::make_unique<zcm::ZCM>("ipcshm://");
-        subscriber = std::make_unique<zcm::ZCM>("ipcshm://");
-        if (!(publisher->good() && subscriber->good()))
+        zcm = std::make_unique<zcm::ZCM>("ipcshm://");
+        zcm_channels = std::make_unique<zcm::ZCM>("ipcshm://");
+        if (!(zcm->good() && zcm_channels->good()))
         {
             CLOG_ERROR << "Failed to create zcm::ZCM()";
-            publisher.reset();
+            zcm.reset();
+            zcm_channels.reset();
             return false;
         }
-        subscriber->subscribe("SubChannels", &Handler::handle, &h);
-        threadForSub = std::thread(
+        h.zcm = zcm_channels.get();
+        zcm_channels->subscribe("channels_req", &Handler::channels_req, &h);
+        th_zcm_channels = std::thread(
             [&]()
             {
-                subscriber->run();
+                zcm_channels->run();
             });
-        threadForPub = std::thread(
+        th_zcm = std::thread(
             [&]()
             {
                 while (!exit)
                 {
+                    std::lock_guard<std::shared_mutex> lock(h.mtx);
+                    while (!h.fields.channels.empty())
                     {
-                        std::lock_guard<std::shared_mutex> lock(h.mtx);
-                        channels = h.fields;
-                    }
-                    while (channels.empty())
-                    {
-                        for (auto &channel : channels)
+                        for (auto &channel : h.fields.channels)
                         {
                             if (buffer_data.count(channel) > 0)
                             {
-                                publisher->publish(channel, &buffer_data[channel].front());
+                                zcm->publish(channel, &buffer_data[channel].front());
                                 buffer_data[channel].pop_front();
                             }
                             else
@@ -184,6 +185,16 @@ public:
                 if (buffer_data[key].size() > MAX_CACHE_SIZE)
                 {
                     buffer_data[key].pop_front();
+                }
+                if (pub_channels.count(key) <= 0)
+                {
+                    pub_channels.insert(key);
+                    new_channel.channel = key;
+                    zcm_channels->publish("new_channel", &new_channel);
+                    h.fields.channels.push_back(key);
+                    h.fields.cnt = (int)h.fields.channels.size();
+//                    publisher->publish("PubChannels", &fields); // if new channel generated, publish it to sub end
+                    CLOG_INFO << key;
                 }
 //                if (publisher)
 //                {

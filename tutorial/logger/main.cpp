@@ -5,6 +5,7 @@
 #include "ChannelLogger.h"
 #include <Eigen/Dense>
 #include "Logging.h"
+#include "data_tamer/sinks/publish_sink.hpp"
 
 int main()
 {

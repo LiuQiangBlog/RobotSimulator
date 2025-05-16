@@ -1,0 +1,4 @@
+struct data_channel
+{
+    string channel;
+}
