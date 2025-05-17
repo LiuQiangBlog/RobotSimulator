@@ -22,6 +22,7 @@
 #include <unordered_set>
 #include "data_fields.hpp"
 #include "data_channel.hpp"
+#include "rolling_buffer.h"
 
 static inline bool contains(const std::string & str, const std::string & substring)
 {
@@ -132,6 +133,7 @@ public:
 
     void plotChannelData(const std::string &title, const std::string &channel)
     {
+        UpdatePlotData();
         static bool show_plot = true;
         if (show_plot)
         {
@@ -170,6 +172,7 @@ public:
     // plot all channels
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
+        UpdatePlotData();
         static bool show_plot = true;
         if (show_plot)
         {
@@ -248,7 +251,7 @@ public:
     {
         channel_data[channel].first.push_back(msg->timestamp);
         channel_data[channel].second.push_back(msg->value);
-        if (channel_data[channel].first.size() > 10000)
+        if (channel_data[channel].first.size() > MAX_CACHE_SIZE)
         {
             channel_data[channel].first.pop_front();
             channel_data[channel].second.pop_front();
@@ -257,9 +260,28 @@ public:
         auto values = std::vector<double>(channel_data[channel].second.begin(), channel_data[channel].second.end());
         CLOG_INFO << "values: " << values.size();
         {
-            std::lock_guard<std::shared_mutex> lock(mtx);
             channel_plot_data[channel].first = timestamps;
             channel_plot_data[channel].second = values;
+        }
+    }
+
+    void UpdatePlotData()
+    {
+        std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> temp_channel_data;
+        {
+            std::lock_guard<std::shared_mutex> lock(mtx);
+            temp_channel_data = channel_data;
+        }
+        for (const auto &[channel, data_pair] : temp_channel_data)
+        {
+            const auto &ts_deque = data_pair.first;
+            const auto &val_deque = data_pair.second;
+
+            std::vector<double> ts_vec(ts_deque.begin(), ts_deque.end());
+            std::vector<double> val_vec(val_deque.begin(), val_deque.end());
+
+            channel_plot_data[channel].first = std::move(ts_vec);
+            channel_plot_data[channel].second = std::move(val_vec);
         }
     }
 
@@ -330,11 +352,10 @@ public:
 
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
-
     std::unordered_set<std::string> all_channels;
     std::unordered_map<std::string, std::vector<std::string>> plot_channels;
 //    std::vector<std::string> channels;
-
+    const size_t MAX_CACHE_SIZE = 10000;
     zcm::ZCM *zcm{nullptr};
     std::shared_mutex mtx;
 };
