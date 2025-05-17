@@ -10,11 +10,11 @@
 #include <mutex>
 #include <optional>
 
-template <typename T>
+template <typename T, std::size_t N>
 class RollingBuffer
 {
 public:
-    explicit RollingBuffer(size_t max_size) : max_size_(max_size), active_buffer_(0)
+    explicit RollingBuffer() : max_size_(N), active_buffer_(0)
     {
         buffers_[0].reserve(max_size_);
         buffers_[1].reserve(max_size_);
@@ -51,13 +51,19 @@ public:
         return buffers_[active_buffer_];
     }
 
-    size_t size() const
+    std::vector<T> snapshot() const
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return std::vector<T>(buffers_[active_buffer_].begin(), buffers_[active_buffer_].end());
+    }
+
+    [[nodiscard]] size_t size() const
     {
         std::lock_guard<std::mutex> lock(mutex_);
         return buffers_[active_buffer_].size();
     }
 
-    size_t capacity() const
+    [[nodiscard]] size_t capacity() const
     {
         return max_size_;
     }

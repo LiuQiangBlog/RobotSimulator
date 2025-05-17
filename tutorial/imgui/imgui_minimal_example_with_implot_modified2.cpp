@@ -129,11 +129,12 @@ std::vector<std::string> expand_range_expression(const std::string &expr)
 class Handler
 {
 public:
+    static constexpr size_t MAX_CACHE_SIZE = 10000;
+    using DataBUffer = RollingBuffer<double, MAX_CACHE_SIZE>;
     ~Handler() = default;
 
     void plotChannelData(const std::string &title, const std::string &channel)
     {
-        UpdatePlotData();
         static bool show_plot = true;
         if (show_plot)
         {
@@ -172,7 +173,6 @@ public:
     // plot all channels
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
-        UpdatePlotData();
         static bool show_plot = true;
         if (show_plot)
         {
@@ -247,41 +247,33 @@ public:
         }
     }
 
+//    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
+//    {
+//        channel_data[channel].first.push_back(msg->timestamp);
+//        channel_data[channel].second.push_back(msg->value);
+//        if (channel_data[channel].first.size() > MAX_CACHE_SIZE)
+//        {
+//            channel_data[channel].first.pop_front();
+//            channel_data[channel].second.pop_front();
+//        }
+//        auto timestamps = std::vector<double>(channel_data[channel].first.begin(), channel_data[channel].first.end());
+//        auto values = std::vector<double>(channel_data[channel].second.begin(), channel_data[channel].second.end());
+//        CLOG_INFO << "values: " << values.size();
+//        {
+//            channel_plot_data[channel].first = timestamps;
+//            channel_plot_data[channel].second = values;
+//        }
+//    }
+
     void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
     {
+
         channel_data[channel].first.push_back(msg->timestamp);
         channel_data[channel].second.push_back(msg->value);
-        if (channel_data[channel].first.size() > MAX_CACHE_SIZE)
         {
-            channel_data[channel].first.pop_front();
-            channel_data[channel].second.pop_front();
-        }
-        auto timestamps = std::vector<double>(channel_data[channel].first.begin(), channel_data[channel].first.end());
-        auto values = std::vector<double>(channel_data[channel].second.begin(), channel_data[channel].second.end());
-        CLOG_INFO << "values: " << values.size();
-        {
-            channel_plot_data[channel].first = timestamps;
-            channel_plot_data[channel].second = values;
-        }
-    }
-
-    void UpdatePlotData()
-    {
-        std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> temp_channel_data;
-        {
-            std::lock_guard<std::shared_mutex> lock(mtx);
-            temp_channel_data = channel_data;
-        }
-        for (const auto &[channel, data_pair] : temp_channel_data)
-        {
-            const auto &ts_deque = data_pair.first;
-            const auto &val_deque = data_pair.second;
-
-            std::vector<double> ts_vec(ts_deque.begin(), ts_deque.end());
-            std::vector<double> val_vec(val_deque.begin(), val_deque.end());
-
-            channel_plot_data[channel].first = std::move(ts_vec);
-            channel_plot_data[channel].second = std::move(val_vec);
+            std::lock_guard<std::shared_mutex> lck(mtx);
+            channel_plot_data[channel].first = channel_data[channel].first.data();
+            channel_plot_data[channel].second = channel_data[channel].second.data();
         }
     }
 
@@ -350,12 +342,13 @@ public:
         }
     }
 
-    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+//    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+    std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::unordered_set<std::string> all_channels;
     std::unordered_map<std::string, std::vector<std::string>> plot_channels;
 //    std::vector<std::string> channels;
-    const size_t MAX_CACHE_SIZE = 10000;
+
     zcm::ZCM *zcm{nullptr};
     std::shared_mutex mtx;
 };
