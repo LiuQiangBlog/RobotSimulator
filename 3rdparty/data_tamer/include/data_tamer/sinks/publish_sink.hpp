@@ -37,7 +37,7 @@ public:
     void channels_req(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
     {
         std::lock_guard<std::shared_mutex> lock(mtx);
-        zcm->publish("channels_req", &fields);
+        zcm->publish("channels_rep", &fields);
     }
 
     std::shared_mutex mtx;
@@ -86,10 +86,10 @@ public:
         {
             th_zcm_channels.join();
         }
-        if (th_zcm.joinable())
-        {
-            th_zcm.join();
-        }
+//        if (th_zcm.joinable())
+//        {
+//            th_zcm.join();
+//        }
     }
 
     bool init()
@@ -110,46 +110,45 @@ public:
             {
                 zcm_channels->run();
             });
-        th_zcm = std::thread(
-            [&]()
-            {
-                while (!exit)
-                {
-                    std::vector<std::string> channels_to_publish;
-                    {
-                        std::shared_lock<std::shared_mutex> lock(h.mtx);
-                        channels_to_publish = h.fields.channels;
-                    }
-                    for (auto &channel : channels_to_publish)
-                    {
-                        if (buffer_data.count(channel) > 0)
-                        {
-                            timed_value temp;
-                            {
-                                std::shared_lock<std::shared_mutex> lock(h.mtx);
-                                if (buffer_data[channel].empty())
-                                {
-                                    continue;
-                                }
-                                temp = buffer_data[channel].front();
-                                buffer_data[channel].pop_front();
-                            }
-                            zcm->publish(channel, &temp);
-                        }
-                        else
-                        {
-                            CLOG_ERROR << "No channel: " << channel;
-                        }
-                    }
-                    if (exit)
-                    {
-                        CLOG_INFO << "aaaaaaa";
-                        return;
-                    }
-                    CLOG_INFO << "ccccccc";
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-            });
+//        th_zcm = std::thread(
+//            [&]()
+//            {
+//                while (!exit)
+//                {
+//                    std::vector<std::string> channels_to_publish;
+//                    {
+//                        std::shared_lock<std::shared_mutex> lock(h.mtx);
+//                        channels_to_publish = h.fields.channels;
+//                    }
+//                    for (auto &channel : channels_to_publish)
+//                    {
+//                        if (buffer_data.count(channel) > 0)
+//                        {
+//                            timed_value temp;
+//                            {
+//                                std::lock_guard<std::shared_mutex> lock(h.mtx);
+//                                if (buffer_data[channel].empty())
+//                                {
+//                                    continue;
+//                                }
+//                                temp = buffer_data[channel].front();
+//                                buffer_data[channel].pop_front();
+//                            }
+//                            zcm->publish(channel, &temp);
+//                        }
+//                        else
+//                        {
+//                            CLOG_ERROR << "No channel: " << channel;
+//                        }
+//                    }
+//                    if (exit)
+//                    {
+//                        CLOG_INFO << "aaaaaaa";
+//                        return;
+//                    }
+//                    CLOG_INFO << "ccccccc";
+//                }
+//            });
         return true;
     }
 
@@ -222,6 +221,7 @@ public:
 //                    publisher->publish("PubChannels", &fields); // if new channel generated, publish it to sub end
                     CLOG_INFO << key;
                 }
+                zcm->publish(key, &data);
                 CLOG_INFO << "bbbbbb";
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
