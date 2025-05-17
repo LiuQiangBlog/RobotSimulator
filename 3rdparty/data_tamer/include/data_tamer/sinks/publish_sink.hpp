@@ -224,7 +224,6 @@ public:
                 zcm->publish(key, &data);
                 CLOG_INFO << "bbbbbb";
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         return true;
     }

@@ -10,12 +10,11 @@
 template <typename T>
 class CircularBuffer
 {
-private:
+public:
     std::vector<T> buffer;
     size_t head = 0, tail = 0;
     bool full = false;
 
-public:
     explicit CircularBuffer(size_t size) : buffer(size) {}
 
     void push(const T &item)
