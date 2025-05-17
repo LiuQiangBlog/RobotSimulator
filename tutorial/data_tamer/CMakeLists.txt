@@ -13,5 +13,5 @@ function(AddTutorials Path)
     endforeach ()
 endfunction()
 
-AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} data_tamer gtest gtest_main)
+AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} data_tamer gtest gtest_main pthread zcm dl)
 

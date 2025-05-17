@@ -55,6 +55,16 @@ std::string_view TypeDefinition(Eigen::VectorXd &vec, AddField &add) {
     return "Eigen::VectorXd";
 }
 
+template <typename T, typename AddField>
+std::string_view TypeDefinition(T& value, AddField& add) {
+    if constexpr (std::is_same_v<T, Eigen::VectorXd>) {
+        add("data", value.data(), value.size());
+        return "Eigen::VectorXd";
+    } else {
+        static_assert(sizeof(T) == 0, "Unsupported type in TypeDefinition");
+    }
+}
+
 } // namespace Eigen
 
 struct Pose

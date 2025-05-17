@@ -267,7 +267,6 @@ public:
 
     void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
     {
-
         channel_data[channel].first.push_back(msg->timestamp);
         channel_data[channel].second.push_back(msg->value);
         {
@@ -275,6 +274,7 @@ public:
             channel_plot_data[channel].first = channel_data[channel].first.data();
             channel_plot_data[channel].second = channel_data[channel].second.data();
         }
+        CLOG_INFO << channel << "msg->timestamp " << msg->timestamp << ", " << msg->value;
     }
 
     void new_channel(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_channel *msg)
@@ -737,6 +737,7 @@ int main(int, char **)
         return -1;
     }
     pt.plot("pos/*");
+    pt.plot("Joint/*");
 //    pt.plot("joint_position", "q/1-7");
     while (!pt.shouldClose())
     {
