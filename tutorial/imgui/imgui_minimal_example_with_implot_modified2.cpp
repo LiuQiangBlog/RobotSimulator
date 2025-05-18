@@ -1128,6 +1128,7 @@ int main(int, char **)
         return -1;
     }
     pt.plot("Pos*");
+    pt.plot("Rot*");
     pt.plot("Joint[0-3]");
 //    pt.plot("Joint[0]");
 //    pt.plot("Joint[1]");

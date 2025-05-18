@@ -13,5 +13,18 @@ function(AddTutorials Path)
     endforeach ()
 endfunction()
 
-AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} pthread glew imgui glfw implot zcm dl)
+find_library(NVML_LIBRARY nvidia-ml)
+find_path(NVML_INCLUDE_DIR nvml.h
+        PATHS /usr/include /usr/include/nvidia/gdk
+        NO_DEFAULT_PATH)
+# 检查是否找到NVML
+if(NOT NVML_LIBRARY OR NOT NVML_INCLUDE_DIR)
+    message(WARNING "NVML library not found. GPU monitoring will be disabled.")
+    set(DISABLE_GPU_MONITORING ON)
+else()
+    message(STATUS "Found NVML library: ${NVML_LIBRARY}")
+    message(STATUS "Found NVML headers: ${NVML_INCLUDE_DIR}")
+endif()
+include_directories(${NVML_INCLUDE_DIR})
+AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} pthread glew imgui glfw implot zcm dl ${NVML_LIBRARY})
 

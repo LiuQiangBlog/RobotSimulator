@@ -20,13 +20,16 @@ int main()
 
     std::vector<double> q(7);
     Eigen::Vector3d pos;
+    Eigen::Matrix3d mat;
     channel->registerValue("Joint", &q);
     channel->registerValue("Pos", &pos);
+    channel->registerValue("Rot", &mat);
     while (true)
     {
         auto res = Eigen::VectorXd::Random(7);
         q.assign(res.begin(), res.end());
         pos.setRandom();
+        mat.setRandom();
         channel->takeSnapshot();
         std::this_thread::sleep_for(std::chrono::microseconds(50));
     }
