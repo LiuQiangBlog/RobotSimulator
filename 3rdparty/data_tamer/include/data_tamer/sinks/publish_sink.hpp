@@ -200,10 +200,29 @@ public:
                         return double(var);
                     },
                     number);
-
                 parsed_values[field_name] = {sec, value}; // timestamp unit is s
             };
             DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
+
+            for (auto &[key, pair] : parsed_values)
+            {
+                if (pub_channels.count(key) <= 0)
+                {
+                    pub_channels.insert(key);
+                    new_channel.channel = key;
+                    new_channel.cnt = (int)parsed_values.size();
+                    // std::scoped_lock lck(h.mtx);
+                    h.fields.channels.push_back(key);
+                    h.fields.cnt = (int)h.fields.channels.size();
+                }
+            }
+            // zcm_channels->publish("new_channel", &new_channel);
+            static int pre_channels_cnt{0};
+            if (pre_channels_cnt != h.fields.cnt)
+            {
+                zcm_channels->publish("channels_rep", &h.fields);
+                pre_channels_cnt = (int)parsed_values.size();
+            }
             for (auto &[key, pair] : parsed_values)
             {
                 data.set(pair.first, pair.second, (int)parsed_values.size());
@@ -211,21 +230,6 @@ public:
                 if (buffer_data[key].size() > MAX_CACHE_SIZE)
                 {
                     buffer_data[key].pop_front();
-                }
-                if (pub_channels.count(key) <= 0)
-                {
-                    pub_channels.insert(key);
-                    new_channel.channel = key;
-                    new_channel.cnt = (int)parsed_values.size();
-//                    std::scoped_lock lck(h.mtx);
-                    h.fields.channels.push_back(key);
-                    h.fields.cnt = (int)h.fields.channels.size();
-//                    zcm_channels->publish("new_channel", &new_channel);
-                    if (parsed_values.size() == h.fields.cnt)
-                    {
-                        zcm_channels->publish("channels_rep", &h.fields);
-                        CLOG_INFO << "channel name: " << new_channel.channel << ", " << new_channel.cnt;
-                    }
                 }
                 zcm->publish(key, &data);
 //                std::cerr << "  data: " << data.timestamp << ", " << data.value << std::endl;
