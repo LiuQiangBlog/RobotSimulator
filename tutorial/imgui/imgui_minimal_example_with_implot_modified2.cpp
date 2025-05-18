@@ -173,6 +173,21 @@ public:
     // plot all channels
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
+        for (const auto &channel : channels)
+        {
+            if (channel_plot_data.count(channel) > 0)
+            {
+                auto &[ts, vals] = channel_plot_data[channel];
+                if (!ts.empty())
+                {
+                    std::cout << channel
+                              << ": start=" << ts.front()
+                              << ", end=" << ts.back()
+                              << ", size=" << ts.size()
+                              << std::endl;
+                }
+            }
+        }
         static bool show_plot = true;
         if (show_plot)
         {
@@ -247,6 +262,40 @@ public:
         }
     }
 
+    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
+    {
+        double timestamp = msg->timestamp;
+
+        // 聚合每一帧
+        frame_buffer[timestamp][channel] = msg->value;
+
+        // 如果这一帧的所有通道都收到了
+        if (frame_buffer[timestamp].size() == msg->cnt)
+        {
+            for (const auto &[ch, val] : frame_buffer[timestamp])
+            {
+                channel_data[ch].first.push_back(timestamp);
+                channel_data[ch].second.push_back(val);
+                if (channel_data[ch].first.size() > MAX_CACHE_SIZE)
+                {
+                    channel_data[ch].first.pop_front();
+                    channel_data[ch].second.pop_front();
+                }
+
+                // 更新绘图数据
+                auto timestamps = std::vector<double>(channel_data[ch].first.begin(), channel_data[ch].first.end());
+                auto values = std::vector<double>(channel_data[ch].second.begin(), channel_data[ch].second.end());
+                {
+                    std::lock_guard<std::shared_mutex> lck(mtx);
+                    channel_plot_data[ch].first = timestamps;
+                    channel_plot_data[ch].second = values;
+                }
+
+            }
+            frame_buffer.erase(timestamp); // 清理
+        }
+    }
+
 //    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
 //    {
 //        channel_data[channel].first.push_back(msg->timestamp);
@@ -258,24 +307,23 @@ public:
 //        }
 //        auto timestamps = std::vector<double>(channel_data[channel].first.begin(), channel_data[channel].first.end());
 //        auto values = std::vector<double>(channel_data[channel].second.begin(), channel_data[channel].second.end());
-//        CLOG_INFO << "values: " << values.size();
 //        {
+//            std::lock_guard<std::shared_mutex> lck(mtx);
 //            channel_plot_data[channel].first = timestamps;
 //            channel_plot_data[channel].second = values;
 //        }
 //    }
 
-    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
-    {
-        channel_data[channel].first.push_back(msg->timestamp);
-        channel_data[channel].second.push_back(msg->value);
-        {
-            std::lock_guard<std::shared_mutex> lck(mtx);
-            channel_plot_data[channel].first = channel_data[channel].first.data();
-            channel_plot_data[channel].second = channel_data[channel].second.data();
-        }
-        CLOG_INFO << channel << "msg->timestamp " << msg->timestamp << ", " << msg->value;
-    }
+//    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
+//    {
+//        channel_data[channel].first.push_back(msg->timestamp);
+//        channel_data[channel].second.push_back(msg->value);
+//        {
+//            std::lock_guard<std::shared_mutex> lck(mtx);
+//            channel_plot_data[channel].first = channel_data[channel].first.data();
+//            channel_plot_data[channel].second = channel_data[channel].second.data();
+//        }
+//    }
 
     void new_channel(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_channel *msg)
     {
@@ -342,8 +390,9 @@ public:
         }
     }
 
-//    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
-    std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
+    std::unordered_map<double, std::unordered_map<std::string, double>> frame_buffer;
+    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+//    std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::unordered_set<std::string> all_channels;
     std::unordered_map<std::string, std::vector<std::string>> plot_channels;

@@ -17,11 +17,14 @@ class timed_value
 
         double     value{};
 
+        int32_t    cnt{0};
+
     public:
-        void set(double key, double val)
+        void set(double key, double val, int32_t num = 1)
         {
             timestamp = key;
             value = val;
+            cnt = num;
         }
         /**
          * Destructs a message properly if anything inherits from it
@@ -132,6 +135,9 @@ int timed_value::_encodeNoHash(void* buf, uint32_t offset, uint32_t maxlen) cons
     thislen = __double_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->value, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
+    thislen = __int32_t_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
+    if(thislen < 0) return thislen; else pos_byte += thislen;
+
     return pos_byte;
 }
 
@@ -146,6 +152,9 @@ int timed_value::_decodeNoHash(const void* buf, uint32_t offset, uint32_t maxlen
     thislen = __double_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->value, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
+    thislen = __int32_t_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
+    if(thislen < 0) return thislen; else pos_byte += thislen;
+
     return pos_byte;
 }
 
@@ -154,6 +163,7 @@ uint32_t timed_value::_getEncodedSizeNoHash() const
     uint32_t enc_size = 0;
     enc_size += __double_encoded_array_size(NULL, 1);
     enc_size += __double_encoded_array_size(NULL, 1);
+    enc_size += __int32_t_encoded_array_size(NULL, 1);
     return enc_size;
 }
 
@@ -162,7 +172,7 @@ __attribute__((no_sanitize("integer")))
 #endif
 uint64_t timed_value::_computeHash(const __zcm_hash_ptr*)
 {
-    uint64_t hash = (uint64_t)0xecd2b19f6fc0bee0LL;
+    uint64_t hash = (uint64_t)0x3bf4ca534c1e4cc1LL;
     return (hash<<1) + ((hash>>63)&1);
 }
 

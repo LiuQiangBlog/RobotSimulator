@@ -187,6 +187,11 @@ public:
             const auto &schema_out = DataTamerParser::BuilSchemaFromText(ToStr(schema_in));
             const auto snapshot_view = ConvertSnapshot(latest_snapshot);
             std::map<std::string, std::pair<double, double>> parsed_values; // timestamp, value
+
+            auto start_tp = std::chrono::system_clock::time_point(std::chrono::nanoseconds(start_time));
+            auto snapshot_tp = std::chrono::system_clock::time_point(std::chrono::nanoseconds(snapshot_view.timestamp));
+            auto sec = std::chrono::duration<double>(snapshot_tp - start_tp).count();
+
             auto callback = [&](const std::string &field_name, const DataTamerParser::VarNumber &number)
             {
                 const double value = std::visit(
@@ -195,16 +200,13 @@ public:
                         return double(var);
                     },
                     number);
-                auto start_tp = std::chrono::system_clock::time_point(std::chrono::nanoseconds(start_time));
-                auto snapshot_tp =
-                    std::chrono::system_clock::time_point(std::chrono::nanoseconds(snapshot_view.timestamp));
-                auto sec = std::chrono::duration<double>(snapshot_tp - start_tp).count();
+
                 parsed_values[field_name] = {sec, value}; // timestamp unit is s
             };
             DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
             for (auto &[key, pair] : parsed_values)
             {
-                data.set(pair.first, pair.second);
+                data.set(pair.first, pair.second, parsed_values.size());
                 buffer_data[key].push_back(data);
                 if (buffer_data[key].size() > MAX_CACHE_SIZE)
                 {
@@ -222,9 +224,16 @@ public:
                     CLOG_INFO << key;
                 }
                 zcm->publish(key, &data);
+//                std::cerr << "  data: " << data.timestamp << ", " << data.value << std::endl;
 //                CLOG_INFO << "bbbbbb";
             }
+            std::cerr << "------------------------------" << std::endl;
+//            CLOG_INFO << "parsed_values size: " << parsed_values.size();
+//            for (const auto &[field, value] : parsed_values) {
+//                CLOG_INFO << "  Field: " << field << ", value: " << value.first << ", " << value.second;
+//            }
         }
+
         return true;
     }
 };
