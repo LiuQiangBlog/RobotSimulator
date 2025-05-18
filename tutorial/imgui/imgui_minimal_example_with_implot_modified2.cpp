@@ -684,12 +684,13 @@ public:
                 {
                     if (msg->channel == element)
                     {
+                        CLOG_INFO << "element: " << element;
                         plot_channels[key].push_back(msg->channel);
                     }
                 }
             }
         }
-        CLOG_INFO << msg->channel;
+        CLOG_INFO << msg->channel <<", " << msg->cnt;
     }
 
     void channels_rep(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)

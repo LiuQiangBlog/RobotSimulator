@@ -16,6 +16,8 @@ class data_channel
     public:
         std::string channel;
 
+        int32_t    cnt;
+
     public:
         /**
          * Destructs a message properly if anything inherits from it
@@ -124,6 +126,9 @@ int data_channel::_encodeNoHash(void* buf, uint32_t offset, uint32_t maxlen) con
     thislen = __string_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &channel_cstr, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
+    thislen = __int32_t_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
+    if(thislen < 0) return thislen; else pos_byte += thislen;
+
     return pos_byte;
 }
 
@@ -139,6 +144,9 @@ int data_channel::_decodeNoHash(const void* buf, uint32_t offset, uint32_t maxle
     this->channel.assign(((const char*)buf) + offset + pos_byte, __channel_len__ - ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS);
     pos_byte += __channel_len__;
 
+    thislen = __int32_t_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
+    if(thislen < 0) return thislen; else pos_byte += thislen;
+
     return pos_byte;
 }
 
@@ -146,6 +154,7 @@ uint32_t data_channel::_getEncodedSizeNoHash() const
 {
     uint32_t enc_size = 0;
     enc_size += this->channel.size() + ZCM_CORETYPES_INT32_NUM_BYTES_ON_BUS + ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS;
+    enc_size += __int32_t_encoded_array_size(NULL, 1);
     return enc_size;
 }
 
@@ -154,7 +163,7 @@ __attribute__((no_sanitize("integer")))
 #endif
 uint64_t data_channel::_computeHash(const __zcm_hash_ptr*)
 {
-    uint64_t hash = (uint64_t)0x067374728dd713f0LL;
+    uint64_t hash = (uint64_t)0x505759b17d36abd7LL;
     return (hash<<1) + ((hash>>63)&1);
 }
 

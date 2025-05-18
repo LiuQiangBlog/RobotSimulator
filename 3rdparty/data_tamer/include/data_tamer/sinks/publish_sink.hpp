@@ -206,7 +206,7 @@ public:
             DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
             for (auto &[key, pair] : parsed_values)
             {
-                data.set(pair.first, pair.second, parsed_values.size());
+                data.set(pair.first, pair.second, (int)parsed_values.size());
                 buffer_data[key].push_back(data);
                 if (buffer_data[key].size() > MAX_CACHE_SIZE)
                 {
@@ -216,12 +216,16 @@ public:
                 {
                     pub_channels.insert(key);
                     new_channel.channel = key;
-                    zcm_channels->publish("new_channel", &new_channel);
+                    new_channel.cnt = (int)parsed_values.size();
 //                    std::scoped_lock lck(h.mtx);
                     h.fields.channels.push_back(key);
                     h.fields.cnt = (int)h.fields.channels.size();
-//                    publisher->publish("PubChannels", &fields); // if new channel generated, publish it to sub end
-                    CLOG_INFO << "channel name: " << key;
+//                    zcm_channels->publish("new_channel", &new_channel);
+                    if (parsed_values.size() == h.fields.cnt)
+                    {
+                        zcm_channels->publish("channels_rep", &h.fields);
+                        CLOG_INFO << "channel name: " << new_channel.channel << ", " << new_channel.cnt;
+                    }
                 }
                 zcm->publish(key, &data);
 //                std::cerr << "  data: " << data.timestamp << ", " << data.value << std::endl;

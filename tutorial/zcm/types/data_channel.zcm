@@ -1,4 +1,5 @@
 struct data_channel
 {
     string channel;
+    int32_t cnt;
 }
