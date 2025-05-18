@@ -19,6 +19,7 @@ int main()
     channel->addDataSink(publisher);
 
     std::vector<double> q(7);
+    Eigen::VectorXd qq(7);
     channel->registerValue("Joint", &q);
     while (true)
     {

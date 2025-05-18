@@ -736,8 +736,10 @@ int main(int, char **)
     {
         return -1;
     }
-    pt.plot("pos/*");
-    pt.plot("Joint/*");
+//    pt.plot("pos/*");
+    pt.plot("Joint*");
+//    pt.plot("Joint[0]");
+//    pt.plot("Joint[1]");
 //    pt.plot("joint_position", "q/1-7");
     while (!pt.shouldClose())
     {

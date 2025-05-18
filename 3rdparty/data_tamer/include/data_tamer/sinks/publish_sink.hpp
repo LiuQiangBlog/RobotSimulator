@@ -222,7 +222,7 @@ public:
                     CLOG_INFO << key;
                 }
                 zcm->publish(key, &data);
-                CLOG_INFO << "bbbbbb";
+//                CLOG_INFO << "bbbbbb";
             }
         }
         return true;
