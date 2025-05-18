@@ -221,13 +221,13 @@ public:
                     h.fields.channels.push_back(key);
                     h.fields.cnt = (int)h.fields.channels.size();
 //                    publisher->publish("PubChannels", &fields); // if new channel generated, publish it to sub end
-                    CLOG_INFO << key;
+                    CLOG_INFO << "channel name: " << key;
                 }
                 zcm->publish(key, &data);
 //                std::cerr << "  data: " << data.timestamp << ", " << data.value << std::endl;
 //                CLOG_INFO << "bbbbbb";
             }
-            std::cerr << "------------------------------" << std::endl;
+//            std::cerr << "------------------------------" << std::endl;
 //            CLOG_INFO << "parsed_values size: " << parsed_values.size();
 //            for (const auto &[field, value] : parsed_values) {
 //                CLOG_INFO << "  Field: " << field << ", value: " << value.first << ", " << value.second;

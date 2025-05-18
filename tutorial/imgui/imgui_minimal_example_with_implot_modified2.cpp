@@ -93,16 +93,53 @@ std::pair<std::string, std::string> split_last(const std::string &str, char deli
     return {before, after};
 }
 
+//std::vector<std::string> expand_range_expression(const std::string &expr)
+//{
+//    std::vector<std::string> result;
+//    std::regex pattern(R"(^([^\d]+)(\d+)-(\d+)$)");
+//    std::smatch matches;
+//    if (std::regex_match(expr, matches, pattern))
+//    {
+//        if (matches.size() != 4)
+//        {
+//            throw std::invalid_argument("无效的范围表达式格式");
+//        }
+//        std::string prefix = matches[1].str();
+//        int start = std::stoi(matches[2].str());
+//        int end = std::stoi(matches[3].str());
+//        if (start > end)
+//        {
+//            throw std::invalid_argument("起始数字不能大于结束数字");
+//        }
+//        size_t width = matches[2].str().length();
+//        for (int i = start; i <= end; ++i)
+//        {
+//            std::stringstream ss;
+//            ss << prefix << std::setw(int(width)) << std::setfill('0') << i;
+//            result.push_back(ss.str());
+//        }
+//    }
+//    else
+//    {
+//        result.push_back(expr);
+//    }
+//    return result;
+//}
+
 std::vector<std::string> expand_range_expression(const std::string &expr)
 {
     std::vector<std::string> result;
-    std::regex pattern(R"(^([^\d]+)(\d+)-(\d+)$)");
+    // 区分带方括号和不带方括号的情况
+    std::regex pattern_with_brackets(R"(^([^\[]+)\[(\d+)-(\d+)\]$)");
+    std::regex pattern_without_brackets(R"(^([^\d]+)(\d+)-(\d+)$)");
     std::smatch matches;
-    if (std::regex_match(expr, matches, pattern))
+
+    // 检查是否匹配带方括号的格式
+    if (std::regex_match(expr, matches, pattern_with_brackets))
     {
         if (matches.size() != 4)
         {
-            throw std::invalid_argument("无效的范围表达式格式");
+            throw std::invalid_argument("无效的带方括号范围表达式格式");
         }
         std::string prefix = matches[1].str();
         int start = std::stoi(matches[2].str());
@@ -111,20 +148,76 @@ std::vector<std::string> expand_range_expression(const std::string &expr)
         {
             throw std::invalid_argument("起始数字不能大于结束数字");
         }
-        size_t width = matches[2].str().length();
+
+        for (int i = start; i <= end; ++i)
+        {
+            // 带方括号的格式不进行零填充
+            result.push_back(prefix + "[" + std::to_string(i) + "]");
+        }
+    }
+    // 检查是否匹配不带方括号的格式
+    else if (std::regex_match(expr, matches, pattern_without_brackets))
+    {
+        if (matches.size() != 4)
+        {
+            throw std::invalid_argument("无效的不带方括号范围表达式格式");
+        }
+        std::string prefix = matches[1].str();
+        int start = std::stoi(matches[2].str());
+        int end = std::stoi(matches[3].str());
+        if (start > end)
+        {
+            throw std::invalid_argument("起始数字不能大于结束数字");
+        }
+
+        // 计算最大宽度
+        size_t start_width = matches[2].str().length();
+        size_t end_width = matches[3].str().length();
+        size_t max_width = std::max(start_width, end_width);
+
         for (int i = start; i <= end; ++i)
         {
             std::stringstream ss;
-            ss << prefix << std::setw(int(width)) << std::setfill('0') << i;
+            ss << prefix;
+            std::string num_str = std::to_string(i);
+
+            // 不带方括号的格式，根据起始和结束数字的宽度决定是否零填充
+            if (start_width == end_width)
+            {
+                // 如果起始和结束数字宽度相同，按该宽度填充
+                ss << std::setw(int(start_width)) << std::setfill('0') << i;
+            }
+            else
+            {
+                // 如果宽度不同，仅在数字位数小于最大宽度时填充
+                if (num_str.length() < max_width)
+                {
+                    ss << std::setw(int(max_width)) << std::setfill('0') << i;
+                }
+                else
+                {
+                    ss << i;
+                }
+            }
             result.push_back(ss.str());
         }
     }
+    // 不匹配任何模式，直接返回原表达式
     else
     {
         result.push_back(expr);
     }
+
     return result;
 }
+
+// 增加窗口状态管理
+struct PlotWindowState
+{
+    bool is_maximized = false;
+    ImVec2 normal_size = ImVec2(600, 400);
+    ImVec2 normal_pos = ImVec2(0, 0);
+};
 
 class Handler
 {
@@ -135,10 +228,9 @@ public:
 
     void plotChannelData(const std::string &title, const std::string &channel)
     {
-        static bool show_plot = true;
-        if (show_plot)
+        if (plot_bool[title])
         {
-            ImGui::Begin(title.c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
+            ImGui::Begin(title.c_str(), &plot_bool[title], ImGuiWindowFlags_AlwaysAutoResize);
             ImPlot::SetNextAxisToFit(ImAxis_Y1);
             if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
             {
@@ -188,10 +280,9 @@ public:
                 }
             }
         }
-        static bool show_plot = true;
-        if (show_plot)
+        if (plot_bool[title])
         {
-            ImGui::Begin(title.c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
+            ImGui::Begin(title.c_str(), &plot_bool[title], ImGuiWindowFlags_AlwaysAutoResize);
             ImPlot::SetNextAxisToFit(ImAxis_Y1);
 
             // 初始化全局范围
@@ -261,6 +352,251 @@ public:
             ImGui::End();
         }
     }
+
+//    // plot all channels
+//    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
+//    {
+//        for (const auto &channel : channels)
+//        {
+//            if (channel_plot_data.count(channel) > 0)
+//            {
+//                auto &[ts, vals] = channel_plot_data[channel];
+//                if (!ts.empty())
+//                {
+//                    std::cout << channel
+//                              << ": start=" << ts.front()
+//                              << ", end=" << ts.back()
+//                              << ", size=" << ts.size()
+//                              << std::endl;
+//                }
+//            }
+//        }
+//
+//        if (plot_bool[title])
+//        {
+//            // 确保有对应的窗口状态
+//            if (plotWindowStates.find(title) == plotWindowStates.end()) {
+//                plotWindowStates[title] = PlotWindowState{};
+//            }
+//            auto& state = plotWindowStates[title];
+//
+//            // 窗口标志
+//            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+//            if (state.isMaximized) {
+//                windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+//                               ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+//            }
+//
+//            // 开始窗口
+//            ImGui::Begin(title.c_str(), &plot_bool[title], windowFlags);
+//
+//            // 保存正常状态的位置和大小
+//            if (!state.isMaximized && ImGui::IsWindowFocused()) {
+//                state.normalSize = ImGui::GetWindowSize();
+//                state.normalPos = ImGui::GetWindowPos();
+//            }
+//
+//            // 添加最大化/恢复按钮
+//            if (ImGui::Button(state.isMaximized ? "🔙" : "🔛")) {
+//                state.isMaximized = !state.isMaximized;
+//                if (state.isMaximized) {
+//                    // 保存当前状态并最大化
+//                    ImGuiIO& io = ImGui::GetIO();
+//                    ImGui::SetWindowPos(title.c_str(), ImVec2(0, 0));
+//                    ImGui::SetWindowSize(title.c_str(), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
+//                } else {
+//                    // 恢复之前的状态
+//                    ImGui::SetWindowPos(title.c_str(), state.normalPos);
+//                    ImGui::SetWindowSize(title.c_str(), state.normalSize);
+//                }
+//            }
+//            ImGui::SameLine();
+//
+//            ImPlot::SetNextAxisToFit(ImAxis_Y1);
+//
+//            // 初始化全局范围
+//            auto global_x_min = DBL_MAX;
+//            auto global_x_max = -DBL_MAX;
+//            auto global_y_min = DBL_MAX;
+//            auto global_y_max = -DBL_MAX;
+//
+//            // 计算所有通道的全局范围
+//            {
+//                std::shared_lock<std::shared_mutex> lock(mtx);
+//                for (const auto &channel : channels)
+//                {
+//                    if (channel_plot_data.count(channel) > 0)
+//                    {
+//                        auto &[ts, vals] = channel_plot_data[channel];
+//                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+//                        {
+//                            double min_time = *std::min_element(ts.begin(), ts.end());
+//                            double max_time = *std::max_element(ts.begin(), ts.end());
+//                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+//
+//                            global_x_min = std::min(global_x_min, min_time);
+//                            global_x_max = std::max(global_x_max, max_time);
+//                            global_y_min = std::min(global_y_min, *y_min);
+//                            global_y_max = std::max(global_y_max, *y_max);
+//                        }
+//                    }
+//                }
+//            }
+//
+//            // 绘制图表 - 使用窗口剩余空间
+//            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+//            if (ImPlot::BeginPlot("##ChannelPlot", contentRegion))
+//            {
+//                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+//                ImPlot::SetupAxes("Time(s)", "Value");
+//                ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
+//                // 设置全局范围
+//                if (global_x_min <= global_x_max && global_y_min <= global_y_max)
+//                {
+//                    ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
+//                    ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
+//                }
+//
+//                // 绘制所有通道
+//                {
+//                    std::shared_lock<std::shared_mutex> lock(mtx);
+//                    for (size_t i = 0; i < channels.size(); i++)
+//                    {
+//                        const auto &channel = channels[i];
+//                        if (channel_plot_data.count(channel) > 0)
+//                        {
+//                            auto &[ts, vals] = channel_plot_data[channel];
+//                            if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+//                            {
+//                                ImVec4 color = ImPlot::GetColormapColor(int(i));
+//                                ImPlot::SetNextLineStyle(color, 2.0f);
+//                                ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+//                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+//                                ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+//                            }
+//                        }
+//                    }
+//                }
+//                ImPlot::EndPlot();
+//            }
+//            ImGui::End();
+//        }
+//    }
+
+//    void plotChannelData(const std::string &title, const std::vector<std::string> &channels) {
+//        // 初始化窗口状态（首次创建时）
+//        if (plot_window_states.find(title) == plot_window_states.end()) {
+//            plot_window_states[title] = PlotWindowState();
+//        }
+//        auto& state = plot_window_states[title];
+//
+//        // 窗口标志：保留标题栏（用于显示最大化按钮）
+//        ImGuiWindowFlags flags = ImGuiWindowFlags_None;
+//        if (state.is_maximized) {
+//            flags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;  // 最大化时禁用拖动/缩放
+//        }
+//
+//        // 开始窗口（显示标题栏和装饰按钮）
+//        ImGui::Begin(title.c_str(), &plot_bool[title], flags);
+//
+//        // ---------------------- 标题栏右侧添加最大化按钮 ----------------------
+//        if (ImGui::BeginMenuBar()) {
+//            if (ImGui::BeginMenu("")) {  // 空菜单用于右对齐按钮
+//                ImGui::EndMenu();
+//            }
+//            ImGui::SameLine(0, -ImGui::GetStyle().ItemSpacing.x);  // 右对齐
+//
+//            // 最大化/恢复按钮（模仿系统原生图标，可用文字或 FontAwesome 图标）
+//            const char* button_label = state.is_maximized ? "🗕" : "🗔";  // 🗕=恢复，🗔=最大化
+//            if (ImGui::Button(button_label, ImVec2(20, 20))) {
+//                state.is_maximized = !state.is_maximized;
+//                if (state.is_maximized) {
+//                    // 保存当前状态并最大化
+//                    state.normal_size = ImGui::GetWindowSize();
+//                    state.normal_pos = ImGui::GetWindowPos();
+//                    ImGuiIO& io = ImGui::GetIO();
+//                    ImGui::SetWindowPos(title.c_str(), ImVec2(0, 0));
+//                    ImGui::SetWindowSize(title.c_str(), io.DisplaySize);
+//                } else {
+//                    // 恢复正常状态
+//                    ImGui::SetWindowPos(title.c_str(), state.normal_pos);
+//                    ImGui::SetWindowSize(title.c_str(), state.normal_size);
+//                }
+//            }
+//            ImGui::SameLine();
+//
+//            // 原生关闭按钮（若需要保留 ImGui 自带的关闭按钮）
+//            if (ImGui::Button("×", ImVec2(20, 20))) {
+//                plot_bool[title] = false;
+//            }
+//            ImGui::EndMenuBar();
+//        }
+//        // ---------------------------------------------------------------------
+//
+//        // 初始化全局范围
+//        auto global_x_min = DBL_MAX;
+//        auto global_x_max = -DBL_MAX;
+//        auto global_y_min = DBL_MAX;
+//        auto global_y_max = -DBL_MAX;
+//        // 计算所有通道的全局范围
+//        {
+//            std::shared_lock<std::shared_mutex> lock(mtx);
+//            for (const auto &channel : channels)
+//            {
+//                if (channel_plot_data.count(channel) > 0)
+//                {
+//                    auto &[ts, vals] = channel_plot_data[channel];
+//                    if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+//                    {
+//                        double min_time = *std::min_element(ts.begin(), ts.end());
+//                        double max_time = *std::max_element(ts.begin(), ts.end());
+//                        auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+//                        global_x_min = std::min(global_x_min, min_time);
+//                        global_x_max = std::max(global_x_max, max_time);
+//                        global_y_min = std::min(global_y_min, *y_min);
+//                        global_y_max = std::max(global_y_max, *y_max);
+//                    }
+//                }
+//            }
+//        }
+//
+//        // 绘图逻辑（与原代码一致，调整绘图区域自适应窗口大小）
+//        ImVec2 plot_size = ImGui::GetContentRegionAvail();  // 自动填充窗口剩余空间
+//        if (ImPlot::BeginPlot("##ChannelPlot", plot_size)) {
+//            ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+//            ImPlot::SetupAxes("Time(s)", "Value");
+//            ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
+//            // 设置全局范围
+//            if (global_x_min <= global_x_max && global_y_min <= global_y_max)
+//            {
+//                ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
+//                ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
+//            }
+//            // 绘制所有通道
+//            {
+//                std::shared_lock<std::shared_mutex> lock(mtx);
+//                for (size_t i = 0; i < channels.size(); i++)
+//                {
+//                    const auto &channel = channels[i];
+//                    if (channel_plot_data.count(channel) > 0)
+//                    {
+//                        auto &[ts, vals] = channel_plot_data[channel];
+//                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+//                        {
+//                            ImVec4 color = ImPlot::GetColormapColor(int(i));
+//                            ImPlot::SetNextLineStyle(color, 2.0f);
+//                            ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+//                            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+//                            ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+//                        }
+//                    }
+//                }
+//            }
+//            ImPlot::EndPlot();
+//        }
+//
+//        ImGui::End();
+//    }
 
     void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
     {
@@ -379,6 +715,7 @@ public:
                 {
                     for (auto &element : expand_range_expression(key))
                     {
+                        CLOG_INFO << "element: " << element;
                         if (field == element)
                         {
                             plot_channels[key].push_back(field);
@@ -396,6 +733,9 @@ public:
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::unordered_set<std::string> all_channels;
     std::unordered_map<std::string, std::vector<std::string>> plot_channels;
+    std::unordered_map<std::string, bool> plot_bool;
+//    std::unordered_map<std::string, PlotWindowState> plotWindowStates;
+    std::unordered_map<std::string, PlotWindowState> plot_window_states;
 //    std::vector<std::string> channels;
 
     zcm::ZCM *zcm{nullptr};
@@ -567,6 +907,8 @@ public:
             }
         }
         h.plot_channels[channel];
+        h.plot_bool[channel] = true;
+        h.plot_window_states[channel];
         return true;
     }
 
@@ -785,8 +1127,8 @@ int main(int, char **)
     {
         return -1;
     }
-//    pt.plot("pos/*");
-    pt.plot("Joint*");
+    pt.plot("Pos*");
+    pt.plot("Joint[0-3]");
 //    pt.plot("Joint[0]");
 //    pt.plot("Joint[1]");
 //    pt.plot("joint_position", "q/1-7");

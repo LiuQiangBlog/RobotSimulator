@@ -19,12 +19,14 @@ int main()
     channel->addDataSink(publisher);
 
     std::vector<double> q(7);
-    Eigen::VectorXd qq(7);
+    Eigen::Vector3d pos;
     channel->registerValue("Joint", &q);
+    channel->registerValue("Pos", &pos);
     while (true)
     {
         auto res = Eigen::VectorXd::Random(7);
         q.assign(res.begin(), res.end());
+        pos.setRandom();
         channel->takeSnapshot();
         std::this_thread::sleep_for(std::chrono::microseconds(50));
     }
