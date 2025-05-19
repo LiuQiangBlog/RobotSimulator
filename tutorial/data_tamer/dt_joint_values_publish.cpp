@@ -19,19 +19,19 @@ int main()
         return -1;
     }
     channel->addDataSink(publisher);
-    std::unordered_set<std::string> set1, set2;
-    set1.insert("a");
-    set1.insert("b");
-    set2.insert("a");
-    set2.insert("b");
-    if (set1 != set2)
-    {
-        CLOG_INFO << "set1 != set2";
-    }
-    else
-    {
-        CLOG_INFO << "set1 == set2";
-    }
+//    std::unordered_set<std::string> set1, set2;
+//    set1.insert("a");
+//    set1.insert("b");
+//    set2.insert("a");
+//    set2.insert("b");
+//    if (set1 != set2)
+//    {
+//        CLOG_INFO << "set1 != set2";
+//    }
+//    else
+//    {
+//        CLOG_INFO << "set1 == set2";
+//    }
 //    std::vector<double> q(7);
     std::array<double, 7> q;
     Eigen::Vector3d pos;
