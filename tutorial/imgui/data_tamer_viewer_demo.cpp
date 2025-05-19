@@ -11,11 +11,11 @@ int main(int, char **)
     {
         return -1;
     }
-    pt.plot("Pose*");
-    pt.plot("Rot*");
-    pt.plot("Joint/0-3");
-    pt.plot("Pos/*");
-    pt.plot("pos/*");
+//    pt.plot("Pose*");
+//    pt.plot("Rot*");
+//    pt.plot("Joint/0-3");
+//    pt.plot("Pos/*");
+//    pt.plot("pos/*");
     while (!pt.shouldClose())
     {
         pt.render();

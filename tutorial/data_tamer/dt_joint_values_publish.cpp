@@ -38,7 +38,7 @@ int main()
     Eigen::Matrix3d mat;
     Pose pose;
 
-    channel->registerValue("Joint", &q);
+    channel->registerValue("Joint", &q);//标准化命名
     channel->registerValue("Pos", &pos);
     channel->registerValue("Rot", &mat);
     channel->registerValue("Pose", &pose);
