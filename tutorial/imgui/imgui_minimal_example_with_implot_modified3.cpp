@@ -369,20 +369,20 @@ public:
             {
                 channel_data[ch].first.push_back(timestamp);
                 channel_data[ch].second.push_back(val);
-//                if (channel_data[ch].first.size() > MAX_CACHE_SIZE)
-//                {
-//                    channel_data[ch].first.pop_front();
-//                    channel_data[ch].second.pop_front();
-//                }
+                if (channel_data[ch].first.size() > MAX_CACHE_SIZE)
+                {
+                    channel_data[ch].first.pop_front();
+                    channel_data[ch].second.pop_front();
+                }
                 // 更新绘图数据
-//                auto timestamps = std::vector<double>(channel_data[ch].first.begin(), channel_data[ch].first.end());
-//                auto values = std::vector<double>(channel_data[ch].second.begin(), channel_data[ch].second.end());
+                auto timestamps = std::vector<double>(channel_data[ch].first.begin(), channel_data[ch].first.end());
+                auto values = std::vector<double>(channel_data[ch].second.begin(), channel_data[ch].second.end());
                 {
                     std::lock_guard<std::shared_mutex> lck(mtx);
-//                    channel_plot_data[ch].first = timestamps;
-//                    channel_plot_data[ch].second = values;
-                    channel_plot_data[channel].first = channel_data[channel].first.data();
-                    channel_plot_data[channel].second = channel_data[channel].second.data();
+                    channel_plot_data[ch].first = timestamps;
+                    channel_plot_data[ch].second = values;
+//                    channel_plot_data[channel].first = channel_data[channel].first.data();
+//                    channel_plot_data[channel].second = channel_data[channel].second.data();
                 }
             }
             frame_buffer.erase(timestamp); // 清理
@@ -487,8 +487,8 @@ public:
     }
 
     std::unordered_map<double, std::unordered_map<std::string, double>> frame_buffer;
-//    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
-        std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
+    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+//        std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::unordered_set<std::string> all_channels;
     std::unordered_map<std::string, std::vector<std::string>> plot_channels;
@@ -890,11 +890,8 @@ int main(int, char **)
         return -1;
     }
     pt.plot("Pos*");
-    pt.plot("Rot*");
-    pt.plot("Joint[0-3]");
-    //    pt.plot("Joint[0]");
-    //    pt.plot("Joint[1]");
-    //    pt.plot("joint_position", "q/1-7");
+//    pt.plot("Rot*");
+//    pt.plot("Pose/*");
     while (!pt.shouldClose())
     {
         pt.render();

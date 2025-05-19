@@ -222,6 +222,11 @@ public:
             {
                 zcm_channels->publish("channels_rep", &h.fields);
                 pre_pub_channels = pub_channels;
+                std::cout << "All available channels: " << std::endl;
+                for (auto &item : h.fields.channels)
+                {
+                    std::cout << "  " << item << std::endl;
+                }
             }
             for (auto &[key, pair] : parsed_values)
             {

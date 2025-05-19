@@ -3,7 +3,7 @@
 //
 #include <data_tamer/data_tamer.hpp>
 #include <data_tamer/sinks/publish_sink.hpp>
-#include <data_tamer/sinks/plot_sink.hpp>
+#include <data_tamer/sinks/type_definition.hpp>
 #include <Eigen/Dense>
 #include <thread>
 #include <unordered_map>
@@ -36,9 +36,12 @@ int main()
     std::array<double, 7> q;
     Eigen::Vector3d pos;
     Eigen::Matrix3d mat;
+    Pose pose;
+
     channel->registerValue("Joint", &q);
     channel->registerValue("Pos", &pos);
     channel->registerValue("Rot", &mat);
+    channel->registerValue("Pose", &pose);
     while (true)
     {
         auto res = Eigen::VectorXd::Random(7);
@@ -46,8 +49,10 @@ int main()
         std::copy(res.begin(), res.end(), q.begin());
         pos.setRandom();
         mat.setRandom();
+        pose.pos.setRandom();
+        pose.rot.setRandom();
         channel->takeSnapshot();
-        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
     }
     return 0;
 }

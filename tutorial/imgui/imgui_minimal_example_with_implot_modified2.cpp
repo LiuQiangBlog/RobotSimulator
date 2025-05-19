@@ -651,6 +651,39 @@ public:
     //        ImGui::End();
     //    }
 
+//    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
+//    {
+//        double timestamp = msg->timestamp;
+//
+//        // 聚合每一帧
+//        frame_buffer[timestamp][channel] = msg->value;
+//
+//        // 如果这一帧的所有通道都收到了
+//        if (frame_buffer[timestamp].size() == msg->cnt)
+//        {
+//            for (const auto &[ch, val] : frame_buffer[timestamp])
+//            {
+//                channel_data[ch].first.push_back(timestamp);
+//                channel_data[ch].second.push_back(val);
+//                if (channel_data[ch].first.size() > MAX_CACHE_SIZE)
+//                {
+//                    channel_data[ch].first.pop_front();
+//                    channel_data[ch].second.pop_front();
+//                }
+//
+//                // 更新绘图数据
+//                auto timestamps = std::vector<double>(channel_data[ch].first.begin(), channel_data[ch].first.end());
+//                auto values = std::vector<double>(channel_data[ch].second.begin(), channel_data[ch].second.end());
+//                {
+//                    std::lock_guard<std::shared_mutex> lck(mtx);
+//                    channel_plot_data[ch].first = timestamps;
+//                    channel_plot_data[ch].second = values;
+//                }
+//            }
+//            frame_buffer.erase(timestamp); // 清理
+//        }
+//    }
+
     void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
     {
         double timestamp = msg->timestamp;
@@ -1184,12 +1217,10 @@ int main(int, char **)
     {
         return -1;
     }
-    pt.plot("Pos*");
-    pt.plot("Rot*");
-    pt.plot("Joint/0-3");
-    //    pt.plot("Joint[0]");
-    //    pt.plot("Joint[1]");
-    //    pt.plot("joint_position", "q/1-7");
+//    pt.plot("Pos*");
+//    pt.plot("Rot*");
+//    pt.plot("Joint/0-3");
+    pt.plot("Pose/*");
     while (!pt.shouldClose())
     {
         pt.render();

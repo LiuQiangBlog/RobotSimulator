@@ -1,0 +1,11 @@
+struct timed_value
+{
+    double timestamp;
+    double value;
+}
+
+struct all_timed_value
+{
+    int32_t cnt;
+    timed_value channels[cnt];
+}
