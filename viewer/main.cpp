@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <thread>
 #include <data_tamer/sinks/publish_sink.hpp>
+#include <data_tamer/sinks/type_definition.hpp>
 
 std::mutex mtx;
 std::condition_variable cv;

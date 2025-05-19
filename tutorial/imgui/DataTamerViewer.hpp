@@ -227,7 +227,7 @@ struct PlotWindowState
 class Handler
 {
 public:
-    static constexpr size_t MAX_CACHE_SIZE = 1000;
+    static constexpr size_t MAX_CACHE_SIZE = 10000;
     using DataBUffer = RollingBuffer<double, MAX_CACHE_SIZE>;
     ~Handler() = default;
 
