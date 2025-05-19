@@ -409,7 +409,8 @@ bool ParseSnapshotRecursive(const TypeField &field,
     {
         for (uint32_t a = 0; a < vect_size; a++)
         {
-            const auto &name = new_prefix + "[" + std::to_string(a) + "]";
+//            const auto &name = new_prefix + "[" + std::to_string(a) + "]";
+            const auto &name = new_prefix + "/" + std::to_string(a);
             doParse(name);
         }
     }

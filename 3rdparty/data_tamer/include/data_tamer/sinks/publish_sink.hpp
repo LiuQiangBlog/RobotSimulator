@@ -64,7 +64,7 @@ public:
     timed_value data;
     std::unordered_set<std::string> pub_channels;
     std::unordered_map<std::string, std::deque<timed_value>> buffer_data;
-    data_channel new_channel;
+//    data_channel new_channel;
     std::thread th_zcm_channels, th_zcm;
     Handler h;
     std::atomic_bool exit{false};
@@ -209,19 +209,19 @@ public:
                 if (pub_channels.count(key) <= 0)
                 {
                     pub_channels.insert(key);
-                    new_channel.channel = key;
-                    new_channel.cnt = (int)parsed_values.size();
+//                    new_channel.channel = key;
+//                    new_channel.cnt = (int)parsed_values.size();
                     // std::scoped_lock lck(h.mtx);
                     h.fields.channels.push_back(key);
                     h.fields.cnt = (int)h.fields.channels.size();
                 }
             }
             // zcm_channels->publish("new_channel", &new_channel);
-            static int pre_channels_cnt{0};
-            if (pre_channels_cnt != h.fields.cnt)
+            static std::unordered_set<std::string> pre_pub_channels;
+            if (pre_pub_channels != pub_channels)
             {
                 zcm_channels->publish("channels_rep", &h.fields);
-                pre_channels_cnt = (int)parsed_values.size();
+                pre_pub_channels = pub_channels;
             }
             for (auto &[key, pair] : parsed_values)
             {
