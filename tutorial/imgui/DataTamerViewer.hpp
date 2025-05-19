@@ -525,9 +525,9 @@ public:
                             if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                             {
                                 ImVec4 color = ImPlot::GetColormapColor(int(i));
-                                ImPlot::SetNextLineStyle(color, 2.0f);
+                                ImPlot::SetNextLineStyle(color, 1.0f);
                                 ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 3.0f, color, -1.0f, color);
                                 ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
                             }
                         }
