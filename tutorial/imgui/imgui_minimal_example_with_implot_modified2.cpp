@@ -432,6 +432,11 @@ public:
             }
 
             // 开始窗口
+            ImVec2 screenSize = ImGui::GetIO().DisplaySize;  // 获取屏幕分辨率
+            ImVec2 defaultSize(screenSize.x * 0.8f, screenSize.y * 0.6f);
+            ImGui::SetNextWindowSize(defaultSize, ImGuiCond_FirstUseEver);
+            // ImVec2 defaultSize(600, 400);
+            // ImGui::SetNextWindowSize(defaultSize);
             ImGui::Begin(title.c_str(), &plot_bool[title], windowFlags);
 
             // 保存正常状态的位置和大小
