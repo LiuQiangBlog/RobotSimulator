@@ -5,26 +5,27 @@
 
 #include <zcm/zcm_coretypes.h>
 
-#ifndef __timed_value_hpp__
-#define __timed_value_hpp__
+#ifndef __all_timed_value_hpp__
+#define __all_timed_value_hpp__
 
-#include <string>
+#include <vector>
+#include "timed_value.hpp"
 
 
-class timed_value
+class all_timed_value
 {
     public:
-        std::string name;
+        int32_t    cnt;
 
-        double     timestamp;
+        std::vector< timed_value > channels;
 
-        double     value;
+        int8_t     channel_updated;
 
     public:
         /**
          * Destructs a message properly if anything inherits from it
         */
-        virtual ~timed_value() {}
+        virtual ~all_timed_value() {}
 
         /**
          * Encode a message into binary form.
@@ -61,7 +62,7 @@ class timed_value
         inline static int64_t getHash();
 
         /**
-         * Returns "timed_value"
+         * Returns "all_timed_value"
          */
         inline static const char* getTypeName();
 
@@ -72,7 +73,7 @@ class timed_value
         inline static uint64_t _computeHash(const __zcm_hash_ptr* p);
 };
 
-int timed_value::encode(void* buf, uint32_t offset, uint32_t maxlen) const
+int all_timed_value::encode(void* buf, uint32_t offset, uint32_t maxlen) const
 {
     uint32_t pos = 0;
     int thislen;
@@ -87,7 +88,7 @@ int timed_value::encode(void* buf, uint32_t offset, uint32_t maxlen) const
     return pos;
 }
 
-int timed_value::decode(const void* buf, uint32_t offset, uint32_t maxlen)
+int all_timed_value::decode(const void* buf, uint32_t offset, uint32_t maxlen)
 {
     uint32_t pos = 0;
     int thislen;
@@ -103,76 +104,86 @@ int timed_value::decode(const void* buf, uint32_t offset, uint32_t maxlen)
     return pos;
 }
 
-uint32_t timed_value::getEncodedSize() const
+uint32_t all_timed_value::getEncodedSize() const
 {
     return 8 + _getEncodedSizeNoHash();
 }
 
-int64_t timed_value::getHash()
+int64_t all_timed_value::getHash()
 {
     static int64_t hash = (int64_t)_computeHash(NULL);
     return hash;
 }
 
-const char* timed_value::getTypeName()
+const char* all_timed_value::getTypeName()
 {
-    return "timed_value";
+    return "all_timed_value";
 }
 
-int timed_value::_encodeNoHash(void* buf, uint32_t offset, uint32_t maxlen) const
+int all_timed_value::_encodeNoHash(void* buf, uint32_t offset, uint32_t maxlen) const
 {
     uint32_t pos_byte = 0;
     int thislen;
 
-    char* name_cstr = (char*) this->name.c_str();
-    thislen = __string_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &name_cstr, 1);
+    thislen = __int32_t_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
-    thislen = __double_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->timestamp, 1);
-    if(thislen < 0) return thislen; else pos_byte += thislen;
+    for (int a0 = 0; a0 < this->cnt; ++a0) {
+        thislen = this->channels[a0]._encodeNoHash(buf, offset + pos_byte, maxlen - pos_byte);
+        if(thislen < 0) return thislen; else pos_byte += thislen;
+    }
 
-    thislen = __double_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->value, 1);
+    thislen = __boolean_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->channel_updated, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
     return pos_byte;
 }
 
-int timed_value::_decodeNoHash(const void* buf, uint32_t offset, uint32_t maxlen)
+int all_timed_value::_decodeNoHash(const void* buf, uint32_t offset, uint32_t maxlen)
 {
     uint32_t pos_byte = 0;
     int thislen;
 
-    int32_t __name_len__;
-    thislen = __int32_t_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &__name_len__, 1);
-    if(thislen < 0) return thislen; else pos_byte += thislen;
-    if((uint32_t)__name_len__ > maxlen - pos_byte) return -1;
-    this->name.assign(((const char*)buf) + offset + pos_byte, __name_len__ - ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS);
-    pos_byte += __name_len__;
-
-    thislen = __double_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->timestamp, 1);
+    thislen = __int32_t_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
-    thislen = __double_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->value, 1);
+    this->channels.resize(this->cnt);
+    for (int a0 = 0; a0 < this->cnt; ++a0) {
+        thislen = this->channels[a0]._decodeNoHash(buf, offset + pos_byte, maxlen - pos_byte);
+        if(thislen < 0) return thislen; else pos_byte += thislen;
+    }
+
+    thislen = __boolean_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->channel_updated, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
     return pos_byte;
 }
 
-uint32_t timed_value::_getEncodedSizeNoHash() const
+uint32_t all_timed_value::_getEncodedSizeNoHash() const
 {
     uint32_t enc_size = 0;
-    enc_size += this->name.size() + ZCM_CORETYPES_INT32_NUM_BYTES_ON_BUS + ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS;
-    enc_size += __double_encoded_array_size(NULL, 1);
-    enc_size += __double_encoded_array_size(NULL, 1);
+    enc_size += __int32_t_encoded_array_size(NULL, 1);
+    for (int a0 = 0; a0 < this->cnt; ++a0) {
+        enc_size += this->channels[a0]._getEncodedSizeNoHash();
+    }
+    enc_size += __boolean_encoded_array_size(NULL, 1);
     return enc_size;
 }
 
 #if defined(__clang__)
 __attribute__((no_sanitize("integer")))
 #endif
-uint64_t timed_value::_computeHash(const __zcm_hash_ptr*)
+uint64_t all_timed_value::_computeHash(const __zcm_hash_ptr* p)
 {
-    uint64_t hash = (uint64_t)0xdffb202a99e5df3fLL;
+    const __zcm_hash_ptr* fp;
+    for(fp = p; fp != NULL; fp = fp->parent)
+        if(fp->v == all_timed_value::getHash)
+            return 0;
+    const __zcm_hash_ptr cp = { p, (void*)all_timed_value::getHash };
+
+    uint64_t hash = (uint64_t)0x8116b392bee5da9eLL +
+         timed_value::_computeHash(&cp);
+
     return (hash<<1) + ((hash>>63)&1);
 }
 

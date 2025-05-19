@@ -1,5 +1,6 @@
 struct timed_value
 {
+    string name;
     double timestamp;
     double value;
 }
@@ -8,4 +9,5 @@ struct all_timed_value
 {
     int32_t cnt;
     timed_value channels[cnt];
+    boolean channel_updated;
 }

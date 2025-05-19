@@ -19,6 +19,7 @@
 #include <Logging.h>
 #include "data_fields.hpp"
 #include "data_channel.hpp"
+#include "all_timed_value.hpp"
 #include <thread>
 #include <atomic>
 
@@ -62,6 +63,7 @@ public:
     uint64_t start_time;
     std::unique_ptr<zcm::ZCM> zcm, zcm_channels;
     timed_value data;
+    all_timed_value all_value;
     std::unordered_set<std::string> pub_channels;
     std::unordered_map<std::string, std::deque<timed_value>> buffer_data;
 //    data_channel new_channel;
@@ -103,13 +105,13 @@ public:
             zcm_channels.reset();
             return false;
         }
-        h.zcm = zcm_channels.get();
-        zcm_channels->subscribe("channels_req", &Handler::channels_req, &h);
-        th_zcm_channels = std::thread(
-            [&]()
-            {
-                zcm_channels->run();
-            });
+//        h.zcm = zcm_channels.get();
+//        zcm_channels->subscribe("channels_req", &Handler::channels_req, &h);
+//        th_zcm_channels = std::thread(
+//            [&]()
+//            {
+//                zcm_channels->run();
+//            });
 //        th_zcm = std::thread(
 //            [&]()
 //            {
@@ -218,28 +220,39 @@ public:
             }
             // zcm_channels->publish("new_channel", &new_channel);
             static std::unordered_set<std::string> pre_pub_channels;
+            all_value.channel_updated = 0;
             if (pre_pub_channels != pub_channels)
             {
-                zcm_channels->publish("channels_rep", &h.fields);
+//                zcm_channels->publish("channels_rep", &h.fields);
+                all_value.channel_updated = 1;
                 pre_pub_channels = pub_channels;
-                std::cout << "All available channels: " << std::endl;
+                std::cout << "Update all available channels: " << std::endl;
                 for (auto &item : h.fields.channels)
                 {
                     std::cout << "  " << item << std::endl;
                 }
             }
+
             for (auto &[key, pair] : parsed_values)
             {
-                data.set(pair.first, pair.second, (int)parsed_values.size());
-                buffer_data[key].push_back(data);
-                if (buffer_data[key].size() > MAX_CACHE_SIZE)
-                {
-                    buffer_data[key].pop_front();
-                }
-                zcm->publish(key, &data);
+//                data.set(pair.first, pair.second, (int)parsed_values.size());
+//                buffer_data[key].push_back(data);
+//                if (buffer_data[key].size() > MAX_CACHE_SIZE)
+//                {
+//                    buffer_data[key].pop_front();
+//                }
+                data.name = key;
+                data.timestamp = pair.first;
+                data.value = pair.second;
+                all_value.channels.push_back(data);
+                all_value.cnt = int(all_value.channels.size());
 //                std::cerr << "  data: " << data.timestamp << ", " << data.value << std::endl;
 //                CLOG_INFO << "bbbbbb";
             }
+//            CLOG_INFO << "all_value";
+            zcm->publish("all_channel_data", &all_value);
+            all_value.channels.clear();
+            all_value.cnt = 0;
 //            std::cerr << "------------------------------" << std::endl;
 //            CLOG_INFO << "parsed_values size: " << parsed_values.size();
 //            for (const auto &[field, value] : parsed_values) {

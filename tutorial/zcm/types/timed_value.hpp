@@ -8,11 +8,14 @@
 #ifndef __timed_value_hpp__
 #define __timed_value_hpp__
 
+#include <string>
 
 
 class timed_value
 {
     public:
+        std::string name;
+
         double     timestamp;
 
         double     value;
@@ -121,6 +124,10 @@ int timed_value::_encodeNoHash(void* buf, uint32_t offset, uint32_t maxlen) cons
     uint32_t pos_byte = 0;
     int thislen;
 
+    char* name_cstr = (char*) this->name.c_str();
+    thislen = __string_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &name_cstr, 1);
+    if(thislen < 0) return thislen; else pos_byte += thislen;
+
     thislen = __double_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->timestamp, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
@@ -135,6 +142,13 @@ int timed_value::_decodeNoHash(const void* buf, uint32_t offset, uint32_t maxlen
     uint32_t pos_byte = 0;
     int thislen;
 
+    int32_t __name_len__;
+    thislen = __int32_t_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &__name_len__, 1);
+    if(thislen < 0) return thislen; else pos_byte += thislen;
+    if((uint32_t)__name_len__ > maxlen - pos_byte) return -1;
+    this->name.assign(((const char*)buf) + offset + pos_byte, __name_len__ - ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS);
+    pos_byte += __name_len__;
+
     thislen = __double_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->timestamp, 1);
     if(thislen < 0) return thislen; else pos_byte += thislen;
 
@@ -147,6 +161,7 @@ int timed_value::_decodeNoHash(const void* buf, uint32_t offset, uint32_t maxlen
 uint32_t timed_value::_getEncodedSizeNoHash() const
 {
     uint32_t enc_size = 0;
+    enc_size += this->name.size() + ZCM_CORETYPES_INT32_NUM_BYTES_ON_BUS + ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS;
     enc_size += __double_encoded_array_size(NULL, 1);
     enc_size += __double_encoded_array_size(NULL, 1);
     return enc_size;
@@ -157,7 +172,7 @@ __attribute__((no_sanitize("integer")))
 #endif
 uint64_t timed_value::_computeHash(const __zcm_hash_ptr*)
 {
-    uint64_t hash = (uint64_t)0xecd2b19f6fc0bee0LL;
+    uint64_t hash = (uint64_t)0xdffb202a99e5df3fLL;
     return (hash<<1) + ((hash>>63)&1);
 }
 

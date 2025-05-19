@@ -7,7 +7,7 @@
 #include "backends/imgui_impl_opengl3.h"
 #include <cstdio>
 #include <zcm/zcm-cpp.hpp>
-#include "timed_value.hpp"
+#include "all_timed_value.hpp"
 #include <deque>
 #include <implot.h>
 #include <mutex>
@@ -684,36 +684,57 @@ public:
 //        }
 //    }
 
-    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const timed_value *msg)
+    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const all_timed_value *msg)
     {
-        double timestamp = msg->timestamp;
-
-        // 聚合每一帧
-        frame_buffer[timestamp][channel] = msg->value;
-
-        // 如果这一帧的所有通道都收到了
-        if (frame_buffer[timestamp].size() == msg->cnt)
+//        CLOG_INFO << "msg->cnt: " << msg->cnt;
+        static bool initialized{false};
+        for (const auto &item : msg->channels)
         {
-            for (const auto &[ch, val] : frame_buffer[timestamp])
+//            CLOG_INFO << item.name;
+            channel_data[item.name].first.push_back(item.timestamp);
+            channel_data[item.name].second.push_back(item.value);
+            if (channel_data[item.name].first.size() > MAX_CACHE_SIZE)
             {
-                channel_data[ch].first.push_back(timestamp);
-                channel_data[ch].second.push_back(val);
-                if (channel_data[ch].first.size() > MAX_CACHE_SIZE)
-                {
-                    channel_data[ch].first.pop_front();
-                    channel_data[ch].second.pop_front();
-                }
+                channel_data[item.name].first.pop_front();
+                channel_data[item.name].second.pop_front();
+            }
+            // 更新绘图数据
+            auto timestamps = std::vector<double>(channel_data[item.name].first.begin(), channel_data[item.name].first.end());
+            auto values = std::vector<double>(channel_data[item.name].second.begin(), channel_data[item.name].second.end());
+            {
+                std::lock_guard<std::shared_mutex> lck(mtx);
+                channel_plot_data[item.name].first = timestamps;
+                channel_plot_data[item.name].second = values;
+            }
 
-                // 更新绘图数据
-                auto timestamps = std::vector<double>(channel_data[ch].first.begin(), channel_data[ch].first.end());
-                auto values = std::vector<double>(channel_data[ch].second.begin(), channel_data[ch].second.end());
+            if (!initialized || msg->channel_updated)
+            {
+                for (auto &[key, value] : plot_channels) // old channel will keep
                 {
-                    std::lock_guard<std::shared_mutex> lck(mtx);
-                    channel_plot_data[ch].first = timestamps;
-                    channel_plot_data[ch].second = values;
+                    if (contains(key, "*"))
+                    {
+                        auto lhd = split_last(key, '*').first;
+                        if (contains(item.name, lhd))
+                        {
+                            plot_channels[key].push_back(item.name);
+                        }
+                    }
+                    if (contains(key, "-"))
+                    {
+                        for (auto &element : expand_range_expression(key))
+                        {
+                            if (item.name == element)
+                            {
+                                plot_channels[key].push_back(item.name);
+                            }
+                        }
+                    }
                 }
             }
-            frame_buffer.erase(timestamp); // 清理
+        }
+        if (!initialized)
+        {
+            initialized = true;
         }
     }
 
@@ -747,72 +768,72 @@ public:
     //        }
     //    }
 
-    void new_channel(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_channel *msg)
-    {
-        std::lock_guard<std::shared_mutex> lck(mtx);
-        zcm->pause();
-        zcm->subscribe(msg->channel, &Handler::handle, this);
-        zcm->resume();
-        all_channels.insert(msg->channel);
-        for (auto &[key, value] : plot_channels)
-        {
-            if (contains(key, "*"))
-            {
-                auto lhd = split_last(key, '*').first;
-                if (contains(msg->channel, lhd))
-                {
-                    plot_channels[key].push_back(msg->channel);
-                }
-            }
-            if (contains(key, "-"))
-            {
-                for (auto &element : expand_range_expression(key))
-                {
-                    if (msg->channel == element)
-                    {
-//                        CLOG_INFO << "element: " << element;
-                        plot_channels[key].push_back(msg->channel);
-                    }
-                }
-            }
-        }
-//        CLOG_INFO << msg->channel << ", " << msg->cnt;
-    }
+//    void new_channel(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_channel *msg)
+//    {
+//        std::lock_guard<std::shared_mutex> lck(mtx);
+//        zcm->pause();
+//        zcm->subscribe(msg->channel, &Handler::handle, this);
+//        zcm->resume();
+//        all_channels.insert(msg->channel);
+//        for (auto &[key, value] : plot_channels)
+//        {
+//            if (contains(key, "*"))
+//            {
+//                auto lhd = split_last(key, '*').first;
+//                if (contains(msg->channel, lhd))
+//                {
+//                    plot_channels[key].push_back(msg->channel);
+//                }
+//            }
+//            if (contains(key, "-"))
+//            {
+//                for (auto &element : expand_range_expression(key))
+//                {
+//                    if (msg->channel == element)
+//                    {
+////                        CLOG_INFO << "element: " << element;
+//                        plot_channels[key].push_back(msg->channel);
+//                    }
+//                }
+//            }
+//        }
+////        CLOG_INFO << msg->channel << ", " << msg->cnt;
+//    }
 
-    void channels_rep(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
-    {
-        std::lock_guard<std::shared_mutex> lck(mtx);
-        for (auto &field : msg->channels)
-        {
-            zcm->pause();
-            zcm->subscribe(field, &Handler::handle, this);
-            zcm->resume();
-            all_channels.insert(field);
-            for (auto &[key, value] : plot_channels)
-            {
-                if (contains(key, "*"))
-                {
-                    auto lhd = split_last(key, '*').first;
-                    if (contains(field, lhd))
-                    {
-                        plot_channels[key].push_back(field);
-                    }
-                }
-                if (contains(key, "-"))
-                {
-                    for (auto &element : expand_range_expression(key))
-                    {
-//                        CLOG_INFO << "element: " << element;
-                        if (field == element)
-                        {
-                            plot_channels[key].push_back(field);
-                        }
-                    }
-                }
-            }
-//            CLOG_INFO << field;
-        }
-    }
+//    void channels_rep(const zcm::ReceiveBuffer *buffer, const std::string &channel, const data_fields *msg)
+//    {
+//        std::lock_guard<std::shared_mutex> lck(mtx);
+//        for (auto &field : msg->channels)
+//        {
+//            zcm->pause();
+//            zcm->subscribe(field, &Handler::handle, this);
+//            zcm->resume();
+//            all_channels.insert(field);
+//            for (auto &[key, value] : plot_channels)
+//            {
+//                if (contains(key, "*"))
+//                {
+//                    auto lhd = split_last(key, '*').first;
+//                    if (contains(field, lhd))
+//                    {
+//                        plot_channels[key].push_back(field);
+//                    }
+//                }
+//                if (contains(key, "-"))
+//                {
+//                    for (auto &element : expand_range_expression(key))
+//                    {
+////                        CLOG_INFO << "element: " << element;
+//                        if (field == element)
+//                        {
+//                            plot_channels[key].push_back(field);
+//                        }
+//                    }
+//                }
+//            }
+////            CLOG_INFO << field;
+//        }
+//    }
 
     std::unordered_map<double, std::unordered_map<std::string, double>> frame_buffer;
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
@@ -826,7 +847,7 @@ public:
 //    std::unordered_map<std::string, PlotWindowState> state;
     //    std::vector<std::string> channels;
 
-    zcm::ZCM *zcm{nullptr};
+//    zcm::ZCM *zcm{nullptr};
     std::shared_mutex mtx;
 };
 
@@ -840,9 +861,9 @@ private:
     bool button_right{false};
     double last_x{0};
     double last_y{0};
-    std::unique_ptr<zcm::ZCM> zcm, zcm_channels;
+    std::unique_ptr<zcm::ZCM> zcm;
     Handler h;
-    std::thread th_zcm, th_zcm_channels;
+    std::thread th_zcm;
     ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
     std::set<std::string> availableChannels;
     std::atomic_bool exit{false};
@@ -869,15 +890,10 @@ public:
         glfwDestroyWindow(window);
         glfwTerminate();
         zcm->stop();
-        zcm_channels->stop();
         exit = true;
         if (th_zcm.joinable())
         {
             th_zcm.join();
-        }
-        if (th_zcm_channels.joinable())
-        {
-            th_zcm_channels.join();
         }
     }
 
@@ -938,24 +954,12 @@ public:
         glfwSetErrorCallback(errorCallback);
 
         zcm = std::make_unique<zcm::ZCM>("ipcshm://");
-        zcm_channels = std::make_unique<zcm::ZCM>("ipcshm://");
-        if (!(zcm->good() && zcm_channels->good()))
+        if (!zcm->good())
         {
             zcm.reset();
-            zcm_channels.reset();
             return false;
         }
-        h.zcm = zcm.get();
-        data_fields channels_req;
-        channels_req.cnt = 0;
-        zcm_channels->publish("channels_req", &channels_req);
-        zcm_channels->subscribe("channels_rep", &Handler::channels_rep, &h);
-        zcm_channels->subscribe("new_channel", &Handler::new_channel, &h);
-        th_zcm_channels = std::thread(
-            [&]()
-            {
-                zcm_channels->run();
-            });
+        zcm->subscribe("all_channel_data", &Handler::handle, &h);
         th_zcm = std::thread(
             [&]()
             {
@@ -1217,10 +1221,10 @@ int main(int, char **)
     {
         return -1;
     }
-//    pt.plot("Pos*");
-//    pt.plot("Rot*");
-//    pt.plot("Joint/0-3");
-    pt.plot("Pose/*");
+    pt.plot("Pos*");
+    pt.plot("Rot*");
+    pt.plot("Joint/0-3");
+    pt.plot("Pos/*");
     while (!pt.shouldClose())
     {
         pt.render();
