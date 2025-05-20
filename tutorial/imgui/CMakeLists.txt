@@ -26,5 +26,5 @@ else()
     message(STATUS "Found NVML headers: ${NVML_INCLUDE_DIR}")
 endif()
 include_directories(${NVML_INCLUDE_DIR})
-AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} pthread glew imgui glfw implot zcm dl ${NVML_LIBRARY})
+AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} pthread glew imgui glfw implot imcoolbar zcm dl ${NVML_LIBRARY})
 

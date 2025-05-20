@@ -12,6 +12,7 @@ add_subdirectory(glfw3)
 add_subdirectory(imgui)
 add_subdirectory(implot)
 add_subdirectory(imgizmo)
+add_subdirectory(imcoolbar)
 add_subdirectory(data_tamer)
 add_subdirectory(googletest)
 
