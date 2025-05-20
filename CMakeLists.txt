@@ -98,6 +98,8 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/libzmq/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/nng/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/zcm)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/zcm/gen)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/csv)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/fifo_map)
 
 add_subdirectory(3rdparty)
 
@@ -302,5 +304,7 @@ endif ()
 add_subdirectory(tutorial/logger)
 add_subdirectory(tutorial/simd)
 add_subdirectory(tutorial/regex)
+add_subdirectory(tutorial/csv_parser)
+add_subdirectory(tutorial/fifo_map)
 
 
