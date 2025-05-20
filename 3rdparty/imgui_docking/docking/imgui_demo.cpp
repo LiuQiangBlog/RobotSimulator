@@ -127,7 +127,7 @@ Index of this file:
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include "imgui.h"
+#include "docking/imgui.h"
 #ifndef IMGUI_DISABLE
 
 // System includes
@@ -10575,7 +10575,7 @@ void ShowExampleAppDocuments(bool* p_open)
 // [SECTION] Example App: Assets Browser / ShowExampleAppAssetsBrowser()
 //-----------------------------------------------------------------------------
 
-//#include "imgui_internal.h" // NavMoveRequestTryWrapping()
+//#include "docking/imgui_internal.h" // NavMoveRequestTryWrapping()
 
 struct ExampleAsset
 {

@@ -23,7 +23,7 @@
 //   Calling the function is MANDATORY, otherwise the ImGui will not upload neither the vertex nor the index buffer for the GPU. See imgui_impl_sdlgpu3.cpp for more info.
 
 #pragma once
-#include "imgui.h"      // IMGUI_IMPL_API
+#include "docking/imgui.h"      // IMGUI_IMPL_API
 #ifndef IMGUI_DISABLE
 #include <SDL3/SDL_gpu.h>
 

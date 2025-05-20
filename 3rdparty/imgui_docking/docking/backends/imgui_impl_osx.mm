@@ -24,7 +24,7 @@
 // - Documentation        https://dearimgui.com/docs (same as your local docs/ folder).
 // - Introduction, links and more at the top of imgui.cpp
 
-#import "imgui.h"
+#import "docking/imgui.h"
 #ifndef IMGUI_DISABLE
 #import "imgui_impl_osx.h"
 #import <Cocoa/Cocoa.h>
