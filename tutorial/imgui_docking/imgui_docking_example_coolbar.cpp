@@ -2,9 +2,9 @@
 // Created by liuqiang on 25-5-13.
 //
 
-#include "imgui.h"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
+#include "docking/imgui.h"
+#include "docking/backends/imgui_impl_glfw.h"
+#include "docking/backends/imgui_impl_opengl3.h"
 #include <cstdio>
 #include "GLFW/glfw3.h" // Will drag system OpenGL headers
 #include "ImCoolBar.h"

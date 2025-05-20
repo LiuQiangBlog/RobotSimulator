@@ -97,21 +97,21 @@ IMGUI_API bool ImGui::BeginCoolBar(const char *vLabel,
                                    const ImCoolBarConfig &vConfig,
                                    ImGuiWindowFlags vFlags)
 {
-    ImGuiWindowFlags flags =                //
-        vFlags |                            //
-        ImGuiWindowFlags_NoTitleBar |       //
-        ImGuiWindowFlags_NoScrollbar |      //
-        ImGuiWindowFlags_AlwaysAutoResize | //
-        ImGuiWindowFlags_NoCollapse |       //
-        ImGuiWindowFlags_NoMove |           //
-        ImGuiWindowFlags_NoSavedSettings |  //
-#ifndef ENABLE_IMCOOLBAR_DEBUG              //
-        ImGuiWindowFlags_NoBackground |     //
-#endif                                      //
-        ImGuiWindowFlags_NoFocusOnAppearing //
-                                            //        ImGuiWindowFlags_DockNodeHost |        //
-                                            //        ImGuiWindowFlags_NoDocking;            //
-        ;
+    ImGuiWindowFlags flags =                  //
+        vFlags |                              //
+        ImGuiWindowFlags_NoTitleBar |         //
+        ImGuiWindowFlags_NoScrollbar |        //
+        ImGuiWindowFlags_AlwaysAutoResize |   //
+        ImGuiWindowFlags_NoCollapse |         //
+        ImGuiWindowFlags_NoMove |             //
+        ImGuiWindowFlags_NoSavedSettings |    //
+#ifndef ENABLE_IMCOOLBAR_DEBUG                //
+        ImGuiWindowFlags_NoBackground |       //
+#endif                                        //
+        ImGuiWindowFlags_NoFocusOnAppearing | //
+        ImGuiWindowFlags_DockNodeHost |       //
+        ImGuiWindowFlags_NoDocking;           //
+
     bool res = ImGui::Begin(vLabel, nullptr, flags);
     if (!res)
     {
