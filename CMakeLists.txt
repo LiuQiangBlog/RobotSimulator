@@ -100,6 +100,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/zcm)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/zcm/gen)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/csv)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/fifo_map)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imguifiledialog)
 
 add_subdirectory(3rdparty)
 
@@ -306,5 +307,6 @@ add_subdirectory(tutorial/simd)
 add_subdirectory(tutorial/regex)
 add_subdirectory(tutorial/csv_parser)
 add_subdirectory(tutorial/fifo_map)
+add_subdirectory(tutorial/imguifiledialog)
 
 
