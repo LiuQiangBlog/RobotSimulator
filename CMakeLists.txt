@@ -46,7 +46,7 @@ option(MUJOCO_BUILD_SIMULATE "Build simulate library for MuJoCo" ON)
 option(MUJOCO_BUILD_TESTS "Build tests for MuJoCo" ON)
 option(MUJOCO_TEST_PYTHON_UTIL "Build and test utility libraries for Python bindings" ON)
 option(MUJOCO_BUILD_USD_PLUGINS "Build OpenUSD plugins" OFF)
-option(IMGUI_DOCKING "Build samples for MuJoCo" OFF)
+option(IMGUI_DOCKING "Build samples for MuJoCo" ON)
 
 # USD libs to compile against.
 set(MUJOCO_USD_ALLOWED_TARGET_VALUES "USD" "Houdini")
@@ -101,6 +101,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/zcm/gen)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/csv)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/fifo_map)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imguifiledialog)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/ctools/include)
 
 add_subdirectory(3rdparty)
 
