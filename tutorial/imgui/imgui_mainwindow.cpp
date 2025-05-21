@@ -59,7 +59,7 @@ static void centerWindow(GLFWwindow *window)
 //     ImGui::End(); // End can not in if(ImGui::Begin()), otherwise program will crash
 // }
 
-void createMenuBar()
+void createMainWindow()
 {
     if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
@@ -76,6 +76,8 @@ void createMenuBar()
             CLOG_INFO << "Open File";
         }
     }
+    float menuBarHeight = 0.0f;
+    bool hasMenuBar = false;
     if (ImGui::BeginMainMenuBar()) // 使用 BeginMainMenuBar 创建全局菜单栏
     {
         if (ImGui::MenuItem("New"))
@@ -116,7 +118,25 @@ void createMenuBar()
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
+        hasMenuBar = true;
+        menuBarHeight = ImGui::GetWindowHeight();
     }
+
+    int windowWidth, windowHeight;
+    glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
+    ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight - (hasMenuBar ? menuBarHeight : 0)));
+    ImGui::SetNextWindowPos(ImVec2(0, hasMenuBar ? menuBarHeight : 0));
+    ImGui::Begin("##Main Window", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoMove);
+    {
+        ImGui::SetWindowPos(ImVec2(0, 28)); // 偏移菜单栏高度（默认约28px）
+        ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
+                                    ImGui::GetIO().DisplaySize.y - 28));
+        // 在这里添加其他 imgui 控件
+        ImGui::Text("Hello, ImGui!");
+    }
+    ImGui::End();
 }
 
 void setMenubarColor()
@@ -149,25 +169,6 @@ void setWindowColor()
     style.Colors[ImGuiCol_PopupBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.95f);   // 弹出窗口背景
 }
 
-void createMainWindow()
-{
-    //    int windowWidth, windowHeight;
-    //    glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
-    //    ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
-    //    ImGui::SetNextWindowPos(ImVec2(0, 28));
-    ImGui::Begin("##Main Window", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                     ImGuiWindowFlags_NoMove);
-    {
-        ImGui::SetWindowPos(ImVec2(0, 28)); // 偏移菜单栏高度（默认约28px）
-        ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
-                                    ImGui::GetIO().DisplaySize.y - 28));
-        // 在这里添加其他 imgui 控件
-        ImGui::Text("Hello, ImGui!");
-    }
-    ImGui::End();
-}
-
 // Main code
 int main(int, char **)
 {
@@ -185,9 +186,10 @@ int main(int, char **)
 
     // Create window with graphics context
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
     GLFWwindow *window = glfwCreateWindow(1280, 720, "Untitled", nullptr, nullptr);
     glfwSetWindowTitle(window, "Hello ImGui");
-    if (!window)
+    if (window == nullptr)
     {
         return 1;
     }
@@ -235,7 +237,6 @@ int main(int, char **)
         ImGui::NewFrame();
 
         // todo, here is your imgui code
-        createMenuBar(); // 调用创建菜单栏的函数
         createMainWindow();
         // 主窗口（后渲染，位于菜单栏下方）
         //        ImGui::Begin("Application Window", NULL, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);

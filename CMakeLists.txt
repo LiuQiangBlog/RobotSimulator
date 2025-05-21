@@ -308,5 +308,6 @@ add_subdirectory(tutorial/regex)
 add_subdirectory(tutorial/csv_parser)
 add_subdirectory(tutorial/fifo_map)
 add_subdirectory(tutorial/imguifiledialog)
+add_subdirectory(tutorial/glfw)
 
 
