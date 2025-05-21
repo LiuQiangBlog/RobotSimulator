@@ -102,6 +102,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/csv)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/fifo_map)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imguifiledialog)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/ctools/include)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imtools)
 
 add_subdirectory(3rdparty)
 
