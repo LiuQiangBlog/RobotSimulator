@@ -1,0 +1,3 @@
+https://github.com/s-kajita/IntroductionToHumanoidRobotics 人形机器人导论
+https://github.com/s-kajita/RobotMotionS
+
