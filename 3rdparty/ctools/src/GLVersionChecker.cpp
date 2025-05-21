@@ -30,11 +30,13 @@ SOFTWARE.
 ////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-OpenglInfosStruct::OpenglInfosStruct() {
+OpenglInfosStruct::OpenglInfosStruct()
+{
     majorGLVersion = 0;
     minorGLVersion = 0;
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         workgroup_count[i] = 0;
         workgroup_size[i] = 0;
     }
@@ -112,13 +114,15 @@ OpenglInfosStruct::OpenglInfosStruct() {
     maxTrasnformFeedbackSeparateComponents = 0;
 
     maxViewports = 0;
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++)
+    {
         rangeViewportBounds[i] = 0;
         maxViewportSize[i] = 0;
     }
 }
 
-void OpenglInfosStruct::fill() {
+void OpenglInfosStruct::fill()
+{
     // Oepngl Driver Infos
     glGetIntegerv(GL_MAJOR_VERSION, &majorGLVersion);
     glGetIntegerv(GL_MINOR_VERSION, &minorGLVersion);
@@ -228,19 +232,23 @@ void OpenglInfosStruct::fill() {
 
     // extentions
     glGetIntegerv(GL_NUM_EXTENSIONS, &maxExtentionCount);
-    for (int i = 0; i < maxExtentionCount; i++) {
+    for (int i = 0; i < maxExtentionCount; i++)
+    {
         auto str = glGetStringi(GL_EXTENSIONS, i);
-        extentions[std::string((char*)str)] = i;
+        extentions[std::string((char *)str)] = i;
     }
 }
 
 #ifdef IMGUI_INCLUDE
 #include IMGUI_INCLUDE
-void OpenglInfosStruct::drawImGui() {
-    if (ImGui::BeginMenu("Opengl Infos")) {
+void OpenglInfosStruct::drawImGui()
+{
+    if (ImGui::BeginMenu("Opengl Infos"))
+    {
         ImGui::Text("Opengl Version %i.%i", majorGLVersion, minorGLVersion);
 
-        if (ImGui::BeginMenu("Driver Infos")) {
+        if (ImGui::BeginMenu("Driver Infos"))
+        {
             ImGui::Text("Version :      %s", driverVersion.c_str());
             ImGui::Text("Vendor :       %s", driverVendor.c_str());
             ImGui::Text("Renderer :     %s", driverRenderer.c_str());
@@ -249,14 +257,17 @@ void OpenglInfosStruct::drawImGui() {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Shader Infos")) {
-            if (ImGui::BeginMenu("Storage Infos")) {
+        if (ImGui::BeginMenu("Shader Infos"))
+        {
+            if (ImGui::BeginMenu("Storage Infos"))
+            {
                 ImGui::Text("GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS : %i", maxShaderStorageBufferBindings);
 
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Uniform Infos")) {
+            if (ImGui::BeginMenu("Uniform Infos"))
+            {
                 ImGui::Text("GL_MAX_UNIFORM_BUFFER_BINDINGS : %i", maxUniformBufferBindings);
                 ImGui::Text("GL_MAX_UNIFORM_BLOCK_SIZE :      %i", maxUniformBlockSize);
                 ImGui::Text("GL_MAX_UNIFORM_LOCATIONS :       %i", maxUniformLocations);
@@ -264,7 +275,8 @@ void OpenglInfosStruct::drawImGui() {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Varying Infos")) {
+            if (ImGui::BeginMenu("Varying Infos"))
+            {
                 ImGui::Text("GL_MAX_VARYING_COMPONENTS : %i", maxVaryingComponents);
                 ImGui::Text("GL_MAX_VARYING_VECTORS :    %i", maxVaryingVectors);
                 ImGui::Text("GL_MAX_VARYING_FLOATS :     %i", maxVaryingFloats);
@@ -272,7 +284,8 @@ void OpenglInfosStruct::drawImGui() {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Vertex Infos")) {
+            if (ImGui::BeginMenu("Vertex Infos"))
+            {
                 ImGui::Text("GL_MAX_VERTEX_ATOMIC_COUNTERS :       %i", maxVertexAtomicCounters);
                 ImGui::Text("GL_MAX_VERTEX_ATTRIBS :               %i", maxVertexAttribs);
                 ImGui::Text("GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS : %i", maxVertexShaderStorageBlocks);
@@ -285,7 +298,8 @@ void OpenglInfosStruct::drawImGui() {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Geometry Infos")) {
+            if (ImGui::BeginMenu("Geometry Infos"))
+            {
                 ImGui::Text("GL_MAX_GEOMETRY_ATOMIC_COUNTERS :       %i", maxGeometryAtomicCounters);
                 ImGui::Text("GL_MAX_GEOMETRY_SHADER_STORAGE_BLOCKS : %i", maxGeometryShaderStorageBlocks);
                 ImGui::Text("GL_MAX_GEOMETRY_INPUT_COMPONENTS :      %i", maxGeometryInputComponents);
@@ -297,10 +311,12 @@ void OpenglInfosStruct::drawImGui() {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Tesselation Infos")) {
+            if (ImGui::BeginMenu("Tesselation Infos"))
+            {
                 ImGui::Text("Control");
                 ImGui::Text("GL_MAX_TESS_CONTROL_ATOMIC_COUNTERS :          %i", maxTesselationControlAtomicCounters);
-                ImGui::Text("GL_MAX_TESS_CONTROL_SHADER_STORAGE_BLOCKS :    %i", maxTesselationControlShaderStorageBlocks);
+                ImGui::Text("GL_MAX_TESS_CONTROL_SHADER_STORAGE_BLOCKS :    %i",
+                            maxTesselationControlShaderStorageBlocks);
                 ImGui::Text("Evaluation");
                 ImGui::Text("GL_MAX_TESS_EVALUATION_ATOMIC_COUNTERS :       %i", maxTesselationEvalAtomicCounters);
                 ImGui::Text("GL_MAX_TESS_EVALUATION_SHADER_STORAGE_BLOCKS : %i", maxTesselationEvalShaderStorageBlocks);
@@ -310,7 +326,8 @@ void OpenglInfosStruct::drawImGui() {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Fragment Infos")) {
+            if (ImGui::BeginMenu("Fragment Infos"))
+            {
                 ImGui::Text("GL_MAX_FRAGMENT_ATOMIC_COUNTERS :       %i", maxFragmentAtomicCounters);
                 ImGui::Text("GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS : %i", maxFragmentShaderStorageBlocks);
                 ImGui::Text("GL_MAX_FRAGMENT_INPUT_COMPONENTS :      %i", maxFragmentInputComponents);
@@ -321,9 +338,12 @@ void OpenglInfosStruct::drawImGui() {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Compute Infos")) {
-                ImGui::Text("GL_MAX_COMPUTE_WORK_GROUP_COUNT :       x:%i y:%i z:%i", workgroup_count[0], workgroup_count[1], workgroup_count[2]);
-                ImGui::Text("GL_MAX_COMPUTE_WORK_GROUP_SIZE :        x:%i y:%i z:%i", workgroup_size[0], workgroup_size[1], workgroup_size[2]);
+            if (ImGui::BeginMenu("Compute Infos"))
+            {
+                ImGui::Text("GL_MAX_COMPUTE_WORK_GROUP_COUNT :       x:%i y:%i z:%i", workgroup_count[0],
+                            workgroup_count[1], workgroup_count[2]);
+                ImGui::Text("GL_MAX_COMPUTE_WORK_GROUP_SIZE :        x:%i y:%i z:%i", workgroup_size[0],
+                            workgroup_size[1], workgroup_size[2]);
                 ImGui::Text("GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS : %i", workgroup_invocations);
 
                 ImGui::EndMenu();
@@ -332,7 +352,8 @@ void OpenglInfosStruct::drawImGui() {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Texture Infos")) {
+        if (ImGui::BeginMenu("Texture Infos"))
+        {
             ImGui::Text("GL_MAX_TEXTURE_SIZE :           %i", maxTextureSize);
             ImGui::Text("GL_MAX_3D_TEXTURE_SIZE :        %i", max3DTextureSize);
             ImGui::Text("GL_MAX_CUBE_MAP_TEXTURE_SIZE :  %i", maxCubeMapTextureSize);
@@ -347,7 +368,8 @@ void OpenglInfosStruct::drawImGui() {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("FrameBuffer Infos")) {
+        if (ImGui::BeginMenu("FrameBuffer Infos"))
+        {
             ImGui::Text("GL_MAX_FRAMEBUFFER_WIDTH :   %i", maxFramebufferWidth);
             ImGui::Text("GL_MAX_FRAMEBUFFER_HEIGHT :  %i", maxFramebufferHeight);
             ImGui::Text("GL_MAX_FRAMEBUFFER_LAYERS :  %i", maxFramebufferLayers);
@@ -356,26 +378,30 @@ void OpenglInfosStruct::drawImGui() {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("RenderBuffer Infos")) {
+        if (ImGui::BeginMenu("RenderBuffer Infos"))
+        {
             ImGui::Text("GL_MAX_RENDERBUFFER_SIZE : %i", maxRenderbufferSize);
 
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Draw Buffers Infos")) {
+        if (ImGui::BeginMenu("Draw Buffers Infos"))
+        {
             ImGui::Text("GL_MAX_DRAW_BUFFERS :             %i", maxDrawBuffers);
             ImGui::Text("GL_MAX_DUAL_SOURCE_DRAW_BUFFERS : %i", maxDualSourceDrawBuffers);
 
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Clipping Infos")) {
+        if (ImGui::BeginMenu("Clipping Infos"))
+        {
             ImGui::Text("GL_MAX_CLIP_DISTANCES : %i", maxClipDistances);
 
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Elements Infos")) {
+        if (ImGui::BeginMenu("Elements Infos"))
+        {
             ImGui::Text("GL_MAX_ELEMENTS_INDEXS :  %i", maxElementsIndexs);
             ImGui::Text("GL_MAX_ELEMENTS_INDICES :  %i", maxElementsIndices);
             ImGui::Text("GL_MAX_ELEMENTS_VERTICES : %i", maxElementsVertices);
@@ -383,7 +409,8 @@ void OpenglInfosStruct::drawImGui() {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("ViewPort Infos")) {
+        if (ImGui::BeginMenu("ViewPort Infos"))
+        {
             ImGui::Text("GL_MAX_VIEWPORTS :         %i", maxViewports);
             ImGui::Text("GL_VIEWPORT_BOUNDS_RANGE : x:%i y:%i", rangeViewportBounds[0], rangeViewportBounds[1]);
             ImGui::Text("GL_MAX_VIEWPORT_DIMS :     x:%i y:%i", maxViewportSize[0], maxViewportSize[1]);
@@ -391,18 +418,23 @@ void OpenglInfosStruct::drawImGui() {
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Transform Feedback Infos")) {
-            ImGui::Text("GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS : %i", maxTrasnformFeedbackInterleavedComponents);
+        if (ImGui::BeginMenu("Transform Feedback Infos"))
+        {
+            ImGui::Text("GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS : %i",
+                        maxTrasnformFeedbackInterleavedComponents);
             ImGui::Text("GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS :       %i", maxTrasnformFeedbackSeparateAttribs);
-            ImGui::Text("GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS :    %i", maxTrasnformFeedbackSeparateComponents);
+            ImGui::Text("GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS :    %i",
+                        maxTrasnformFeedbackSeparateComponents);
 
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Extentions Infos")) {
+        if (ImGui::BeginMenu("Extentions Infos"))
+        {
             ImGui::Text("Extention Count : %i", maxExtentionCount);
 
-            for (auto it = extentions.begin(); it != extentions.end(); ++it) {
+            for (auto it = extentions.begin(); it != extentions.end(); ++it)
+            {
                 ImGui::Text("%s", it->first.c_str());
             }
 
@@ -418,18 +450,20 @@ void OpenglInfosStruct::drawImGui() {
 ////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-GLVersionChecker::GLVersionChecker() {
+GLVersionChecker::GLVersionChecker()
+{
     InitSupportedVars();
     FillOpenglVersionMap();
     CheckVersions();
     DisplaySupport();
 }
 
-GLVersionChecker::~GLVersionChecker() {
-}
+GLVersionChecker::~GLVersionChecker() {}
 
-OpenGlVersionStruct* GLVersionChecker::GetOpenglVersionStruct(std::string vVersion) {
-    if (m_OpenGlVersionsMap.find(vVersion) != m_OpenGlVersionsMap.end()) {
+OpenGlVersionStruct *GLVersionChecker::GetOpenglVersionStruct(std::string vVersion)
+{
+    if (m_OpenGlVersionsMap.find(vVersion) != m_OpenGlVersionsMap.end())
+    {
         return &(m_OpenGlVersionsMap[vVersion]);
     }
     return 0;
@@ -437,7 +471,8 @@ OpenGlVersionStruct* GLVersionChecker::GetOpenglVersionStruct(std::string vVersi
 
 // PRIVATE
 
-void GLVersionChecker::InitSupportedVars() {
+void GLVersionChecker::InitSupportedVars()
+{
     m_GeometryShaderSupported = false;
     m_TesselationShaderSupported = false;
     m_ComputeShaderSupported = false;
@@ -445,9 +480,11 @@ void GLVersionChecker::InitSupportedVars() {
     m_AttribLayoutSupportedExtention = false;
 }
 
-void GLVersionChecker::DisplaySupport() {
+void GLVersionChecker::DisplaySupport()
+{
     auto glStruct = GetOpenglVersionStruct(m_OpenglVersion);
-    if (glStruct) {
+    if (glStruct)
+    {
         LogVarLightInfo("OpenGl version : %i.%i", glStruct->major, glStruct->minor);
         if (m_AttribLayoutSupportedCore)
             LogVarLightInfo("- Attrib Location Available in Core");
@@ -467,12 +504,15 @@ void GLVersionChecker::DisplaySupport() {
             LogVarLightInfo("- Compute Stage Available");
         else
             LogVarLightInfo("- Compute Stage Not Available");
-    } else {
+    }
+    else
+    {
         LogVarLightError("OpenGl version : Not Found !");
     }
 }
 
-void GLVersionChecker::FillOpenglVersionMap() {
+void GLVersionChecker::FillOpenglVersionMap()
+{
     // https://en.wikipedia.org/wiki/OpenGL_Shading_Language
     /*
     2.0 es #version 100
@@ -490,12 +530,18 @@ void GLVersionChecker::FillOpenglVersionMap() {
     4.40[11] 	4.4 	July 2013 		#version 440
     4.50[12] 	4.5 	August 2014 	#version 450
     */
-    m_OpenGlVersionsMap["2.0 ES"] = OpenGlVersionStruct(2, -1, "2.0 ES", 100, "#version 100", false, false, false, false, false);
-    m_OpenGlVersionsMap["2.0"] = OpenGlVersionStruct(2, 0, "2.0", 110, "#version 110", true, false, false, false, false);
-    m_OpenGlVersionsMap["2.1"] = OpenGlVersionStruct(2, 1, "2.1", 120, "#version 120", true, false, false, false, false);
-    m_OpenGlVersionsMap["3.0 ES"] = OpenGlVersionStruct(3, -1, "3.0 ES", 300, "#version 300 es", true, false, false, false, false);
-    m_OpenGlVersionsMap["3.0"] = OpenGlVersionStruct(3, 0, "3.0", 130, "#version 130", true, false, false, false, false);
-    m_OpenGlVersionsMap["3.1"] = OpenGlVersionStruct(3, 1, "3.1", 140, "#version 140", true, false, false, false, false);
+    m_OpenGlVersionsMap["2.0 ES"] =
+        OpenGlVersionStruct(2, -1, "2.0 ES", 100, "#version 100", false, false, false, false, false);
+    m_OpenGlVersionsMap["2.0"] =
+        OpenGlVersionStruct(2, 0, "2.0", 110, "#version 110", true, false, false, false, false);
+    m_OpenGlVersionsMap["2.1"] =
+        OpenGlVersionStruct(2, 1, "2.1", 120, "#version 120", true, false, false, false, false);
+    m_OpenGlVersionsMap["3.0 ES"] =
+        OpenGlVersionStruct(3, -1, "3.0 ES", 300, "#version 300 es", true, false, false, false, false);
+    m_OpenGlVersionsMap["3.0"] =
+        OpenGlVersionStruct(3, 0, "3.0", 130, "#version 130", true, false, false, false, false);
+    m_OpenGlVersionsMap["3.1"] =
+        OpenGlVersionStruct(3, 1, "3.1", 140, "#version 140", true, false, false, false, false);
     m_OpenGlVersionsMap["3.2"] = OpenGlVersionStruct(3, 2, "3.2", 150, "#version 150", true, true, false, false, false);
     m_OpenGlVersionsMap["3.3"] = OpenGlVersionStruct(3, 3, "3.3", 330, "#version 330", false, true, true, false, false);
     m_OpenGlVersionsMap["4.0"] = OpenGlVersionStruct(4, 0, "4.0", 400, "#version 400", false, true, true, true, false);
@@ -506,7 +552,8 @@ void GLVersionChecker::FillOpenglVersionMap() {
     m_OpenGlVersionsMap["4.5"] = OpenGlVersionStruct(4, 5, "4.5", 450, "#version 450", false, true, true, true, true);
 }
 
-bool GLVersionChecker::IsGlSupported(int vMajorGLVersion, int MinorGLVersion) {
+bool GLVersionChecker::IsGlSupported(int vMajorGLVersion, int MinorGLVersion)
+{
 #ifdef GL3W
     return gl3wIsSupported(vMajorGLVersion, MinorGLVersion);
 #endif
@@ -519,12 +566,15 @@ bool GLVersionChecker::IsGlSupported(int vMajorGLVersion, int MinorGLVersion) {
 #endif
 }
 
-bool GLVersionChecker::CheckVersion(int vMajorGLVersion, int MinorGLVersion) {
+bool GLVersionChecker::CheckVersion(int vMajorGLVersion, int MinorGLVersion)
+{
     bool res = IsGlSupported(vMajorGLVersion, MinorGLVersion);
-    if (res) {
+    if (res)
+    {
         m_OpenglVersion = ct::toStr(vMajorGLVersion) + "." + ct::toStr(MinorGLVersion);
         auto version = GetOpenglVersionStruct(m_OpenglVersion);
-        if (version) {
+        if (version)
+        {
             version->supported = true;
             m_DefaultGlslVersionInt = version->DefaultGlslVersionInt;
             m_DefaultGlslVersionHeader = version->DefineCode;
@@ -535,17 +585,21 @@ bool GLVersionChecker::CheckVersion(int vMajorGLVersion, int MinorGLVersion) {
             m_TesselationShaderSupported = version->tesselationShaderSupported;
             m_ComputeShaderSupported = version->computeShaderSupported;
         }
-    } else {
+    }
+    else
+    {
         std::string vers = ct::toStr(vMajorGLVersion) + "." + ct::toStr(MinorGLVersion);
         auto version = GetOpenglVersionStruct(vers);
-        if (version) {
+        if (version)
+        {
             version->supported = false;
         }
     }
     return res;
 }
 
-bool GLVersionChecker::CheckVersions() {
+bool GLVersionChecker::CheckVersions()
+{
     if (!CheckVersion(4, 5))
         if (!CheckVersion(4, 4))
             if (!CheckVersion(4, 3))

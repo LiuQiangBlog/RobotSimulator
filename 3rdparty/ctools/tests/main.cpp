@@ -1,8 +1,10 @@
 #include "TestCode/TestCode.h"
 #include <string>
 
-int main(int argc, char** argv) {
-    if (argc > 1) {
+int main(int argc, char **argv)
+{
+    if (argc > 1)
+    {
         printf("Exec test : %s\n", argv[1]);
 
         return run_test(argv[1]);

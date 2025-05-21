@@ -58,10 +58,11 @@ dependency : ctools, dirent/h, glfw if you want to use clipboard
 
 ## ConfigAbstract
 
-ConfigAbstract let you load/save a config file easily from class 
+ConfigAbstract let you load/save a config file easily from class
 using lib [tinyxml2](https://github.com/leethomason/tinyxml2)
 
 Usage :
+
 ```cpp
 class toto : public conf::ConfigAbstract
 {

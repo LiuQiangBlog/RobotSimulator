@@ -7,19 +7,19 @@ project(${PROJECT} CXX)
 
 message("cTools testing enabled")
 
-file(GLOB_RECURSE PROJECT_TEST_SRC_RECURSE 
-	${CMAKE_CURRENT_SOURCE_DIR}/*.cpp 
-	${CMAKE_CURRENT_SOURCE_DIR}/*.h 
+file(GLOB_RECURSE PROJECT_TEST_SRC_RECURSE
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.h
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${PROJECT_TEST_SRC_RECURSE})
 include_directories(${CTOOLS_INCLUDE_DIR})
 add_executable(${PROJECT} ${PROJECT_TEST_SRC_RECURSE})
-target_link_libraries(${PROJECT} ${CTOOLS_LIBRARIES})
+target_link_libraries(${PROJECT} glew glfw tinyxml2 ctools)
 set_target_properties(${PROJECT} PROPERTIES FOLDER Tests)
 
 function(AddTest arg)
-  add_test("${arg}" "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT}" "${arg}")
+    add_test("${arg}" "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT}" "${arg}")
 endfunction()
 
 AddTest("FileHelper.1")
