@@ -13,5 +13,5 @@ function(AddTutorials Path)
     endforeach ()
 endfunction()
 
-AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} pthread glew glfw)
+AddTutorials(${CMAKE_CURRENT_SOURCE_DIR} pthread glew glfw imgui dl)
 
