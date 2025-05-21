@@ -32,32 +32,32 @@ static void centerWindow(GLFWwindow *window)
     glfwSetWindowPos(window, centerX, centerY);
 }
 
-//void createMenuBar()
+// void createMenuBar()
 //{
-//    if (ImGui::Begin("createMenuBar"))
-//    {
-//        if (ImGui::BeginMenuBar())
-//        {
-//            if (ImGui::BeginMenu("File"))
-//            {
-//                if (ImGui::MenuItem("New", "Ctrl+N"))
-//                {
-//                    // 处理新建操作
-//                }
-//                if (ImGui::MenuItem("Open", "Ctrl+O"))
-//                {
-//                    // 处理打开操作
-//                }
-//                if (ImGui::MenuItem("Exit", "Alt+F4"))
-//                {
-//                    // 处理退出操作
-//                }
-//            }
-//            ImGui::EndMenuBar();
-//        }
-//    }
-//    ImGui::End(); // End can not in if(ImGui::Begin()), otherwise program will crash
-//}
+//     if (ImGui::Begin("createMenuBar"))
+//     {
+//         if (ImGui::BeginMenuBar())
+//         {
+//             if (ImGui::BeginMenu("File"))
+//             {
+//                 if (ImGui::MenuItem("New", "Ctrl+N"))
+//                 {
+//                     // 处理新建操作
+//                 }
+//                 if (ImGui::MenuItem("Open", "Ctrl+O"))
+//                 {
+//                     // 处理打开操作
+//                 }
+//                 if (ImGui::MenuItem("Exit", "Alt+F4"))
+//                 {
+//                     // 处理退出操作
+//                 }
+//             }
+//             ImGui::EndMenuBar();
+//         }
+//     }
+//     ImGui::End(); // End can not in if(ImGui::Begin()), otherwise program will crash
+// }
 
 void createMenuBar()
 {
@@ -78,7 +78,9 @@ void createMenuBar()
     }
     if (ImGui::BeginMainMenuBar()) // 使用 BeginMainMenuBar 创建全局菜单栏
     {
-        if (ImGui::MenuItem("New")) {}
+        if (ImGui::MenuItem("New"))
+        {
+        }
         ImGui::Separator();
         if (ImGui::BeginMenu("File"))
         {
@@ -91,8 +93,12 @@ void createMenuBar()
                 CLOG_INFO << "Open File";
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Save", "Ctrl+S")) {}
-            if (ImGui::MenuItem("Save As..")) {}
+            if (ImGui::MenuItem("Save", "Ctrl+S"))
+            {
+            }
+            if (ImGui::MenuItem("Save As.."))
+            {
+            }
             if (ImGui::MenuItem("Exit", "Esc", false, false))
             {
                 CLOG_INFO << "Exit";
@@ -111,6 +117,40 @@ void createMenuBar()
         }
         ImGui::EndMainMenuBar();
     }
+}
+
+void setMenubarColor()
+{
+    ImGuiStyle &style = ImGui::GetStyle();
+    // 设置主菜单栏背景色（深灰色）
+    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    // 设置菜单项颜色
+    style.Colors[ImGuiCol_Header] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);     // 激活状态
+    style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.3f, 0.5f, 0.7f, 1.0f);  // 悬停状态
+    style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.2f, 0.5f, 0.8f, 0.6f); // 文本选中状态
+
+    // 设置下拉菜单颜色
+    style.Colors[ImGuiCol_PopupBg] = ImVec4(0.2f, 0.2f, 0.2f, 0.95f);      // 菜单面板背景色
+    style.Colors[ImGuiCol_Border] = ImVec4(0.4f, 0.4f, 0.4f, 0.5f);        // 菜单边框色
+    style.Colors[ImGuiCol_Text] = ImVec4(0.9f, 0.9f, 0.9f, 1.0f);          // 菜单项文本色
+    style.Colors[ImGuiCol_Button] = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);        // 菜单项默认背景
+    style.Colors[ImGuiCol_ButtonHovered] = ImVec4(0.3f, 0.5f, 0.7f, 1.0f); // 菜单项悬停背景
+    style.Colors[ImGuiCol_ButtonActive] = ImVec4(0.4f, 0.6f, 0.8f, 1.0f);  // 菜单项激活背景
+}
+
+void createMainWindow()
+{
+    int windowWidth, windowHeight;
+    glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
+    ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::Begin("##Main Window", nullptr,
+                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+    {
+        // 在这里添加其他 imgui 控件
+        ImGui::Text("Hello, ImGui!");
+    }
+    ImGui::End();
 }
 
 // Main code
@@ -150,8 +190,8 @@ int main(int, char **)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
     // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    // ImGui::StyleColorsLight();
+    //    ImGui::StyleColorsDark();
+    //     ImGui::StyleColorsLight();
     // ImGui::StyleColorsClassic();
 
     // Setup Platform/Renderer backends
@@ -163,6 +203,7 @@ int main(int, char **)
 
     io.AddKeyEvent(ImGuiKey_Escape, true);
 
+    setMenubarColor();
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -178,7 +219,13 @@ int main(int, char **)
         ImGui::NewFrame();
 
         // todo, here is your imgui code
-        createMenuBar();
+        createMenuBar(); // 调用创建菜单栏的函数
+                         //        createMainWindow();
+
+        // 在渲染循环中添加样式编辑器
+        //        ImGui::Begin("Style Editor");
+        //        ImGui::ShowStyleEditor();
+        //        ImGui::End();
 
         // Rendering
         ImGui::Render();
