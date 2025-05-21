@@ -5,7 +5,7 @@ enable_language(C CXX)
 project(${PROJECT} CXX)
 
 option(USE_TESTING_CTOOLS "Enable Ctools Tests" ON)
-option(USE_CONFIG_SYSTEM "Use Config Load/Save class" OFF)
+option(USE_CONFIG_SYSTEM "Use Config Load/Save class" ON)
 option(USE_CTOOLS_AS_SHARED_LIB "Enable ctools ad Shared Lib" OFF)
 option(USE_GL_VERSION_CHECKER "Use Gl Version Checker class" OFF)
 option(USE_SDL_CLIPBOARD "Use Clipboard via SDL2 (need SDL2)" OFF)

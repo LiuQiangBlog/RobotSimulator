@@ -27,6 +27,7 @@ SOFTWARE.
 
 #include <ctools/ConfigAbstract.h>
 #include "AbstractPane.h"
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 #include <vector>
 #include <array>

@@ -2,11 +2,7 @@
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
 // (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan graphics context creation, etc.)
 
-#define IM_VEC2_CLASS_EXTRA
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include <imgui.h>
-
-#include <imgui_internal.h>
+//#include <imgui_internal.h>
 
 #include "MainFrame.h"
 

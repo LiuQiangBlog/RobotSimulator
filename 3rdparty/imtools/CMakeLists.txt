@@ -50,7 +50,7 @@ file(GLOB APP_LAYOUT_MANAGER_SOURCES
 )
 
 add_executable(app_LayoutManager ${APP_LAYOUT_MANAGER_SOURCES})
-target_link_libraries(app_LayoutManager PRIVATE glew glfw imgui ctools tinyxml2)
+target_link_libraries(app_LayoutManager PRIVATE glew glfw imgui ctools tinyxml2 dl)
 
 
 

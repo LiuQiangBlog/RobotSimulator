@@ -30,7 +30,6 @@ SOFTWARE.
 #include <GLFW/glfw3.h>
 #include <LayoutManager/LayoutManager.h>
 
-//#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
 
 #include "LeftPane.h"
