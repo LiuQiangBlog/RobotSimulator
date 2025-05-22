@@ -860,11 +860,12 @@ void createTabBarWithImPlot(Handler &h)
 
                                 bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
 
-                                ImGui::PushID(channel.c_str());
-                                ImGui::Checkbox("##Checkbox", &is_selected); //ImGui::Checkbox(channel.c_str(), &is_selected);
-                                ImGui::SameLine();
-                                ImGui::TextUnformatted(channel.c_str());
-                                ImGui::PopID();
+//                                ImGui::PushID(channel.c_str());
+//                                ImGui::Checkbox("##Checkbox", &is_selected);
+//                                ImGui::SameLine();
+//                                ImGui::TextUnformatted(channel.c_str());
+//                                ImGui::PopID();
+                                ImGui::Checkbox(channel.c_str(), &is_selected);
                                 if (is_selected)
                                 {
                                     selected_channels.push_back(channel);
@@ -894,6 +895,10 @@ void createTabBarWithImPlot(Handler &h)
                             ImGui::EndPopup();
                         }
                         auto &channels = h.tab_selected_channels[tab_id];
+                        for (auto &item : channels)
+                        {
+                            CLOG_INFO << item;
+                        }
                         h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
                     }
                     ImGui::EndTabItem();
