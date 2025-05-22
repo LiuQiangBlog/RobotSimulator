@@ -849,9 +849,8 @@ void createTabBarWithImPlot(Handler &h)
 
                                 bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
 
-                                //ImGui::Checkbox(channel.c_str(), &is_selected);
                                 ImGui::PushID(channel.c_str());
-                                ImGui::Checkbox("##Checkbox", &is_selected);
+                                ImGui::Checkbox("##Checkbox", &is_selected); //ImGui::Checkbox(channel.c_str(), &is_selected);
                                 ImGui::SameLine();
                                 ImGui::TextUnformatted(channel.c_str());
                                 ImGui::PopID();
@@ -888,13 +887,11 @@ void createTabBarWithImPlot(Handler &h)
                     }
                     ImGui::EndTabItem();
                 }
-
-                // 处理关闭标签页
                 if (!tab_open)
                 {
                     tab_titles.erase(tab_id);
                     active_tabs.erase(active_tabs.begin() + n);
-                    h.tab_selected_channels.erase(tab_id); // 清理选中通道
+                    h.tab_selected_channels.erase(tab_id);
                 }
                 else
                 {
@@ -904,28 +901,24 @@ void createTabBarWithImPlot(Handler &h)
             ImGui::EndTabBar();
         }
 
-        // 处理新建标签页对话框
         if (open_new_tab_dialog)
         {
             ImGui::OpenPopup("Untitled");
             open_new_tab_dialog = false;
         }
 
-        // 显示对话框
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
                                         ImGuiWindowFlags_NoNav;
         static bool first_open = true;
         if (ImGui::BeginPopupModal("Untitled", nullptr, window_flags))
         {
-            ImGui::SetWindowFocus(); // 确保对话框获得焦点
-            // 输入框
+            ImGui::SetWindowFocus();
             ImGui::Text("Enter tab title:");
             ImGui::PushItemWidth(300);
             if (ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title)))
             {
-                error_message.clear(); // 输入变化时清除错误信息
+                error_message.clear();
             }
-            // 仅在首次打开时设置焦点
             if (first_open)
             {
                 ImGui::SetKeyboardFocusHere(-1);
@@ -933,21 +926,15 @@ void createTabBarWithImPlot(Handler &h)
             }
             ImGui::PopItemWidth();
 
-            // 显示错误信息（如果有）
             if (!error_message.empty())
             {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f)); // 红色文本
                 ImGui::TextWrapped("%s", error_message.c_str());
                 ImGui::PopStyleColor();
             }
-
-            // 按钮
             ImGui::Separator();
-
-            // 禁用创建按钮的条件：标题为空或已存在
             bool can_create = false;
-            trimString(new_tab_title); // 先清理字符串
-
+            trimString(new_tab_title);
             if (strlen(new_tab_title) == 0)
             {
                 error_message = "Title cannot be empty!";
@@ -961,8 +948,6 @@ void createTabBarWithImPlot(Handler &h)
                 can_create = true;
                 error_message.clear();
             }
-
-            // 根据条件启用/禁用按钮
             ImGui::BeginDisabled(!can_create);
             if (ImGui::Button("Create", ImVec2(120, 0)))
             {
@@ -983,7 +968,6 @@ void createTabBarWithImPlot(Handler &h)
         }
         else
         {
-            // 对话框关闭时重置标志
             first_open = true;
         }
     }
@@ -1028,6 +1012,11 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
+    Handler h;
+    h.all_channels.insert("a");
+    h.all_channels.insert("b");
+    h.all_channels.insert("c");
+    h.all_channels.insert("d");
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -1049,7 +1038,8 @@ int main()
         //        createFullScreenWindow();
         //        createMenuBar();
         //        createMenuBarWithMainWindow();
-        createTabBarWithMainWindow();
+        //        createTabBarWithMainWindow();
+        createTabBarWithImPlot(h);
 
         ImGui::Render();
         int display_w, display_h;
