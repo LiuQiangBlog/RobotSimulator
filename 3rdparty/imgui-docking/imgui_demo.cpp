@@ -9250,7 +9250,7 @@ static void ShowExampleAppLayout(bool* p_open)
             ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
             ImGui::Text("MyObject: %d", selected);
             ImGui::Separator();
-            if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None))
+            if (ImGui::BeginTabBar("Tabs", ImGuiTabBarFlags_None))
             {
                 if (ImGui::BeginTabItem("Description"))
                 {

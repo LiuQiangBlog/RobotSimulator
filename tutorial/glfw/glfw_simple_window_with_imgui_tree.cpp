@@ -102,15 +102,7 @@ int main()
 //            ImGui::TreePop();
 //        }
 
-        if (ImGui::TreeNode("Backend Flags"))
-        {
-//            ImGui::BeginDisabled();
-            ImGui::Checkbox("io.ConfigDebugBeginReturnValueOnce", &io.ConfigDebugBeginReturnValueOnce);
-//            ImGui::EndDisabled();
 
-            ImGui::TreePop();
-            ImGui::Spacing();
-        }
 
         ImGui::Render();
 

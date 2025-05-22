@@ -130,9 +130,9 @@ void createMainWindow()
                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
                      ImGuiWindowFlags_NoMove);
     {
-        ImGui::SetWindowPos(ImVec2(0, 28)); // 偏移菜单栏高度（默认约28px）
+        ImGui::SetWindowPos(ImVec2(0, hasMenuBar ? menuBarHeight : 0)); // 偏移菜单栏高度（默认约28px）
         ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
-                                    ImGui::GetIO().DisplaySize.y - 28));
+                                    ImGui::GetIO().DisplaySize.y - (hasMenuBar ? menuBarHeight : 0)));
         // 在这里添加其他 imgui 控件
         ImGui::Text("Hello, ImGui!");
     }

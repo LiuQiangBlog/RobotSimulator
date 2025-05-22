@@ -60,20 +60,6 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
-    // Demonstrate the various window flags. Typically you would just use the default!
-    static bool no_titlebar = false;
-    static bool no_scrollbar = false;
-    static bool no_menu = false;
-    static bool no_move = false;
-    static bool no_resize = false;
-    static bool no_collapse = false;
-    static bool no_close = false;
-    static bool no_nav = false;
-    static bool no_background = false;
-    static bool no_bring_to_front = false;
-    static bool no_docking = false;
-    static bool unsaved_document = false;
-
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -92,25 +78,7 @@ int main()
             glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
         }
 
-        if (ImGui::CollapsingHeader("Window options", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            if (ImGui::BeginTable("split", 3))
-            {
-                ImGui::TableNextColumn(); ImGui::Checkbox("No titlebar", &no_titlebar);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No scrollbar", &no_scrollbar);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No menu", &no_menu);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No move", &no_move);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No resize", &no_resize);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No collapse", &no_collapse);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No close", &no_close);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No nav", &no_nav);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No background", &no_background);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No bring to front", &no_bring_to_front);
-                ImGui::TableNextColumn(); ImGui::Checkbox("No docking", &no_docking);
-                ImGui::TableNextColumn(); ImGui::Checkbox("Unsaved document", &unsaved_document);
-                ImGui::EndTable();
-            }
-        }
+
 
         ImGui::Render();
 
