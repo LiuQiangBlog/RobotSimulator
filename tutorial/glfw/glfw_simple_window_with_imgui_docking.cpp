@@ -783,17 +783,17 @@ void createTabBarWithImPlot(Handler &h)
     ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+    ImGuiStyle &style = ImGui::GetStyle();
+    ImVec2 original_window_padding = style.WindowPadding;
+    style.WindowPadding.x = 4.0f; // keep TabItem distance to left window edge is 4
+    style.WindowPadding.y = 4.0f; // keep TabItem distance to top window edge is 4
     ImGui::Begin("##Main Window", nullptr, flags);
     {
         ImGui::SetWindowPos(ImVec2(0, 0));
-        ImGui::SetWindowSize(
-            ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
-        ImGuiStyle &style = ImGui::GetStyle();
+        ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
 //        style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
 //        style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
         style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-//        auto FramePadding = style.FramePadding;
-//        style.FramePadding = ImVec2(10, 12);
         static ImVector<int> active_tabs;
         static int next_tab_id = 0;
         static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
@@ -805,7 +805,7 @@ void createTabBarWithImPlot(Handler &h)
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
         ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);       // 调整圆角
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
         ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
         if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
         {
@@ -829,7 +829,7 @@ void createTabBarWithImPlot(Handler &h)
                 }
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
                 ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
-                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);       // 调整圆角
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
                 ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
                 if (ImGui::BeginTabItem(tab_title, &tab_open))
                 {
@@ -989,6 +989,7 @@ void createTabBarWithImPlot(Handler &h)
             first_open = true;
         }
     }
+    style.WindowPadding = original_window_padding;
     ImGui::End();
 }
 
