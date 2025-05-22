@@ -8,6 +8,16 @@
 #include <Logging.h>
 #include <unordered_map>
 #include <algorithm>
+#include <unordered_set>
+#include <shared_mutex>
+#include <deque>
+#include <implot.h>
+#include <zcm/zcm-cpp.hpp>
+#include "all_timed_value.hpp"
+#include "data_fields.hpp"
+#include "data_channel.hpp"
+#include "rolling_buffer.h"
+
 
 static void centerWindow(GLFWwindow *window)
 {
@@ -367,82 +377,27 @@ void trimString(char *str)
 
 void createTabBarWithMainWindow()
 {
-    float tabBarHeight = 0.0f;
-    bool hasTabBar = false;
     int windowWidth, windowHeight;
     glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
-    ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight - (hasTabBar ? tabBarHeight : 0)));
-    ImGui::SetNextWindowPos(ImVec2(0, hasTabBar ? tabBarHeight : 0));
-    static ImGuiWindowFlags flags =
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+    ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
     ImGui::Begin("##Main Window", nullptr, flags);
     {
-        ImGui::SetWindowPos(ImVec2(0, hasTabBar ? tabBarHeight : 0));
-        ImGui::SetWindowSize(
-            ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y - (hasTabBar ? tabBarHeight : 0)));
+        ImGui::SetWindowPos(ImVec2(0, 0));
+        ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
         ImGuiStyle &style = ImGui::GetStyle();
+
         style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
         style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
-        //        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_DrawSelectedOverline))
-        //        {
-        //            if (ImGui::BeginTabItem("Description"))
-        //            {
-        //                ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-        //                tempor incididunt ut labore et dolore magna aliqua. "); ImGui::EndTabItem();
-        //            }
-        //            if (ImGui::BeginTabItem("Details"))
-        //            {
-        //                ImGui::Text("ID: 0123456789");
-        //                ImGui::EndTabItem();
-        //            }
-        //
-        //            tabBarHeight = ImGui::GetWindowHeight();
-        //            ImGui::EndTabBar();
-        //            hasTabBar = true;
-        //        }
-
-        //        static ImVector<int> active_tabs;
-        //        static int next_tab_id = 0;
-        //        static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs |
-        //        ImGuiTabBarFlags_Reorderable |
-        //                                                ImGuiTabBarFlags_FittingPolicyResizeDown;
-        //        if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
-        //        {
-        //            // Demo Trailing Tabs: click the "+" button to add a new tab.
-        //            // (In your app you may want to use a font icon instead of the "+")
-        //            // We submit it before the regular tabs, but thanks to the ImGuiTabItemFlags_Trailing flag it will
-        //            always appear at the end. if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing |
-        //            ImGuiTabItemFlags_NoTooltip))
-        //            {
-        //                active_tabs.push_back(next_tab_id++); // Add new tab
-        //            }
-        //            // Submit our regular tabs
-        //            for (int n = 0; n < active_tabs.Size; )
-        //            {
-        //                bool open = true;
-        //                char name[16];
-        //                snprintf(name, IM_ARRAYSIZE(name), "%04d", active_tabs[n]);
-        //                if (ImGui::BeginTabItem(name, &open, ImGuiTabItemFlags_None))
-        //                {
-        //                    ImGui::Text("This is the %s tab!", name);
-        //                    ImGui::EndTabItem();
-        //                }
-        //                if (!open)
-        //                {
-        //                    active_tabs.erase(active_tabs.Data + n);
-        //                }
-        //                else
-        //                {
-        //                    n++;
-        //                }
-        //            }
-        //            ImGui::EndTabBar();
-        //        }
+        style.Colors[ImGuiCol_Border] = ImVec4(0,0,0,0);
+        style.Colors[ImGuiCol_Separator] = ImVec4(0,0,0,0);
+        style.Colors[ImGuiCol_PlotLines] = ImVec4(0,0,0,0);
 
         static ImVector<int> active_tabs;
         static int next_tab_id = 0;
         static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
-                                                ImGuiTabBarFlags_FittingPolicyResizeDown;
+                                                ImGuiTabBarFlags_FittingPolicyResizeDown | ImGuiTabBarFlags_DrawSelectedOverline;
         static char new_tab_title[64] = "New Tab";              // 存储新标签页标题
         static bool open_new_tab_dialog = false;                // 控制对话框显示
         static std::unordered_map<int, std::string> tab_titles; // 存储标签页ID到标题的映射
@@ -565,6 +520,472 @@ void createTabBarWithMainWindow()
             first_open = true;
         }
         ImGui::Text("Hello, ImGui!");
+    }
+    ImGui::End();
+}
+
+// 增加窗口状态管理
+struct PlotWindowState
+{
+    bool is_maximized = false;
+    ImVec2 normal_size = ImVec2(600, 400);
+    ImVec2 normal_pos = ImVec2(0, 0);
+    ImVec2 screen_size;            // 新增屏幕尺寸缓存
+    bool need_restore_pos = false; // 新增位置恢复标志
+};
+
+class Handler
+{
+public:
+    static constexpr size_t MAX_CACHE_SIZE = 1000;
+    using DataBUffer = RollingBuffer<double, MAX_CACHE_SIZE>;
+    ~Handler() = default;
+
+    void plotChannelData(const std::string &title, const std::string &channel)
+    {
+        if (plot_bool[title])
+        {
+            ImGui::Begin(title.c_str(), &plot_bool[title], ImGuiWindowFlags_AlwaysAutoResize);
+            ImPlot::SetNextAxisToFit(ImAxis_Y1);
+            if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
+            {
+                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+                // ImPlot::SetupAxisFormat(ImAxis_Y1, "%.5f");
+                ImPlot::SetupAxes("Time(s)", "");
+                if (channel_plot_data.count(channel) > 0)
+                {
+                    std::lock_guard<std::shared_mutex> lock(mtx);
+                    auto &[ts, vals] = channel_plot_data[channel];
+                    if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                    {
+                        double min_time = *std::min_element(ts.begin(), ts.end());
+                        double max_time = *std::max_element(ts.begin(), ts.end());
+                        ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
+                        auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+                        ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
+
+                        ImVec4 color = ImPlot::GetColormapColor(0);
+                        ImPlot::SetNextLineStyle(color, 1.0f);
+                        ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, 1.5f, color);
+                        ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                    }
+                }
+                ImPlot::EndPlot();
+            }
+            ImGui::End();
+        }
+    }
+
+    // plot all channels
+    void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
+    {
+        if (plot_bool[title])
+        {
+            // 确保有对应的窗口状态
+            if (plot_window_states.find(title) == plot_window_states.end())
+            {
+                plot_window_states[title] = PlotWindowState{};
+            }
+            auto &state = plot_window_states[title];
+
+            // 窗口标志
+            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+            //            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar;
+            if (state.is_maximized)
+            {
+                windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+                               ImGuiWindowFlags_NoTitleBar;
+            }
+
+            // 开始窗口
+            ImVec2 screenSize = ImGui::GetIO().DisplaySize;  // 获取屏幕分辨率
+            ImVec2 defaultSize(screenSize.x * 0.8f, screenSize.y * 0.6f);
+            ImGui::SetNextWindowSize(defaultSize, ImGuiCond_FirstUseEver);
+            // ImVec2 defaultSize(600, 400);
+            // ImGui::SetNextWindowSize(defaultSize);
+            ImGui::Begin(title.c_str(), &plot_bool[title], windowFlags);
+
+            // 保存正常状态的位置和大小
+            if (!state.is_maximized && ImGui::IsWindowFocused())
+            {
+                state.normal_size = ImGui::GetWindowSize();
+                state.normal_pos = ImGui::GetWindowPos();
+            }
+
+            // 添加最大化/恢复按钮
+            if (ImGui::Button(state.is_maximized ? "[-]" : "[+]"))
+            {
+                state.is_maximized = !state.is_maximized;
+                if (state.is_maximized)
+                {
+                    // 保存当前状态并最大化
+                    ImGuiIO &io = ImGui::GetIO();
+                    ImGui::SetWindowPos(title.c_str(), ImVec2(0, 0));
+                    ImGui::SetWindowSize(title.c_str(), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
+                }
+                else
+                {
+                    // 恢复之前的状态
+                    ImGui::SetWindowPos(title.c_str(), state.normal_pos);
+                    ImGui::SetWindowSize(title.c_str(), state.normal_size);
+                }
+            }
+
+            ImPlot::SetNextAxisToFit(ImAxis_Y1);
+
+            // 初始化全局范围
+            auto global_x_min = DBL_MAX;
+            auto global_x_max = -DBL_MAX;
+            auto global_y_min = DBL_MAX;
+            auto global_y_max = -DBL_MAX;
+
+            // 计算所有通道的全局范围
+            {
+                std::shared_lock<std::shared_mutex> lock(mtx);
+                for (const auto &channel : channels)
+                {
+                    if (channel_plot_data.count(channel) > 0)
+                    {
+                        auto &[ts, vals] = channel_plot_data[channel];
+                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                        {
+                            double min_time = *std::min_element(ts.begin(), ts.end());
+                            double max_time = *std::max_element(ts.begin(), ts.end());
+                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+
+                            global_x_min = std::min(global_x_min, min_time);
+                            global_x_max = std::max(global_x_max, max_time);
+                            global_y_min = std::min(global_y_min, *y_min);
+                            global_y_max = std::max(global_y_max, *y_max);
+                        }
+                    }
+                }
+            }
+
+            // 绘制图表 - 使用窗口剩余空间
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            if (ImPlot::BeginPlot("##ChannelPlot", contentRegion))
+            {
+                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+                ImPlot::SetupAxes("Time(s)", "Value");
+                ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
+                // 设置全局范围
+                if (global_x_min <= global_x_max && global_y_min <= global_y_max)
+                {
+                    ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
+                    ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
+                }
+
+                // 绘制所有通道
+                {
+                    std::shared_lock<std::shared_mutex> lock(mtx);
+                    for (size_t i = 0; i < channels.size(); i++)
+                    {
+                        const auto &channel = channels[i];
+                        if (channel_plot_data.count(channel) > 0)
+                        {
+                            auto &[ts, vals] = channel_plot_data[channel];
+                            if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                            {
+                                ImVec4 color = ImPlot::GetColormapColor(int(i));
+                                ImPlot::SetNextLineStyle(color, 2.0f);
+                                ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+                                ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                            }
+                        }
+                    }
+                }
+                ImPlot::EndPlot();
+            }
+            ImGui::End();
+        }
+    }
+
+    void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const all_timed_value *msg)
+    {
+        static bool initialized{false};
+        for (const auto &item : msg->channels)
+        {
+            channel_data[item.name].first.push_back(item.timestamp);
+            channel_data[item.name].second.push_back(item.value);
+            if (channel_data[item.name].first.size() > MAX_CACHE_SIZE)
+            {
+                channel_data[item.name].first.pop_front();
+                channel_data[item.name].second.pop_front();
+            }
+            // 更新绘图数据
+            auto timestamps = std::vector<double>(channel_data[item.name].first.begin(), channel_data[item.name].first.end());
+            auto values = std::vector<double>(channel_data[item.name].second.begin(), channel_data[item.name].second.end());
+            {
+                std::lock_guard<std::shared_mutex> lck(mtx);
+                channel_plot_data[item.name].first = timestamps;
+                channel_plot_data[item.name].second = values;
+            }
+            if (msg->channel_updated)
+            {
+                all_channels.insert(item.name);
+            }
+
+            if (!initialized || msg->channel_updated)
+            {
+                for (auto &[key, value] : plot_channels) // old channel will keep
+                {
+//                    if (contains(key, "*"))
+//                    {
+//                        auto lhd = split_last(key, '*').first;
+//                        if (contains(item.name, lhd))
+//                        {
+//                            plot_channels[key].push_back(item.name);
+//                        }
+//                    }
+//                    if (contains(key, "-"))
+//                    {
+//                        for (auto &element : expand_range_expression(key))
+//                        {
+//                            if (item.name == element)
+//                            {
+//                                plot_channels[key].push_back(item.name);
+//                            }
+//                        }
+//                    }
+                }
+            }
+        }
+        if (!initialized)
+        {
+            initialized = true;
+        }
+    }
+
+    std::unordered_map<double, std::unordered_map<std::string, double>> frame_buffer;
+    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+    //    std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
+    std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
+    std::unordered_set<std::string> all_channels;
+    std::unordered_map<std::string, std::vector<std::string>> plot_channels;
+    std::unordered_map<int, std::deque<std::string>> tab_selected_channels;
+    std::unordered_map<std::string, bool> plot_bool;
+    //    std::unordered_map<std::string, PlotWindowState> plotWindowStates;
+    std::unordered_map<std::string, PlotWindowState> plot_window_states;
+    //    std::unordered_map<std::string, PlotWindowState> state;
+    //    std::vector<std::string> channels;
+
+    //    zcm::ZCM *zcm{nullptr};
+    std::shared_mutex mtx;
+};
+
+void createTabBarWithImPlot(Handler &h)
+{
+    int windowWidth, windowHeight;
+    glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
+    ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    static ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+    ImGui::Begin("##Main Window", nullptr, flags);
+    {
+        ImGui::SetWindowPos(ImVec2(0, 0));
+        ImGui::SetWindowSize(
+            ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
+        ImGuiStyle &style = ImGui::GetStyle();
+        style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
+        style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
+
+        static ImVector<int> active_tabs;
+        static int next_tab_id = 0;
+        static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
+                                                ImGuiTabBarFlags_FittingPolicyResizeDown;
+        static char new_tab_title[64] = "";
+        static bool open_new_tab_dialog{false};
+        static std::unordered_map<int, std::string> tab_titles;
+        static std::string error_message;
+
+        if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+        {
+            if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+            {
+                open_new_tab_dialog = true;
+                strcpy(new_tab_title, "Untitled");
+                error_message.clear();
+            }
+            for (int n = 0; n < active_tabs.Size;)
+            {
+                int tab_id = active_tabs[n];
+                bool tab_open = true;
+                const char* tab_title = tab_titles[tab_id].c_str();
+
+                if (!h.tab_selected_channels.count(tab_id))
+                {
+                    h.tab_selected_channels[tab_id] = {};
+                }
+
+                if (ImGui::BeginTabItem(tab_title, &tab_open))
+                {
+                    if (tab_open)
+                    {
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                        {
+                            ImGui::OpenPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str());
+                        }
+                        if (ImGui::BeginPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str()))
+                        {
+                            auto &selected_channels = h.tab_selected_channels[tab_id];
+                            static char filter_text[128] = "";
+                            ImGui::Text("Filter Channels:");
+                            ImGui::PushItemWidth(300);
+                            ImGui::InputText("##FilterCondition", filter_text, IM_ARRAYSIZE(filter_text),
+                                             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoHorizontalScroll);
+                            trimString(new_tab_title);
+
+                            ImGui::Separator();
+                            for (const std::string &channel : h.all_channels)
+                            {
+                                if (strlen(filter_text) != 0 && channel.find(filter_text) == std::string::npos)
+                                {
+                                    continue;
+                                }
+
+                                bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
+
+                                //ImGui::Checkbox(channel.c_str(), &is_selected);
+                                ImGui::PushID(channel.c_str());
+                                ImGui::Checkbox("##Checkbox", &is_selected);
+                                ImGui::SameLine();
+                                ImGui::TextUnformatted(channel.c_str());
+                                ImGui::PopID();
+                                if (is_selected)
+                                {
+                                    selected_channels.push_back(channel);
+                                }
+                                else
+                                {
+                                    auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
+                                    if (it != selected_channels.end())
+                                    {
+                                        selected_channels.erase(it);
+                                    }
+                                }
+                            }
+
+                            ImGui::Separator();
+                            if (ImGui::Button("Apply Selection"))
+                            {
+                                ImGui::CloseCurrentPopup();
+                            }
+                            ImGui::SameLine();
+                            if (ImGui::Button("Clear Selection"))
+                            {
+                                selected_channels.clear();
+                                ImGui::CloseCurrentPopup();
+                            }
+
+                            ImGui::EndPopup();
+                        }
+                        auto &channels = h.tab_selected_channels[tab_id];
+                        h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
+                    }
+                    ImGui::EndTabItem();
+                }
+
+                // 处理关闭标签页
+                if (!tab_open)
+                {
+                    tab_titles.erase(tab_id);
+                    active_tabs.erase(active_tabs.begin() + n);
+                    h.tab_selected_channels.erase(tab_id); // 清理选中通道
+                }
+                else
+                {
+                    n++;
+                }
+            }
+            ImGui::EndTabBar();
+        }
+
+        // 处理新建标签页对话框
+        if (open_new_tab_dialog)
+        {
+            ImGui::OpenPopup("Untitled");
+            open_new_tab_dialog = false;
+        }
+
+        // 显示对话框
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                                        ImGuiWindowFlags_NoNav;
+        static bool first_open = true;
+        if (ImGui::BeginPopupModal("Untitled", nullptr, window_flags))
+        {
+            ImGui::SetWindowFocus(); // 确保对话框获得焦点
+            // 输入框
+            ImGui::Text("Enter tab title:");
+            ImGui::PushItemWidth(300);
+            if (ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title)))
+            {
+                error_message.clear(); // 输入变化时清除错误信息
+            }
+            // 仅在首次打开时设置焦点
+            if (first_open)
+            {
+                ImGui::SetKeyboardFocusHere(-1);
+                first_open = false;
+            }
+            ImGui::PopItemWidth();
+
+            // 显示错误信息（如果有）
+            if (!error_message.empty())
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f)); // 红色文本
+                ImGui::TextWrapped("%s", error_message.c_str());
+                ImGui::PopStyleColor();
+            }
+
+            // 按钮
+            ImGui::Separator();
+
+            // 禁用创建按钮的条件：标题为空或已存在
+            bool can_create = false;
+            trimString(new_tab_title); // 先清理字符串
+
+            if (strlen(new_tab_title) == 0)
+            {
+                error_message = "Title cannot be empty!";
+            }
+            else if (isTitleExists(new_tab_title, tab_titles))
+            {
+                error_message = "Title already exists!";
+            }
+            else
+            {
+                can_create = true;
+                error_message.clear();
+            }
+
+            // 根据条件启用/禁用按钮
+            ImGui::BeginDisabled(!can_create);
+            if (ImGui::Button("Create", ImVec2(120, 0)))
+            {
+                int new_id = next_tab_id++;
+                active_tabs.push_back(new_id);
+                tab_titles[new_id] = std::string(new_tab_title);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndDisabled();
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+        else
+        {
+            // 对话框关闭时重置标志
+            first_open = true;
+        }
     }
     ImGui::End();
 }
