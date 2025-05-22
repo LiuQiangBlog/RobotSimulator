@@ -6,6 +6,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <Logging.h>
+#include <unordered_map>
+#include <algorithm>
 
 static void centerWindow(GLFWwindow *window)
 {
@@ -41,7 +43,8 @@ void createTabBar()
     {
         if (ImGui::BeginTabItem("Description"))
         {
-            ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
+            ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "
+                               "incididunt ut labore et dolore magna aliqua. ");
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Details"))
@@ -72,18 +75,30 @@ void createTable()
     {
         if (ImGui::BeginTable("split", 3))
         {
-            ImGui::TableNextColumn(); ImGui::Checkbox("No titlebar", &no_titlebar);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No scrollbar", &no_scrollbar);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No menu", &no_menu);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No move", &no_move);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No resize", &no_resize);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No collapse", &no_collapse);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No close", &no_close);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No nav", &no_nav);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No background", &no_background);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No bring to front", &no_bring_to_front);
-            ImGui::TableNextColumn(); ImGui::Checkbox("No docking", &no_docking);
-            ImGui::TableNextColumn(); ImGui::Checkbox("Unsaved document", &unsaved_document);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No titlebar", &no_titlebar);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No scrollbar", &no_scrollbar);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No menu", &no_menu);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No move", &no_move);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No resize", &no_resize);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No collapse", &no_collapse);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No close", &no_close);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No nav", &no_nav);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No background", &no_background);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No bring to front", &no_bring_to_front);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("No docking", &no_docking);
+            ImGui::TableNextColumn();
+            ImGui::Checkbox("Unsaved document", &unsaved_document);
             ImGui::EndTable();
         }
     }
@@ -93,7 +108,7 @@ void setMenubarColor()
 {
     ImGuiStyle &style = ImGui::GetStyle();
     // 设置主菜单栏背景色（深灰色）
-    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(32/255.f, 30/255.f, 30/255.f, 1.00f);
+    style.Colors[ImGuiCol_MenuBarBg] = ImVec4(32 / 255.f, 30 / 255.f, 30 / 255.f, 1.00f);
     // 设置菜单项颜色
     style.Colors[ImGuiCol_Header] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);     // 激活状态
     style.Colors[ImGuiCol_HeaderHovered] = ImVec4(0.3f, 0.5f, 0.7f, 1.0f);  // 悬停状态
@@ -160,8 +175,9 @@ void createFullScreenWindow()
 {
     static bool use_work_area = true;
     static bool p_open = true;
-    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    static ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+    const ImGuiViewport *viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(use_work_area ? viewport->WorkPos : viewport->Pos);
     ImGui::SetNextWindowSize(use_work_area ? viewport->WorkSize : viewport->Size);
     if (!p_open)
@@ -302,12 +318,51 @@ void createMenuBarWithMainWindow()
     ImGui::Begin("##Main Window", nullptr, flags);
     {
         ImGui::SetWindowPos(ImVec2(0, hasMenuBar ? menuBarHeight : 0));
-        ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
-                                    ImGui::GetIO().DisplaySize.y - (hasMenuBar ? menuBarHeight : 0)));
+        ImGui::SetWindowSize(
+            ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y - (hasMenuBar ? menuBarHeight : 0)));
         // 在这里添加其他 imgui 控件
         ImGui::Text("Hello, ImGui!");
     }
     ImGui::End();
+}
+
+// 检查标题是否已存在
+bool isTitleExists(const char *title, const std::unordered_map<int, std::string> &tab_titles)
+{
+    return std::any_of(tab_titles.begin(), tab_titles.end(),
+                       [title](const auto &pair)
+                       {
+                           return pair.second == title;
+                       });
+}
+
+// 清理字符串（去除首尾空格）
+void trimString(char *str)
+{
+    if (!str)
+    {
+        return;
+    }
+
+    // 去除尾部空格
+    size_t len = strlen(str);
+    while (len > 0 && isspace(str[len - 1]))
+    {
+        str[len - 1] = '\0';
+        len--;
+    }
+
+    // 去除头部空格
+    char *ptr = str;
+    while (*ptr && isspace(*ptr))
+    {
+        ptr++;
+    }
+
+    if (ptr != str)
+    {
+        memmove(str, ptr, strlen(ptr) + 1);
+    }
 }
 
 void createTabBarWithMainWindow()
@@ -318,68 +373,196 @@ void createTabBarWithMainWindow()
     glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
     ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight - (hasTabBar ? tabBarHeight : 0)));
     ImGui::SetNextWindowPos(ImVec2(0, hasTabBar ? tabBarHeight : 0));
-    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                                    ImGuiWindowFlags_NoSavedSettings;
+    static ImGuiWindowFlags flags =
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
     ImGui::Begin("##Main Window", nullptr, flags);
     {
         ImGui::SetWindowPos(ImVec2(0, hasTabBar ? tabBarHeight : 0));
-        ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x,
-                                    ImGui::GetIO().DisplaySize.y - (hasTabBar ? tabBarHeight : 0)));
+        ImGui::SetWindowSize(
+            ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y - (hasTabBar ? tabBarHeight : 0)));
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
         style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
-//        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_DrawSelectedOverline))
-//        {
-//            if (ImGui::BeginTabItem("Description"))
-//            {
-//                ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
-//                ImGui::EndTabItem();
-//            }
-//            if (ImGui::BeginTabItem("Details"))
-//            {
-//                ImGui::Text("ID: 0123456789");
-//                ImGui::EndTabItem();
-//            }
-//
-//            tabBarHeight = ImGui::GetWindowHeight();
-//            ImGui::EndTabBar();
-//            hasTabBar = true;
-//        }
+        //        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_DrawSelectedOverline))
+        //        {
+        //            if (ImGui::BeginTabItem("Description"))
+        //            {
+        //                ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+        //                tempor incididunt ut labore et dolore magna aliqua. "); ImGui::EndTabItem();
+        //            }
+        //            if (ImGui::BeginTabItem("Details"))
+        //            {
+        //                ImGui::Text("ID: 0123456789");
+        //                ImGui::EndTabItem();
+        //            }
+        //
+        //            tabBarHeight = ImGui::GetWindowHeight();
+        //            ImGui::EndTabBar();
+        //            hasTabBar = true;
+        //        }
+
+        //        static ImVector<int> active_tabs;
+        //        static int next_tab_id = 0;
+        //        static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs |
+        //        ImGuiTabBarFlags_Reorderable |
+        //                                                ImGuiTabBarFlags_FittingPolicyResizeDown;
+        //        if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+        //        {
+        //            // Demo Trailing Tabs: click the "+" button to add a new tab.
+        //            // (In your app you may want to use a font icon instead of the "+")
+        //            // We submit it before the regular tabs, but thanks to the ImGuiTabItemFlags_Trailing flag it will
+        //            always appear at the end. if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing |
+        //            ImGuiTabItemFlags_NoTooltip))
+        //            {
+        //                active_tabs.push_back(next_tab_id++); // Add new tab
+        //            }
+        //            // Submit our regular tabs
+        //            for (int n = 0; n < active_tabs.Size; )
+        //            {
+        //                bool open = true;
+        //                char name[16];
+        //                snprintf(name, IM_ARRAYSIZE(name), "%04d", active_tabs[n]);
+        //                if (ImGui::BeginTabItem(name, &open, ImGuiTabItemFlags_None))
+        //                {
+        //                    ImGui::Text("This is the %s tab!", name);
+        //                    ImGui::EndTabItem();
+        //                }
+        //                if (!open)
+        //                {
+        //                    active_tabs.erase(active_tabs.Data + n);
+        //                }
+        //                else
+        //                {
+        //                    n++;
+        //                }
+        //            }
+        //            ImGui::EndTabBar();
+        //        }
 
         static ImVector<int> active_tabs;
         static int next_tab_id = 0;
         static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
                                                 ImGuiTabBarFlags_FittingPolicyResizeDown;
+        static char new_tab_title[64] = "New Tab";              // 存储新标签页标题
+        static bool open_new_tab_dialog = false;                // 控制对话框显示
+        static std::unordered_map<int, std::string> tab_titles; // 存储标签页ID到标题的映射
+        static std::string error_message; // 存储错误信息
         if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
         {
-            // Demo Trailing Tabs: click the "+" button to add a new tab.
-            // (In your app you may want to use a font icon instead of the "+")
-            // We submit it before the regular tabs, but thanks to the ImGuiTabItemFlags_Trailing flag it will always appear at the end.
+            // 点击加号按钮
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
             {
-                active_tabs.push_back(next_tab_id++); // Add new tab
+                open_new_tab_dialog = true; // 打开对话框
+                strcpy(new_tab_title, "New Tab"); // 重置默认标题
+                error_message.clear(); // 清空错误信息
             }
-            // Submit our regular tabs
-            for (int n = 0; n < active_tabs.Size; )
+
+            // 渲染所有标签页
+            for (int n = 0; n < active_tabs.Size;)
             {
-                bool open = true;
-                char name[16];
-                snprintf(name, IM_ARRAYSIZE(name), "%04d", active_tabs[n]);
-                if (ImGui::BeginTabItem(name, &open, ImGuiTabItemFlags_None))
-                {
-                    ImGui::Text("This is the %s tab!", name);
+                int tab_id = active_tabs[n];
+                bool tab_open = true;
+
+                // 获取标签页标题（如果不存在则使用默认ID）
+                const char* tab_title = tab_titles[tab_id].c_str();
+                // 渲染标签页内容
+                if (ImGui::BeginTabItem(tab_title, &tab_open)) {
+                    ImGui::Text("Content of '%s'", tab_title);
                     ImGui::EndTabItem();
                 }
-                if (!open)
-                {
-                    active_tabs.erase(active_tabs.Data + n);
-                }
-                else
-                {
+
+                // 处理关闭标签页
+                if (!tab_open) {
+                    tab_titles.erase(tab_id);
+                    active_tabs.erase(active_tabs.begin() + n);
+                } else {
                     n++;
                 }
             }
             ImGui::EndTabBar();
+        }
+
+        // 处理新建标签页对话框
+        if (open_new_tab_dialog)
+        {
+            ImGui::OpenPopup("New Tab");
+            open_new_tab_dialog = false;
+        }
+
+        // 显示对话框
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                                        ImGuiWindowFlags_NoNav;
+        static bool first_open = true;
+        if (ImGui::BeginPopupModal("New Tab", nullptr, window_flags))
+        {
+            ImGui::SetWindowFocus(); // 确保对话框获得焦点
+            // 输入框
+            ImGui::Text("Enter tab title:");
+            ImGui::PushItemWidth(300);
+            if (ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title)))
+            {
+                error_message.clear(); // 输入变化时清除错误信息
+            }
+            // 仅在首次打开时设置焦点
+            if (first_open)
+            {
+                ImGui::SetKeyboardFocusHere(-1);
+                first_open = false;
+            }
+            ImGui::PopItemWidth();
+
+            // 显示错误信息（如果有）
+            if (!error_message.empty())
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f)); // 红色文本
+                ImGui::TextWrapped("%s", error_message.c_str());
+                ImGui::PopStyleColor();
+            }
+
+            // 按钮
+            ImGui::Separator();
+
+            // 禁用创建按钮的条件：标题为空或已存在
+            bool can_create = false;
+            trimString(new_tab_title); // 先清理字符串
+
+            if (strlen(new_tab_title) == 0)
+            {
+                error_message = "Title cannot be empty!";
+            }
+            else if (isTitleExists(new_tab_title, tab_titles))
+            {
+                error_message = "Title already exists!";
+            }
+            else
+            {
+                can_create = true;
+                error_message.clear();
+            }
+
+            // 根据条件启用/禁用按钮
+            ImGui::BeginDisabled(!can_create);
+            if (ImGui::Button("Create", ImVec2(120, 0)))
+            {
+                int new_id = next_tab_id++;
+                active_tabs.push_back(new_id);
+                tab_titles[new_id] = std::string(new_tab_title);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndDisabled();
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+        else
+        {
+            // 对话框关闭时重置标志
+            first_open = true;
         }
         ImGui::Text("Hello, ImGui!");
     }
@@ -397,7 +580,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // 3.0+ only
 
-//    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // hide window title
+    //    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // hide window title
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // hide window first
     GLFWwindow *window = glfwCreateWindow(1280, 720, "Hello ImGui", nullptr, nullptr);
     if (!window)
@@ -405,7 +588,7 @@ int main()
         glfwTerminate();
         return -1;
     }
-    centerWindow(window); // move window to center
+    centerWindow(window);   // move window to center
     glfwShowWindow(window); // show window
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
@@ -442,9 +625,9 @@ int main()
             glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
         }
 
-//        createFullScreenWindow();
-//        createMenuBar();
-//        createMenuBarWithMainWindow();
+        //        createFullScreenWindow();
+        //        createMenuBar();
+        //        createMenuBarWithMainWindow();
         createTabBarWithMainWindow();
 
         ImGui::Render();
