@@ -836,12 +836,14 @@ void createTabBarWithImPlot(Handler &h)
                     ImGui::PopStyleVar(4);
                     if (tab_open)
                     {
+                        bool menu_open = false;
                         if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
                         {
                             ImGui::OpenPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str());
                         }
                         if (ImGui::BeginPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str()))
                         {
+                            menu_open = true;
                             auto &selected_channels = h.tab_selected_channels[tab_id];
                             static char filter_text[128] = "";
                             ImGui::Text("Filter Channels:");
@@ -857,29 +859,23 @@ void createTabBarWithImPlot(Handler &h)
                                 {
                                     continue;
                                 }
-
                                 bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
-
-//                                ImGui::PushID(channel.c_str());
-//                                ImGui::Checkbox("##Checkbox", &is_selected);
-//                                ImGui::SameLine();
-//                                ImGui::TextUnformatted(channel.c_str());
-//                                ImGui::PopID();
-                                ImGui::Checkbox(channel.c_str(), &is_selected);
-                                if (is_selected)
+                                if (ImGui::Checkbox(channel.c_str(), &is_selected))
                                 {
-                                    selected_channels.push_back(channel);
-                                }
-                                else
-                                {
-                                    auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
-                                    if (it != selected_channels.end())
+                                    if (is_selected)
                                     {
-                                        selected_channels.erase(it);
+                                        selected_channels.push_back(channel);
+                                    }
+                                    else
+                                    {
+                                        auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
+                                        if (it != selected_channels.end())
+                                        {
+                                            selected_channels.erase(it);
+                                        }
                                     }
                                 }
                             }
-
                             ImGui::Separator();
                             if (ImGui::Button("Apply Selection"))
                             {
@@ -891,15 +887,17 @@ void createTabBarWithImPlot(Handler &h)
                                 selected_channels.clear();
                                 ImGui::CloseCurrentPopup();
                             }
-
                             ImGui::EndPopup();
                         }
-                        auto &channels = h.tab_selected_channels[tab_id];
-                        for (auto &item : channels)
+                        if (!menu_open)
                         {
-                            CLOG_INFO << item;
+                            auto &channels = h.tab_selected_channels[tab_id];
+                            for (auto &item : channels)
+                            {
+                                CLOG_INFO << item;
+                            }
+                            h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
                         }
-                        h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
                     }
                     ImGui::EndTabItem();
                 }
