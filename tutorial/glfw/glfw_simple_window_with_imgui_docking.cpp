@@ -782,8 +782,7 @@ void createTabBarWithImPlot(Handler &h)
     glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
     ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
     ImGui::SetNextWindowPos(ImVec2(0, 0));
-    static ImGuiWindowFlags flags =
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
     ImGui::Begin("##Main Window", nullptr, flags);
     {
         ImGui::SetWindowPos(ImVec2(0, 0));
@@ -793,8 +792,8 @@ void createTabBarWithImPlot(Handler &h)
 //        style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
 //        style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
         style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-        auto FramePadding = style.FramePadding;
-        style.FramePadding = ImVec2(10, 12);
+//        auto FramePadding = style.FramePadding;
+//        style.FramePadding = ImVec2(10, 12);
         static ImVector<int> active_tabs;
         static int next_tab_id = 0;
         static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
@@ -804,14 +803,20 @@ void createTabBarWithImPlot(Handler &h)
         static std::unordered_map<int, std::string> tab_titles;
         static std::string error_message;
 
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
+        ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);       // 调整圆角
+        ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
         if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
         {
+
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
             {
                 open_new_tab_dialog = true;
                 strcpy(new_tab_title, "Untitled");
                 error_message.clear();
             }
+            ImGui::PopStyleVar(4);
             for (int n = 0; n < active_tabs.Size;)
             {
                 int tab_id = active_tabs[n];
@@ -822,10 +827,13 @@ void createTabBarWithImPlot(Handler &h)
                 {
                     h.tab_selected_channels[tab_id] = {};
                 }
-
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
+                ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);       // 调整圆角
+                ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
                 if (ImGui::BeginTabItem(tab_title, &tab_open))
                 {
-                    style.FramePadding = FramePadding;
+                    ImGui::PopStyleVar(4);
                     if (tab_open)
                     {
                         if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
@@ -889,6 +897,10 @@ void createTabBarWithImPlot(Handler &h)
                         h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
                     }
                     ImGui::EndTabItem();
+                }
+                else
+                {
+                    ImGui::PopStyleVar(4);
                 }
                 if (!tab_open)
                 {
