@@ -328,23 +328,58 @@ void createTabBarWithMainWindow()
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
         style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
-//        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_AutoSelectNewTabs))
-        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_DrawSelectedOverline))
-        {
-            if (ImGui::BeginTabItem("Description"))
-            {
-                ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Details"))
-            {
-                ImGui::Text("ID: 0123456789");
-                ImGui::EndTabItem();
-            }
+//        if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_DrawSelectedOverline))
+//        {
+//            if (ImGui::BeginTabItem("Description"))
+//            {
+//                ImGui::TextWrapped("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. ");
+//                ImGui::EndTabItem();
+//            }
+//            if (ImGui::BeginTabItem("Details"))
+//            {
+//                ImGui::Text("ID: 0123456789");
+//                ImGui::EndTabItem();
+//            }
+//
+//            tabBarHeight = ImGui::GetWindowHeight();
+//            ImGui::EndTabBar();
+//            hasTabBar = true;
+//        }
 
-            tabBarHeight = ImGui::GetWindowHeight();
+        static ImVector<int> active_tabs;
+        static int next_tab_id = 0;
+        static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
+                                                ImGuiTabBarFlags_FittingPolicyResizeDown;
+        if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+        {
+            // Demo Trailing Tabs: click the "+" button to add a new tab.
+            // (In your app you may want to use a font icon instead of the "+")
+            // We submit it before the regular tabs, but thanks to the ImGuiTabItemFlags_Trailing flag it will always appear at the end.
+            if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+            {
+                active_tabs.push_back(next_tab_id++); // Add new tab
+            }
+            // Submit our regular tabs
+            for (int n = 0; n < active_tabs.Size; )
+            {
+                bool open = true;
+                char name[16];
+                snprintf(name, IM_ARRAYSIZE(name), "%04d", active_tabs[n]);
+                if (ImGui::BeginTabItem(name, &open, ImGuiTabItemFlags_None))
+                {
+                    ImGui::Text("This is the %s tab!", name);
+                    ImGui::EndTabItem();
+                }
+                if (!open)
+                {
+                    active_tabs.erase(active_tabs.Data + n);
+                }
+                else
+                {
+                    n++;
+                }
+            }
             ImGui::EndTabBar();
-            hasTabBar = true;
         }
         ImGui::Text("Hello, ImGui!");
     }
