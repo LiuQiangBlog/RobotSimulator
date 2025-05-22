@@ -490,45 +490,31 @@ void createTabBarWithMainWindow()
         }
 
         // 显示对话框
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize |
-                                        ImGuiWindowFlags_NoSavedSettings |
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
                                         ImGuiWindowFlags_NoNav;
         static bool first_open = true;
-        static bool button_focus_requested = false; // 请求焦点转移到按钮
-        static bool button_focused = false;          // 按钮当前有焦点
-        static int selected_button = 0;             // 0=Create, 1=Cancel
-
         if (ImGui::BeginPopupModal("New Tab", nullptr, window_flags))
         {
-            ImGui::SetWindowFocus();
-
+            ImGui::SetWindowFocus(); // 确保对话框获得焦点
             // 输入框
             ImGui::Text("Enter tab title:");
             ImGui::PushItemWidth(300);
-            bool input_activated = ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title));
-
-            // 首次打开时聚焦输入框
+            if (ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title)))
+            {
+                error_message.clear(); // 输入变化时清除错误信息
+            }
+            // 仅在首次打开时设置焦点
             if (first_open)
             {
                 ImGui::SetKeyboardFocusHere(-1);
                 first_open = false;
-                button_focus_requested = false;
-                button_focused = false;
-            }
-
-            // 处理输入框中的回车事件
-            if (input_activated &&
-                (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)))
-            {
-                button_focus_requested = true; // 请求焦点转移
-                selected_button = 0;           // 默认选择Create
             }
             ImGui::PopItemWidth();
 
-            // 显示错误信息
+            // 显示错误信息（如果有）
             if (!error_message.empty())
             {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f)); // 红色文本
                 ImGui::TextWrapped("%s", error_message.c_str());
                 ImGui::PopStyleColor();
             }
@@ -536,9 +522,9 @@ void createTabBarWithMainWindow()
             // 按钮
             ImGui::Separator();
 
-            // 验证标题
+            // 禁用创建按钮的条件：标题为空或已存在
             bool can_create = false;
-            trimString(new_tab_title);
+            trimString(new_tab_title); // 先清理字符串
 
             if (strlen(new_tab_title) == 0)
             {
@@ -554,87 +540,20 @@ void createTabBarWithMainWindow()
                 error_message.clear();
             }
 
-            // 修改焦点转移逻辑（关键优化点）
-            if (button_focus_requested && !button_focused)
-            {
-                // 使用延迟一帧的焦点设置（确保ImGui完成布局计算）
-                ImGui::SetNextFrameWantCaptureKeyboard(true);
-                selected_button = 0;
-                button_focused = true;
-                button_focus_requested = false;
-            }
-
-            // Create按钮
+            // 根据条件启用/禁用按钮
             ImGui::BeginDisabled(!can_create);
-            bool create_clicked = false;
-            // 焦点自动切换核心逻辑
-            if (button_focused)
-            {
-                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-                if (ImGui::IsWindowAppearing()) // 确保在窗口出现时立即生效
-                {
-                    ImGui::SetKeyboardFocusHere();
-                }
-            }
-
-            create_clicked = ImGui::Button("Create", ImVec2(120, 0))
-                             || (button_focused && selected_button == 0
-                                 && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)));
-
-            if (button_focused)
-            {
-                ImGui::PopStyleColor();
-            }
-            ImGui::EndDisabled();
-
-            // 按钮键盘导航
-            if (button_focused)
-            {
-                if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_RightArrow))
-                    selected_button = 1; // 切换到Cancel
-
-                if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter))
-                {
-                    if (selected_button == 0 && can_create)
-                        create_clicked = true;
-                }
-            }
-
-            ImGui::SameLine();
-
-            // Cancel按钮
-            if (button_focused && selected_button == 1)
-            {
-                ImGui::SetKeyboardFocusHere(0); // 确保在下一帧设置焦点
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.6f, 0.9f, 1.0f));
-            }
-
-            if (ImGui::Button("Cancel", ImVec2(120, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-
-            if (button_focused && selected_button == 1)
-                ImGui::PopStyleColor();
-
-            // 增加键盘导航增强（网页4的SameLine应用）
-            if (button_focused && ImGui::IsKeyPressed(ImGuiKey_RightArrow))
-            {
-                selected_button = (selected_button + 1) % 2; // 循环切换按钮
-                ImGui::SetKeyboardFocusHere(); // 立即刷新焦点状态
-            }
-            if (button_focused && ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
-            {
-                selected_button = (selected_button - 1 + 2) % 2;
-                ImGui::SetKeyboardFocusHere();
-            }
-
-            // 执行创建操作
-            if (create_clicked)
+            if (ImGui::Button("Create", ImVec2(120, 0)))
             {
                 int new_id = next_tab_id++;
                 active_tabs.push_back(new_id);
                 tab_titles[new_id] = std::string(new_tab_title);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndDisabled();
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0)))
+            {
                 ImGui::CloseCurrentPopup();
             }
 
@@ -642,10 +561,8 @@ void createTabBarWithMainWindow()
         }
         else
         {
-            // 对话框关闭时重置状态
+            // 对话框关闭时重置标志
             first_open = true;
-            button_focus_requested = false;
-            button_focused = false;
         }
         ImGui::Text("Hello, ImGui!");
     }
