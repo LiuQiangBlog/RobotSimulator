@@ -554,26 +554,37 @@ void createTabBarWithMainWindow()
                 error_message.clear();
             }
 
-            // 在下一帧处理焦点转移请求
-            if (button_focus_requested)
+            // 修改焦点转移逻辑（关键优化点）
+            if (button_focus_requested && !button_focused)
             {
+                // 使用延迟一帧的焦点设置（确保ImGui完成布局计算）
+                ImGui::SetNextFrameWantCaptureKeyboard(true);
+                selected_button = 0;
                 button_focused = true;
                 button_focus_requested = false;
             }
 
             // Create按钮
             ImGui::BeginDisabled(!can_create);
-            if (button_focused && selected_button == 0)
+            bool create_clicked = false;
+            // 焦点自动切换核心逻辑
+            if (button_focused)
             {
-                ImGui::SetKeyboardFocusHere(0); // 确保在下一帧设置焦点
-                // 添加视觉反馈，帮助确认焦点状态
-                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.6f, 0.9f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+                if (ImGui::IsWindowAppearing()) // 确保在窗口出现时立即生效
+                {
+                    ImGui::SetKeyboardFocusHere();
+                }
             }
 
-            bool create_clicked = ImGui::Button("Create", ImVec2(120, 0));
+            create_clicked = ImGui::Button("Create", ImVec2(120, 0))
+                             || (button_focused && selected_button == 0
+                                 && (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter)));
 
-            if (button_focused && selected_button == 0)
+            if (button_focused)
+            {
                 ImGui::PopStyleColor();
+            }
             ImGui::EndDisabled();
 
             // 按钮键盘导航
@@ -606,17 +617,16 @@ void createTabBarWithMainWindow()
             if (button_focused && selected_button == 1)
                 ImGui::PopStyleColor();
 
-            // 按钮键盘导航（续）
-            if (button_focused)
+            // 增加键盘导航增强（网页4的SameLine应用）
+            if (button_focused && ImGui::IsKeyPressed(ImGuiKey_RightArrow))
             {
-                if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
-                    selected_button = 0; // 切换到Create
-
-                if (ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter))
-                {
-                    if (selected_button == 1)
-                        ImGui::CloseCurrentPopup();
-                }
+                selected_button = (selected_button + 1) % 2; // 循环切换按钮
+                ImGui::SetKeyboardFocusHere(); // 立即刷新焦点状态
+            }
+            if (button_focused && ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
+            {
+                selected_button = (selected_button - 1 + 2) % 2;
+                ImGui::SetKeyboardFocusHere();
             }
 
             // 执行创建操作
