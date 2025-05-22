@@ -790,9 +790,11 @@ void createTabBarWithImPlot(Handler &h)
         ImGui::SetWindowSize(
             ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
         ImGuiStyle &style = ImGui::GetStyle();
-        style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
-        style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
-
+//        style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
+//        style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
+        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+        auto FramePadding = style.FramePadding;
+        style.FramePadding = ImVec2(10, 12);
         static ImVector<int> active_tabs;
         static int next_tab_id = 0;
         static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
@@ -823,6 +825,7 @@ void createTabBarWithImPlot(Handler &h)
 
                 if (ImGui::BeginTabItem(tab_title, &tab_open))
                 {
+                    style.FramePadding = FramePadding;
                     if (tab_open)
                     {
                         if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
