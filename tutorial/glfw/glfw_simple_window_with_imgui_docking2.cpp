@@ -118,163 +118,134 @@ struct PlotWindowState
 class Handler
 {
 public:
-    static constexpr size_t MAX_CACHE_SIZE = 1000;
+    static constexpr size_t MAX_CACHE_SIZE = 10000;
     using DataBUffer = RollingBuffer<double, MAX_CACHE_SIZE>;
     ~Handler() = default;
-
-    void plotChannelData(const std::string &title, const std::string &channel)
-    {
-        ImGui::Begin(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-        ImPlot::SetNextAxisToFit(ImAxis_Y1);
-        if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
-        {
-            ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
-            // ImPlot::SetupAxisFormat(ImAxis_Y1, "%.5f");
-            ImPlot::SetupAxes("Time(s)", "");
-            if (channel_plot_data.count(channel) > 0)
-            {
-                std::lock_guard<std::shared_mutex> lock(mtx);
-                auto &[ts, vals] = channel_plot_data[channel];
-                if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
-                {
-                    double min_time = *std::min_element(ts.begin(), ts.end());
-                    double max_time = *std::max_element(ts.begin(), ts.end());
-                    ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
-                    auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
-                    ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
-
-                    ImVec4 color = ImPlot::GetColormapColor(0);
-                    ImPlot::SetNextLineStyle(color, 1.0f);
-                    ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                    ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, 1.5f, color);
-                    ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                }
-            }
-            ImPlot::EndPlot();
-        }
-        ImGui::End();
-    }
 
     // plot all channels
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
-        CLOG_INFO << channels.size();
-        // 确保有对应的窗口状态
-        if (plot_window_states.find(title) == plot_window_states.end())
-        {
-            plot_window_states[title] = PlotWindowState{};
-        }
-        auto &state = plot_window_states[title];
-
-        // 窗口标志
-        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
-        //            ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar;
-        if (state.is_maximized)
-        {
-            windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-                           ImGuiWindowFlags_NoTitleBar;
-        }
+//        // 确保有对应的窗口状态
+//        if (plot_window_states.find(title) == plot_window_states.end())
+//        {
+//            plot_window_states[title] = PlotWindowState{};
+//        }
+//        auto &state = plot_window_states[title];
+//
+//        // 窗口标志
+//        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
+//        // ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar;
+//        if (state.is_maximized)
+//        {
+//            windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+//                           ImGuiWindowFlags_NoTitleBar;
+//        }
 
         // 开始窗口
-        ImVec2 screenSize = ImGui::GetIO().DisplaySize;  // 获取屏幕分辨率
-        ImVec2 defaultSize(screenSize.x * 0.8f, screenSize.y * 0.6f);
-        ImGui::SetNextWindowSize(defaultSize, ImGuiCond_FirstUseEver);
-        // ImVec2 defaultSize(600, 400);
-        // ImGui::SetNextWindowSize(defaultSize);
-        ImGui::Begin(title.c_str(), nullptr, windowFlags);
+//        ImVec2 screenSize = ImGui::GetIO().DisplaySize;  // 获取屏幕分辨率
+//        ImVec2 defaultSize(screenSize.x * 0.8f, screenSize.y * 0.6f);
+//        ImGui::SetNextWindowSize(defaultSize, ImGuiCond_FirstUseEver);
+//        ImVec2 defaultSize(600, 400);
+//        ImGui::SetNextWindowSize(defaultSize);
+//        if (ImGui::Begin(title.c_str(), nullptr, ImGuiWindowFlags_NoTitleBar))
+//        {
+            // 保存正常状态的位置和大小
+//            if (!state.is_maximized && ImGui::IsWindowFocused())
+//            {
+//                state.normal_size = ImGui::GetWindowSize();
+//                state.normal_pos = ImGui::GetWindowPos();
+//            }
 
-        // 保存正常状态的位置和大小
-        if (!state.is_maximized && ImGui::IsWindowFocused())
+//            // 添加最大化/恢复按钮
+//            if (ImGui::Button(state.is_maximized ? "[-]" : "[+]"))
+//            {
+//                state.is_maximized = !state.is_maximized;
+//                if (state.is_maximized)
+//                {
+//                    // 保存当前状态并最大化
+//                    ImGuiIO &io = ImGui::GetIO();
+//                    ImGui::SetWindowPos(title.c_str(), ImVec2(0, 0));
+//                    ImGui::SetWindowSize(title.c_str(), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
+//                }
+//                else
+//                {
+//                    // 恢复之前的状态
+//                    ImGui::SetWindowPos(title.c_str(), state.normal_pos);
+//                    ImGui::SetWindowSize(title.c_str(), state.normal_size);
+//                }
+//            }
+        ImVec2 defaultSize(600, 400);
+        ImGui::SetNextWindowSize(defaultSize);
+        if (ImGui::Begin(title.c_str(), nullptr, ImGuiWindowFlags_None))
         {
-            state.normal_size = ImGui::GetWindowSize();
-            state.normal_pos = ImGui::GetWindowPos();
-        }
+            ImPlot::SetNextAxisToFit(ImAxis_Y1);
 
-        // 添加最大化/恢复按钮
-        if (ImGui::Button(state.is_maximized ? "[-]" : "[+]"))
-        {
-            state.is_maximized = !state.is_maximized;
-            if (state.is_maximized)
-            {
-                // 保存当前状态并最大化
-                ImGuiIO &io = ImGui::GetIO();
-                ImGui::SetWindowPos(title.c_str(), ImVec2(0, 0));
-                ImGui::SetWindowSize(title.c_str(), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
-            }
-            else
-            {
-                // 恢复之前的状态
-                ImGui::SetWindowPos(title.c_str(), state.normal_pos);
-                ImGui::SetWindowSize(title.c_str(), state.normal_size);
-            }
-        }
+            // 初始化全局范围
+            auto global_x_min = DBL_MAX;
+            auto global_x_max = -DBL_MAX;
+            auto global_y_min = DBL_MAX;
+            auto global_y_max = -DBL_MAX;
 
-        ImPlot::SetNextAxisToFit(ImAxis_Y1);
-
-        // 初始化全局范围
-        auto global_x_min = DBL_MAX;
-        auto global_x_max = -DBL_MAX;
-        auto global_y_min = DBL_MAX;
-        auto global_y_max = -DBL_MAX;
-
-        // 计算所有通道的全局范围
-        {
-            std::shared_lock<std::shared_mutex> lock(mtx);
-            for (const auto &channel : channels)
-            {
-                if (channel_plot_data.count(channel) > 0)
-                {
-                    auto &[ts, vals] = channel_plot_data[channel];
-                    if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
-                    {
-                        double min_time = *std::min_element(ts.begin(), ts.end());
-                        double max_time = *std::max_element(ts.begin(), ts.end());
-                        auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
-
-                        global_x_min = std::min(global_x_min, min_time);
-                        global_x_max = std::max(global_x_max, max_time);
-                        global_y_min = std::min(global_y_min, *y_min);
-                        global_y_max = std::max(global_y_max, *y_max);
-                    }
-                }
-            }
-        }
-
-        // 绘制图表 - 使用窗口剩余空间
-        ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-        if (ImPlot::BeginPlot("##ChannelPlot", contentRegion))
-        {
-            ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
-            ImPlot::SetupAxes("Time(s)", "Value");
-            ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
-            // 设置全局范围
-            if (global_x_min <= global_x_max && global_y_min <= global_y_max)
-            {
-                ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
-                ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
-            }
-
-            // 绘制所有通道
+            // 计算所有通道的全局范围
             {
                 std::shared_lock<std::shared_mutex> lock(mtx);
-                for (size_t i = 0; i < channels.size(); i++)
+                for (const auto &channel : channels)
                 {
-                    const auto &channel = channels[i];
                     if (channel_plot_data.count(channel) > 0)
                     {
                         auto &[ts, vals] = channel_plot_data[channel];
                         if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                         {
-                            ImVec4 color = ImPlot::GetColormapColor(int(i));
-                            ImPlot::SetNextLineStyle(color, 2.0f);
-                            ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                            ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
-                            ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                            double min_time = *std::min_element(ts.begin(), ts.end());
+                            double max_time = *std::max_element(ts.begin(), ts.end());
+                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+
+                            global_x_min = std::min(global_x_min, min_time);
+                            global_x_max = std::max(global_x_max, max_time);
+                            global_y_min = std::min(global_y_min, *y_min);
+                            global_y_max = std::max(global_y_max, *y_max);
                         }
                     }
                 }
             }
-            ImPlot::EndPlot();
+
+            // 绘制图表 - 使用窗口剩余空间
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            if (ImPlot::BeginPlot("##ChannelPlot", contentRegion))
+            {
+                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+                ImPlot::SetupAxisFormat(ImAxis_Y1, "%.3f");
+                ImPlot::SetupAxes("Time(s)", "Value");
+                ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
+                // 设置全局范围
+                if (global_x_min <= global_x_max && global_y_min <= global_y_max)
+                {
+                    ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
+                    ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
+                }
+
+                // 绘制所有通道
+                {
+                    std::shared_lock<std::shared_mutex> lock(mtx);
+                    for (size_t i = 0; i < channels.size(); i++)
+                    {
+                        const auto &channel = channels[i];
+                        if (channel_plot_data.count(channel) > 0)
+                        {
+                            auto &[ts, vals] = channel_plot_data[channel];
+                            if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                            {
+                                ImVec4 color = ImPlot::GetColormapColor(int(i));
+                                ImPlot::SetNextLineStyle(color, 2.0f);
+                                ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+                                ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                            }
+                        }
+                    }
+                }
+                ImPlot::EndPlot();
+            }
         }
         ImGui::End();
     }
@@ -330,13 +301,13 @@ void createTabBarWithImPlot(Handler &h)
     ImVec2 original_window_padding = style.WindowPadding;
     style.WindowPadding.x = 4.0f; // keep TabItem distance to left window edge is 4
     style.WindowPadding.y = 4.0f; // keep TabItem distance to top window edge is 4
-    ImGui::Begin("##Main Window", nullptr, flags);
+    if (ImGui::Begin("##Main Window", nullptr, flags))
     {
         ImGui::SetWindowPos(ImVec2(0, 0));
         ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
 //        style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
 //        style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
-        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+//        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
         static ImVector<int> active_tabs;
         static int next_tab_id = 0;
         static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
@@ -352,7 +323,6 @@ void createTabBarWithImPlot(Handler &h)
         ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
         if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
         {
-
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
             {
                 open_new_tab_dialog = true;
@@ -360,6 +330,7 @@ void createTabBarWithImPlot(Handler &h)
                 error_message.clear();
             }
             ImGui::PopStyleVar(4);
+
             for (int n = 0; n < active_tabs.Size;)
             {
                 int tab_id = active_tabs[n];
@@ -432,7 +403,7 @@ void createTabBarWithImPlot(Handler &h)
                             }
                             ImGui::EndPopup();
                         }
-                        if (!popup_menu_open)
+                        if (!popup_menu_open && !open_new_tab_dialog)
                         {
                             auto &channels = h.tab_selected_channels[tab_id];
                             for (auto &item : channels)
@@ -464,14 +435,14 @@ void createTabBarWithImPlot(Handler &h)
 
         if (open_new_tab_dialog)
         {
-            ImGui::OpenPopup("Untitled");
+            ImGui::OpenPopup("##TabItemTitle");
             open_new_tab_dialog = false;
         }
 
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
                                         ImGuiWindowFlags_NoNav;
         static bool first_open = true;
-        if (ImGui::BeginPopupModal("Untitled", nullptr, window_flags))
+        if (ImGui::BeginPopupModal("##TabItemTitle", nullptr, window_flags))
         {
             ImGui::SetWindowFocus();
             ImGui::Text("Enter tab title:");
@@ -524,7 +495,6 @@ void createTabBarWithImPlot(Handler &h)
             {
                 ImGui::CloseCurrentPopup();
             }
-
             ImGui::EndPopup();
         }
         else
