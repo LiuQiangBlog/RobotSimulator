@@ -17,7 +17,9 @@
 #include "data_fields.hpp"
 #include "data_channel.hpp"
 #include "rolling_buffer.h"
-
+#include <thread>
+#include <atomic>
+#include <set>
 
 static void centerWindow(GLFWwindow *window)
 {
@@ -993,83 +995,251 @@ void createTabBarWithImPlot(Handler &h)
     ImGui::End();
 }
 
-int main()
+class DataViewer
 {
-    if (!glfwInit())
-    {
-        return -1;
-    }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // 3.0+ only
-
-    //    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // hide window title
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // hide window first
-    GLFWwindow *window = glfwCreateWindow(1280, 720, "Hello ImGui", nullptr, nullptr);
-    if (!window)
-    {
-        glfwTerminate();
-        return -1;
-    }
-    centerWindow(window);   // move window to center
-    glfwShowWindow(window); // show window
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
-    float clear[] = {0.45f, 0.55f, 0.60f, 1.00f};
-
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-    ImGui::StyleColorsDark();
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 130");
-
+private:
+    std::string winTitle;
+    GLFWwindow *window{nullptr};
+    bool button_left{false};
+    bool button_middle{false};
+    bool button_right{false};
+    double last_x{0};
+    double last_y{0};
+    std::unique_ptr<zcm::ZCM> zcm;
     Handler h;
-    h.all_channels.insert("a");
-    h.all_channels.insert("b");
-    h.all_channels.insert("c");
-    h.all_channels.insert("d");
-    while (!glfwWindowShouldClose(window))
+    std::thread th_zcm;
+    ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
+    std::set<std::string> availableChannels;
+    std::atomic_bool exit{false};
+
+public:
+    explicit DataViewer(const std::string &name)
     {
-        glfwPollEvents();
+        winTitle = name;
+        zcm::RegisterAllPlugins();
+    }
+    DataViewer()
+    {
+        winTitle = "Plotter";
+        zcm::RegisterAllPlugins();
+    }
+
+    ~DataViewer()
+    {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImPlot::DestroyContext();
+        ImGui::DestroyContext();
+
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        zcm->stop();
+        exit = true;
+        if (th_zcm.joinable())
+        {
+            th_zcm.join();
+        }
+    }
+
+    bool init()
+    {
+        if (!glfwInit())
+        {
+            CLOG_ERROR << "Init GLFW Failed.";
+            return false;
+        }
+
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // 3.2+ only
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);           // 3.0+ only
+
+        glfwWindowHint(GLFW_DECORATED, GLFW_FALSE); // hide window title
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);   // hide window first
+        window = glfwCreateWindow(1920, 1080, "Viewer", nullptr, nullptr);
+        if (!window)
+        {
+            glfwTerminate();
+            CLOG_ERROR << "Failed to create GLFW Window.";
+            return false;
+        }
+        {
+            // move glfw window to center position
+            GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+            if (!monitor)
+            {
+                return false;
+            }
+            int window_width, window_height;
+            glfwGetWindowSize(window, &window_width, &window_height);
+            const GLFWvidmode *mode = glfwGetVideoMode(monitor);
+            int screen_width = mode->width;
+            int screen_height = mode->height;
+            int x_pos = (screen_width - window_width) / 2;
+            int y_pos = (screen_height - window_height) / 2;
+            glfwSetWindowPos(window, x_pos, y_pos);
+        }
+        glfwShowWindow(window);
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1);
+        glfwSetWindowTitle(window, winTitle.c_str());
+        glfwWindowHint(GLFW_SAMPLES, 4);
+        glEnable(GL_MULTISAMPLE);
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImPlot::CreateContext();
+        ImGuiIO &io = ImGui::GetIO();
+        (void)io;
+        io.FontGlobalScale = 1.2f;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark(); // ImGui::StyleColorsLight();
+
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init("#version 130");
+
+        glfwSetWindowUserPointer(window, this);
+        glfwSetMouseButtonCallback(window, mouseClickCallback);
+        glfwSetCursorPosCallback(window, mouseMoveCallback);
+        glfwSetScrollCallback(window, mouseScrollCallback);
+        glfwSetErrorCallback(errorCallback);
+
+        zcm = std::make_unique<zcm::ZCM>("ipcshm://");
+        if (!zcm->good())
+        {
+            zcm.reset();
+            return false;
+        }
+        zcm->subscribe("all_channel_data", &Handler::handle, &h);
+        th_zcm = std::thread(
+            [&]()
+            {
+                zcm->run();
+            });
+
+        h.all_channels.insert("a");
+        h.all_channels.insert("b");
+        h.all_channels.insert("c");
+        h.all_channels.insert("d");
+        return true;
+    }
+
+    void render()
+    {
+        glfwPollEvents(); // process events
         if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0)
         {
             ImGui_ImplGlfw_Sleep(10);
-            continue;
+            return;
         }
-        // Start the Dear ImGui frame
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        {
-            glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
-        }
-
-        //        createFullScreenWindow();
-        //        createMenuBar();
-        //        createMenuBarWithMainWindow();
-        //        createTabBarWithMainWindow();
         createTabBarWithImPlot(h);
 
+        // ImGui render
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(clear[0] * clear[3], clear[1] * clear[3], clear[2] * clear[3], clear[3]);
+        glClearColor(clear.x * clear.w, clear.y * clear.w, clear.z * clear.w, clear.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
-    glfwDestroyWindow(window);
-    glfwTerminate();
+
+    bool shouldClose() const
+    {
+        return glfwWindowShouldClose(window);
+    }
+
+protected:
+    static void mouseClickCallback(GLFWwindow *win, int button, int action, int mods)
+    {
+        auto *self = static_cast<DataViewer *>(glfwGetWindowUserPointer(win));
+        if (self)
+        {
+            self->mouseClick(win, button, action, mods);
+        }
+    }
+
+    static void mouseMoveCallback(GLFWwindow *win, double xPos, double yPos)
+    {
+        auto *self = static_cast<DataViewer *>(glfwGetWindowUserPointer(win));
+        if (self)
+        {
+            self->mouseMove(win, xPos, yPos);
+        }
+    }
+
+    static void mouseScrollCallback(GLFWwindow *win, double xOffset, double yOffset)
+    {
+        auto *self = static_cast<DataViewer *>(glfwGetWindowUserPointer(win));
+        if (self)
+        {
+            DataViewer::mouseScroll(win, xOffset, yOffset);
+        }
+    }
+
+    static void errorCallback(int error, const char *description)
+    {
+        fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+    }
+
+    void mouseClick(GLFWwindow *win, int button, int action, int mods)
+    {
+        ImGui_ImplGlfw_MouseButtonCallback(win, button, action, mods);
+        if (ImGui::GetIO().WantCaptureMouse)
+        {
+            return;
+        }
+        button_left = (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+        button_middle = (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS);
+        button_right = (glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+        glfwGetCursorPos(win, &last_x, &last_y);
+    }
+
+    void mouseMove(GLFWwindow *win, double xPos, double yPos)
+    {
+        ImGui_ImplGlfw_CursorPosCallback(win, xPos, yPos);
+        if (ImGui::GetIO().WantCaptureMouse)
+        {
+            return;
+        }
+        if (!button_left && !button_middle && !button_right)
+        {
+            return;
+        }
+        last_x = xPos;
+        last_y = yPos;
+    }
+
+    static void mouseScroll(GLFWwindow *win, double xOffset, double yOffset)
+    {
+        ImGui_ImplGlfw_ScrollCallback(win, xOffset, yOffset);
+        if (ImGui::GetIO().WantCaptureMouse)
+        {
+            return;
+        }
+    }
+
+};
+
+int main()
+{
+    DataViewer viewer;
+    if (!viewer.init())
+    {
+        return -1;
+    }
+    while (!viewer.shouldClose())
+    {
+        viewer.render();
+    }
     return 0;
 }
