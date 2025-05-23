@@ -187,7 +187,7 @@ public:
                                        ImGuiWindowFlags_NoMove |
                                        ImGuiWindowFlags_NoScrollbar |
                                        ImGuiWindowFlags_NoSavedSettings;
-        if (ImGui::Begin((title + "##PlotWindow").c_str(), nullptr, ImGuiWindowFlags_None))
+        if (ImGui::Begin((title + "##PlotWindow").c_str(), nullptr, ImGuiWindowFlags_NoTitleBar))
         {
             ImPlot::SetNextAxisToFit(ImAxis_Y1);
 
@@ -637,11 +637,6 @@ public:
             {
                 zcm->run();
             });
-
-        h.all_channels.insert("a");
-        h.all_channels.insert("b");
-        h.all_channels.insert("c");
-        h.all_channels.insert("d");
         return true;
     }
 
