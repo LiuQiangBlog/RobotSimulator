@@ -582,6 +582,7 @@ public:
     // plot all channels
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
+        CLOG_INFO << channels.size();
         if (plot_bool[title])
         {
             // 确保有对应的窗口状态
@@ -717,7 +718,6 @@ public:
                 channel_data[item.name].first.pop_front();
                 channel_data[item.name].second.pop_front();
             }
-            // 更新绘图数据
             auto timestamps = std::vector<double>(channel_data[item.name].first.begin(), channel_data[item.name].first.end());
             auto values = std::vector<double>(channel_data[item.name].second.begin(), channel_data[item.name].second.end());
             {
@@ -725,34 +725,9 @@ public:
                 channel_plot_data[item.name].first = timestamps;
                 channel_plot_data[item.name].second = values;
             }
-            if (msg->channel_updated)
-            {
-                all_channels.insert(item.name);
-            }
-
             if (!initialized || msg->channel_updated)
             {
-                for (auto &[key, value] : plot_channels) // old channel will keep
-                {
-//                    if (contains(key, "*"))
-//                    {
-//                        auto lhd = split_last(key, '*').first;
-//                        if (contains(item.name, lhd))
-//                        {
-//                            plot_channels[key].push_back(item.name);
-//                        }
-//                    }
-//                    if (contains(key, "-"))
-//                    {
-//                        for (auto &element : expand_range_expression(key))
-//                        {
-//                            if (item.name == element)
-//                            {
-//                                plot_channels[key].push_back(item.name);
-//                            }
-//                        }
-//                    }
-                }
+                all_channels.insert(item.name);
             }
         }
         if (!initialized)
@@ -766,15 +741,9 @@ public:
     //    std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::unordered_set<std::string> all_channels;
-    std::unordered_map<std::string, std::vector<std::string>> plot_channels;
     std::unordered_map<int, std::deque<std::string>> tab_selected_channels;
     std::unordered_map<std::string, bool> plot_bool;
-    //    std::unordered_map<std::string, PlotWindowState> plotWindowStates;
     std::unordered_map<std::string, PlotWindowState> plot_window_states;
-    //    std::unordered_map<std::string, PlotWindowState> state;
-    //    std::vector<std::string> channels;
-
-    //    zcm::ZCM *zcm{nullptr};
     std::shared_mutex mtx;
 };
 
@@ -1140,6 +1109,11 @@ public:
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        {
+            glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
+        }
+
         createTabBarWithImPlot(h);
 
         // ImGui render
@@ -1227,7 +1201,6 @@ protected:
             return;
         }
     }
-
 };
 
 int main()
