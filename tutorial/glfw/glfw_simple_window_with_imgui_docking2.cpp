@@ -174,9 +174,20 @@ public:
 //                    ImGui::SetWindowSize(title.c_str(), state.normal_size);
 //                }
 //            }
-        ImVec2 defaultSize(600, 400);
-        ImGui::SetNextWindowSize(defaultSize);
-        if (ImGui::Begin(title.c_str(), nullptr, ImGuiWindowFlags_None))
+        // 获取TabItem的可用内容区域
+        ImVec2 tabContentRegion = ImGui::GetContentRegionAvail();
+
+        // 使用TabItem的全部可用区域作为窗口大小
+        ImGui::SetNextWindowSize(tabContentRegion, ImGuiCond_Always);
+        ImGui::SetNextWindowPos(ImGui::GetCursorPos(), ImGuiCond_Always);
+
+        // 移除标题栏和边框，最大化利用空间
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar |
+                                       ImGuiWindowFlags_NoResize |
+                                       ImGuiWindowFlags_NoMove |
+                                       ImGuiWindowFlags_NoScrollbar |
+                                       ImGuiWindowFlags_NoSavedSettings;
+        if (ImGui::Begin((title + "##PlotWindow").c_str(), nullptr, ImGuiWindowFlags_None))
         {
             ImPlot::SetNextAxisToFit(ImAxis_Y1);
 
@@ -406,10 +417,6 @@ void createTabBarWithImPlot(Handler &h)
                         if (!popup_menu_open && !open_new_tab_dialog)
                         {
                             auto &channels = h.tab_selected_channels[tab_id];
-                            for (auto &item : channels)
-                            {
-                                CLOG_INFO << item;
-                            }
                             h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
                         }
                     }
