@@ -3,6 +3,7 @@
 //
 #include <GLFW/glfw3.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <Logging.h>
@@ -187,7 +188,12 @@ public:
                                        ImGuiWindowFlags_NoMove |
                                        ImGuiWindowFlags_NoScrollbar |
                                        ImGuiWindowFlags_NoSavedSettings;
-        if (ImGui::Begin((title + "##PlotWindow").c_str(), nullptr, ImGuiWindowFlags_NoTitleBar))
+
+//        ImVec2 defaultSize(600, 400);
+//        ImGui::SetNextWindowSize(defaultSize);
+
+//        if (ImGui::BeginChild((title + "##PlotWindow").c_str(), tabContentRegion, ImGuiChildFlags_None, ImGuiWindowFlags_None))
+        if (ImGui::BeginChild((title + "##PlotWindow").c_str(), tabContentRegion, ImGuiChildFlags_None, windowFlags))
         {
             ImPlot::SetNextAxisToFit(ImAxis_Y1);
 
@@ -246,10 +252,16 @@ public:
                             auto &[ts, vals] = channel_plot_data[channel];
                             if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                             {
-                                ImVec4 color = ImPlot::GetColormapColor(int(i));
-                                ImPlot::SetNextLineStyle(color, 2.0f);
+//                                double min_time = *std::min_element(ts.begin(), ts.end());
+//                                double max_time = *std::max_element(ts.begin(), ts.end());
+//                                ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
+//                                auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+//                                ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
+
+//                                ImVec4 color = ImPlot::GetColormapColor(int(i));
+//                                ImPlot::SetNextLineStyle(color, 2.0f);
                                 ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, 2.0f, color, -1.0f, color);
+//                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, -1.0f, color, 4.0f, color);
                                 ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
                             }
                         }
@@ -258,7 +270,7 @@ public:
                 ImPlot::EndPlot();
             }
         }
-        ImGui::End();
+        ImGui::EndChild();
     }
 
     void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const all_timed_value *msg)
