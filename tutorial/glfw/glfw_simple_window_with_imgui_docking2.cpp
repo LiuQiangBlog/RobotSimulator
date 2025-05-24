@@ -117,6 +117,38 @@ struct PlotWindowState
     bool need_restore_pos = false;
 };
 
+// utility structure for realtime plot
+struct ScrollingBuffer
+{
+    int MaxSize;
+    int Offset;
+    ImVector<ImVec2> Data;
+    explicit ScrollingBuffer(int max_size = 10000)
+    {
+        MaxSize = max_size;
+        Offset = 0;
+        Data.reserve(MaxSize);
+    }
+    void AddPoint(float x, float y)
+    {
+        if (Data.size() < MaxSize)
+            Data.push_back(ImVec2(x, y));
+        else
+        {
+            Data[Offset] = ImVec2(x, y);
+            Offset = (Offset + 1) % MaxSize;
+        }
+    }
+    void Erase()
+    {
+        if (!Data.empty())
+        {
+            Data.shrink(0);
+            Offset = 0;
+        }
+    }
+};
+
 class Handler
 {
 public:
@@ -127,84 +159,22 @@ public:
     // plot all channels
     void plotChannelData(const std::string &title, const std::vector<std::string> &channels)
     {
-//        // 确保有对应的窗口状态
-//        if (plot_window_states.find(title) == plot_window_states.end())
-//        {
-//            plot_window_states[title] = PlotWindowState{};
-//        }
-//        auto &state = plot_window_states[title];
-//
-//        // 窗口标志
-//        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
-//        // ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar;
-//        if (state.is_maximized)
-//        {
-//            windowFlags |= ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-//                           ImGuiWindowFlags_NoTitleBar;
-//        }
-
-        // 开始窗口
-//        ImVec2 screenSize = ImGui::GetIO().DisplaySize;  // 获取屏幕分辨率
-//        ImVec2 defaultSize(screenSize.x * 0.8f, screenSize.y * 0.6f);
-//        ImGui::SetNextWindowSize(defaultSize, ImGuiCond_FirstUseEver);
-//        ImVec2 defaultSize(600, 400);
-//        ImGui::SetNextWindowSize(defaultSize);
-//        if (ImGui::Begin(title.c_str(), nullptr, ImGuiWindowFlags_NoTitleBar))
-//        {
-            // 保存正常状态的位置和大小
-//            if (!state.is_maximized && ImGui::IsWindowFocused())
-//            {
-//                state.normal_size = ImGui::GetWindowSize();
-//                state.normal_pos = ImGui::GetWindowPos();
-//            }
-
-//            // 添加最大化/恢复按钮
-//            if (ImGui::Button(state.is_maximized ? "[-]" : "[+]"))
-//            {
-//                state.is_maximized = !state.is_maximized;
-//                if (state.is_maximized)
-//                {
-//                    // 保存当前状态并最大化
-//                    ImGuiIO &io = ImGui::GetIO();
-//                    ImGui::SetWindowPos(title.c_str(), ImVec2(0, 0));
-//                    ImGui::SetWindowSize(title.c_str(), ImVec2(io.DisplaySize.x, io.DisplaySize.y));
-//                }
-//                else
-//                {
-//                    // 恢复之前的状态
-//                    ImGui::SetWindowPos(title.c_str(), state.normal_pos);
-//                    ImGui::SetWindowSize(title.c_str(), state.normal_size);
-//                }
-//            }
-
-        // 获取TabItem的可用内容区域
-//        ImVec2 tabContentRegion = ImGui::GetContentRegionAvail();
-//
-//        // 使用TabItem的全部可用区域作为窗口大小
-//        ImGui::SetNextWindowSize(tabContentRegion, ImGuiCond_Always);
-//        ImGui::SetNextWindowPos(ImGui::GetCursorPos(), ImGuiCond_Always);
-//
-//        // 移除标题栏和边框，最大化利用空间
-//        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar |
-//                                       ImGuiWindowFlags_NoResize |
-//                                       ImGuiWindowFlags_NoMove |
-//                                       ImGuiWindowFlags_NoScrollbar |
-//                                       ImGuiWindowFlags_NoSavedSettings;
-
-        ImVec2 defaultSize(600, 400);
-        ImGui::SetNextWindowSize(defaultSize);
-        if (ImGui::BeginChild((title + "##PlotWindow").c_str(), defaultSize, ImGuiChildFlags_None, ImGuiWindowFlags_None))
-//        if (ImGui::BeginChild((title + "##PlotWindow").c_str(), tabContentRegion, ImGuiChildFlags_None, windowFlags))
+        ImVec2 tabContentRegion = ImGui::GetContentRegionAvail();
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar |
+                                       ImGuiWindowFlags_NoResize |
+                                       ImGuiWindowFlags_NoMove |
+                                       ImGuiWindowFlags_NoScrollbar |
+                                       ImGuiWindowFlags_NoSavedSettings;
+        ImGui::SetNextWindowSize(tabContentRegion, ImGuiCond_Always);
+        if (ImGui::BeginChild((title + "##PlotWindow").c_str(), tabContentRegion, ImGuiChildFlags_None, windowFlags))
         {
             ImPlot::SetNextAxisToFit(ImAxis_Y1);
 
-            // 初始化全局范围
             auto global_x_min = DBL_MAX;
             auto global_x_max = -DBL_MAX;
             auto global_y_min = DBL_MAX;
             auto global_y_max = -DBL_MAX;
 
-            // 计算所有通道的全局范围
             {
                 std::shared_lock<std::shared_mutex> lock(mtx);
                 for (const auto &channel : channels)
@@ -227,7 +197,6 @@ public:
                 }
             }
 
-            // 绘制图表 - 使用窗口剩余空间
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
             if (ImPlot::BeginPlot((title + "##ChannelPlot").c_str(), contentRegion))
             {
@@ -235,51 +204,11 @@ public:
                 ImPlot::SetupAxisFormat(ImAxis_Y1, "%.3f");
                 ImPlot::SetupAxes("Time(s)", "Value");
                 ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
-                // 设置全局范围
                 if (global_x_min <= global_x_max && global_y_min <= global_y_max)
                 {
                     ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
                     ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
                 }
-
-//                // 获取X/Y轴对象
-//                auto x_axis = ImPlot::GetCurrentPlot()->XAxis(0);
-//                auto y_axis = ImPlot::GetCurrentPlot()->YAxis(0);
-//                // 计算数据范围比例（关键）
-//                double x_range = global_x_max - global_x_min;
-//                double y_range = global_y_max - global_y_min;
-//                x_range = (x_range < 1e-5) ? 1e-5 : x_range; // 防零除
-//                auto aspect_ratio = static_cast<float>(y_range / x_range);
-//                // 设置Y轴单位长度比例
-//                ImVec2 plot_size = ImPlot::GetPlotSize();
-//                float window_ratio = plot_size.y / plot_size.x;
-//                y_axis.SetAspect(aspect_ratio * window_ratio);
-
-//                ImVec2 plot_size = ImPlot::GetPlotSize();
-//                CLOG_INFO << "PlotSize: " << plot_size.x << plot_size.y;
-//                auto* plot = ImPlot::GetCurrentPlot();
-//                if (plot) {
-//                    double x_range = plot->XAxis(0).PixelMax - plot->XAxis(0).PixelMin;
-//                    double y_range = plot->YAxis(0).PixelMax - plot->YAxis(0).PixelMin;
-//                    CLOG_INFO << "X Range: " << x_range;
-//                    CLOG_INFO << "Y Range: " << y_range;
-//                }
-
-//                ImVec2 plot_size = ImPlot::GetPlotSize(); // in pixels
-//                float pixel_ratio = plot_size.x / plot_size.y;
-//                double x_min = global_x_min;
-//                double x_max = global_x_max;
-//                double x_range = x_max - x_min;
-//                double y_center = (global_y_min + global_y_max) / 2.0;
-//
-//                // 计算 Y 轴范围，使单位像素比例一致
-//                double y_range = x_range / pixel_ratio;
-//                double y_min = y_center - y_range / 2.0;
-//                double y_max = y_center + y_range / 2.0;
-//                ImPlot::SetupAxisLimits(ImAxis_X1, x_min, x_max, ImGuiCond_Always);
-//                ImPlot::SetupAxisLimits(ImAxis_Y1, y_min, y_max, ImGuiCond_Always);
-
-                // 绘制所有通道
                 {
                     std::shared_lock<std::shared_mutex> lock(mtx);
                     for (size_t i = 0; i < channels.size(); i++)

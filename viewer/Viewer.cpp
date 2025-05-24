@@ -931,10 +931,10 @@ void Viewer::plotChannelData(const std::string &channelName, const std::shared_p
         ImGui::Begin(("PlotLine: " + channelName).c_str(), &show_plot, ImGuiWindowFlags_AlwaysAutoResize);
 //        ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 100);
         ImPlot::SetNextAxisToFit(ImAxis_Y1);
-        if (ImPlot::BeginPlot("##Scrolling", ImVec2(600, 400)))
+        if (ImPlot::BeginPlot("##Scrolling", ImVec2(1240, 720)))
         {
             ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
-            ImPlot::SetupAxes("Time (s)", "Value");
+            ImPlot::SetupAxes("Time(s)", "Value");
 //            ImPlot::SetupAxisLimits(ImAxis_X1, data->time - 10.0, data->time, ImGuiCond_Always);
 
             if (auto it = sink->channel_plot_data.find(channelName); it != sink->channel_plot_data.end())
