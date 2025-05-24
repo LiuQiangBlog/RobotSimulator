@@ -57,7 +57,7 @@ ImVec4 HexToImVec4(const std::string &hexColor, float alpha = 1.0f)
         unsigned char r = (hexValue >> 16) & 0xFF;
         unsigned char g = (hexValue >> 8) & 0xFF;
         unsigned char b = hexValue & 0xFF;
-        return {r / 255.f, g / 255.f, b / 255.f, alpha};
+        return {float(r) / 255.f, float(g) / 255.f, float(b) / 255.f, alpha};
     }
     else if (numChars == 8)
     {
@@ -65,7 +65,7 @@ ImVec4 HexToImVec4(const std::string &hexColor, float alpha = 1.0f)
         unsigned char r = (hexValue >> 16) & 0xFF;
         unsigned char g = (hexValue >> 8) & 0xFF;
         unsigned char b = hexValue & 0xFF;
-        return {r / 255.f, g / 255.f, b / 255.f, a / 255.f};
+        return {float(r) / 255.f, float(g) / 255.f, float(b) / 255.f, float(a) / 255.f};
     }
     else
     {
@@ -266,7 +266,7 @@ public:
 
     std::unordered_map<double, std::unordered_map<std::string, double>> frame_buffer;
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
-    //    std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
+    //std::unordered_map<std::string, std::pair<DataBUffer, DataBUffer>> channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     std::unordered_set<std::string> all_channels;
     std::unordered_map<int, std::deque<std::string>> tab_selected_channels;
@@ -274,217 +274,12 @@ public:
     std::shared_mutex mtx;
 };
 
-void createTabBarWithImPlot(Handler &h)
+enum class AppState
 {
-    int windowWidth, windowHeight;
-    glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
-    ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
-    ImGuiStyle &style = ImGui::GetStyle();
-    ImVec2 original_window_padding = style.WindowPadding;
-    style.WindowPadding.x = 4.0f; // keep TabItem distance to left window edge is 4
-    style.WindowPadding.y = 4.0f; // keep TabItem distance to top window edge is 4
-    if (ImGui::Begin("##Main Window", nullptr, flags))
-    {
-        ImGui::SetWindowPos(ImVec2(0, 0));
-        ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
-//        style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
-//        style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
-//        style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-        static ImVector<int> active_tabs;
-        static int next_tab_id = 0;
-        static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
-                                                ImGuiTabBarFlags_FittingPolicyResizeDown;
-        static char new_tab_title[64] = "";
-        static bool open_new_tab_dialog{false};
-        static std::unordered_map<int, std::string> tab_titles;
-        static std::string error_message;
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
-        ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
-        ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
-        if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
-        {
-            if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
-            {
-                open_new_tab_dialog = true;
-                strcpy(new_tab_title, "Untitled");
-                error_message.clear();
-            }
-            ImGui::PopStyleVar(4);
-
-            for (int n = 0; n < active_tabs.Size;)
-            {
-                int tab_id = active_tabs[n];
-                bool tab_open = true;
-                const char* tab_title = tab_titles[tab_id].c_str();
-
-                if (!h.tab_selected_channels.count(tab_id))
-                {
-                    h.tab_selected_channels[tab_id] = {};
-                }
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
-                ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
-                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
-                ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
-                if (ImGui::BeginTabItem(tab_title, &tab_open))
-                {
-                    ImGui::PopStyleVar(4);
-                    if (tab_open)
-                    {
-                        bool popup_menu_open = false;
-                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-                        {
-                            ImGui::OpenPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str());
-                        }
-                        if (ImGui::BeginPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str()))
-                        {
-                            popup_menu_open = true;
-                            auto &selected_channels = h.tab_selected_channels[tab_id];
-                            static char filter_text[128] = "";
-                            ImGui::Text("Filter Channels:");
-                            ImGui::PushItemWidth(300);
-                            ImGui::InputText("##FilterCondition", filter_text, IM_ARRAYSIZE(filter_text),
-                                             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoHorizontalScroll);
-                            trimString(new_tab_title);
-
-                            ImGui::Separator();
-                            for (const std::string &channel : h.all_channels)
-                            {
-                                if (strlen(filter_text) != 0 && channel.find(filter_text) == std::string::npos)
-                                {
-                                    continue;
-                                }
-                                bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
-                                if (ImGui::Checkbox(channel.c_str(), &is_selected))
-                                {
-                                    if (is_selected)
-                                    {
-                                        selected_channels.push_back(channel);
-                                    }
-                                    else
-                                    {
-                                        auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
-                                        if (it != selected_channels.end())
-                                        {
-                                            selected_channels.erase(it);
-                                        }
-                                    }
-                                }
-                            }
-                            ImGui::Separator();
-                            if (ImGui::Button("Apply Selection"))
-                            {
-                                ImGui::CloseCurrentPopup();
-                            }
-                            ImGui::SameLine();
-                            if (ImGui::Button("Clear Selection"))
-                            {
-                                selected_channels.clear();
-                                ImGui::CloseCurrentPopup();
-                            }
-                            ImGui::EndPopup();
-                        }
-//                        if (!popup_menu_open && !open_new_tab_dialog)
-                        {
-                            auto &channels = h.tab_selected_channels[tab_id];
-                            h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
-                        }
-                    }
-                    ImGui::EndTabItem();
-                }
-                else
-                {
-                    ImGui::PopStyleVar(4);
-                }
-                if (!tab_open)
-                {
-                    tab_titles.erase(tab_id);
-                    active_tabs.erase(active_tabs.begin() + n);
-                    h.tab_selected_channels.erase(tab_id);
-                }
-                else
-                {
-                    n++;
-                }
-            }
-            ImGui::EndTabBar();
-        }
-
-        if (open_new_tab_dialog)
-        {
-            ImGui::OpenPopup("##TabItemTitle");
-            open_new_tab_dialog = false;
-        }
-
-        ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
-                                        ImGuiWindowFlags_NoNav;
-        static bool first_open = true;
-        if (ImGui::BeginPopupModal("##TabItemTitle", nullptr, window_flags))
-        {
-            ImGui::SetWindowFocus();
-            ImGui::Text("Enter tab title:");
-            ImGui::PushItemWidth(300);
-            if (ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title)))
-            {
-                error_message.clear();
-            }
-            if (first_open)
-            {
-                ImGui::SetKeyboardFocusHere(-1);
-                first_open = false;
-            }
-            ImGui::PopItemWidth();
-
-            if (!error_message.empty())
-            {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f)); // 红色文本
-                ImGui::TextWrapped("%s", error_message.c_str());
-                ImGui::PopStyleColor();
-            }
-            ImGui::Separator();
-            bool can_create = false;
-            trimString(new_tab_title);
-            if (strlen(new_tab_title) == 0)
-            {
-                error_message = "Title cannot be empty!";
-            }
-            else if (isTitleExists(new_tab_title, tab_titles))
-            {
-                error_message = "Title already exists!";
-            }
-            else
-            {
-                can_create = true;
-                error_message.clear();
-            }
-            ImGui::BeginDisabled(!can_create);
-            if (ImGui::Button("Create", ImVec2(120, 0)))
-            {
-                int new_id = next_tab_id++;
-                active_tabs.push_back(new_id);
-                tab_titles[new_id] = std::string(new_tab_title);
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndDisabled();
-
-            ImGui::SameLine();
-            if (ImGui::Button("Cancel", ImVec2(120, 0)))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-        else
-        {
-            first_open = true;
-        }
-    }
-    style.WindowPadding = original_window_padding;
-    ImGui::End();
-}
+    MainMenu,
+    ZcmView,
+    McapView
+};
 
 class DataViewer
 {
@@ -502,6 +297,11 @@ private:
     ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
     std::set<std::string> availableChannels;
     std::atomic_bool exit{false};
+    AppState currentState{AppState::MainMenu};
+    std::string currentMcapPath;
+    std::vector<std::string> mcapChannels;
+    bool openViewerOfZcmData{true};
+    bool openViewerOfMcapData{true};
 
 public:
     explicit DataViewer(const std::string &name = "DataViewer")
@@ -626,7 +426,20 @@ public:
             glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
         }
 
-        createTabBarWithImPlot(h);
+        switch (currentState)
+        {
+        case AppState::MainMenu:
+            createWelcomeWindow();
+            break;
+        case AppState::ZcmView:
+            openViewerOfZcmData = true;
+            createTabBarWithImPlotForZcmChannel();
+            break;
+        case AppState::McapView:
+            openViewerOfMcapData = true;
+            createTabBarWithImPlotForMcapFile();
+            break;
+        }
 
         // ImGui render
         ImGui::Render();
@@ -642,6 +455,494 @@ public:
     bool shouldClose() const
     {
         return glfwWindowShouldClose(window);
+    }
+
+    void createTabBarWithImPlotForZcmChannel()
+    {
+        if (!openViewerOfZcmData)
+        {
+            currentState = AppState::MainMenu;
+            return;
+        }
+        int windowWidth, windowHeight;
+        glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
+        ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+        ImGuiStyle &style = ImGui::GetStyle();
+        ImVec2 original_window_padding = style.WindowPadding;
+        style.WindowPadding.x = 4.0f; // keep TabItem distance to left window edge is 4
+        style.WindowPadding.y = 4.0f; // keep TabItem distance to top window edge is 4
+        if (ImGui::Begin("##ViewerOfZcmData", &openViewerOfZcmData, flags))
+        {
+            ImGui::SetWindowPos(ImVec2(0, 0));
+            ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
+            //style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
+            //style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
+            //style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+            static ImVector<int> active_tabs;
+            static int next_tab_id = 0;
+            static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
+                                                    ImGuiTabBarFlags_FittingPolicyResizeDown;
+            static char new_tab_title[64] = "";
+            static bool open_new_tab_dialog{false};
+            static std::unordered_map<int, std::string> tab_titles;
+            static std::string error_message;
+
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
+            ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
+            ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
+            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+            {
+                if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+                {
+                    open_new_tab_dialog = true;
+                    strcpy(new_tab_title, "Untitled");
+                    error_message.clear();
+                }
+                if (ImGui::TabItemButton("[x]", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+                {
+                    openViewerOfZcmData = false;
+                    currentState = AppState::MainMenu;
+                }
+                ImGui::PopStyleVar(4);
+
+                for (int n = 0; n < active_tabs.Size;)
+                {
+                    int tab_id = active_tabs[n];
+                    bool tab_open = true;
+                    const char* tab_title = tab_titles[tab_id].c_str();
+
+                    if (!h.tab_selected_channels.count(tab_id))
+                    {
+                        h.tab_selected_channels[tab_id] = {};
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
+                    ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
+                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
+                    ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
+                    if (ImGui::BeginTabItem(tab_title, &tab_open))
+                    {
+                        ImGui::PopStyleVar(4);
+                        if (tab_open)
+                        {
+                            bool popup_menu_open = false;
+                            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                            {
+                                ImGui::OpenPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str());
+                            }
+                            if (ImGui::BeginPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str()))
+                            {
+                                popup_menu_open = true;
+                                auto &selected_channels = h.tab_selected_channels[tab_id];
+                                static char filter_text[128] = "";
+                                ImGui::Text("Filter Channels:");
+                                ImGui::PushItemWidth(300);
+                                ImGui::InputText("##FilterCondition", filter_text, IM_ARRAYSIZE(filter_text),
+                                                 ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoHorizontalScroll);
+                                trimString(new_tab_title);
+
+                                ImGui::Separator();
+                                for (const std::string &channel : h.all_channels)
+                                {
+                                    if (strlen(filter_text) != 0 && channel.find(filter_text) == std::string::npos)
+                                    {
+                                        continue;
+                                    }
+                                    bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
+                                    if (ImGui::Checkbox(channel.c_str(), &is_selected))
+                                    {
+                                        if (is_selected)
+                                        {
+                                            selected_channels.push_back(channel);
+                                        }
+                                        else
+                                        {
+                                            auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
+                                            if (it != selected_channels.end())
+                                            {
+                                                selected_channels.erase(it);
+                                            }
+                                        }
+                                    }
+                                }
+                                ImGui::Separator();
+                                if (ImGui::Button("Apply Selection"))
+                                {
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                ImGui::SameLine();
+                                if (ImGui::Button("Clear Selection"))
+                                {
+                                    selected_channels.clear();
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                ImGui::EndPopup();
+                            }
+                            //if (!popup_menu_open && !open_new_tab_dialog)
+                            {
+                                auto &channels = h.tab_selected_channels[tab_id];
+                                h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
+                            }
+                        }
+                        ImGui::EndTabItem();
+                    }
+                    else
+                    {
+                        ImGui::PopStyleVar(4);
+                    }
+                    if (!tab_open)
+                    {
+                        tab_titles.erase(tab_id);
+                        active_tabs.erase(active_tabs.begin() + n);
+                        h.tab_selected_channels.erase(tab_id);
+                    }
+                    else
+                    {
+                        n++;
+                    }
+                }
+                ImGui::EndTabBar();
+            }
+
+            if (open_new_tab_dialog)
+            {
+                ImGui::OpenPopup("##TabItemTitle");
+                open_new_tab_dialog = false;
+            }
+
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                                            ImGuiWindowFlags_NoNav;
+            static bool first_open = true;
+            if (ImGui::BeginPopupModal("##TabItemTitle", nullptr, window_flags))
+            {
+                ImGui::SetWindowFocus();
+                ImGui::Text("Enter tab title:");
+                ImGui::PushItemWidth(300);
+                if (ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title)))
+                {
+                    error_message.clear();
+                }
+                if (first_open)
+                {
+                    ImGui::SetKeyboardFocusHere(-1);
+                    first_open = false;
+                }
+                ImGui::PopItemWidth();
+
+                if (!error_message.empty())
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f)); // 红色文本
+                    ImGui::TextWrapped("%s", error_message.c_str());
+                    ImGui::PopStyleColor();
+                }
+                ImGui::Separator();
+                bool can_create = false;
+                trimString(new_tab_title);
+                if (strlen(new_tab_title) == 0)
+                {
+                    error_message = "Title cannot be empty!";
+                }
+                else if (isTitleExists(new_tab_title, tab_titles))
+                {
+                    error_message = "Title already exists!";
+                }
+                else
+                {
+                    can_create = true;
+                    error_message.clear();
+                }
+                ImGui::BeginDisabled(!can_create);
+                if (ImGui::Button("Create", ImVec2(120, 0)))
+                {
+                    int new_id = next_tab_id++;
+                    active_tabs.push_back(new_id);
+                    tab_titles[new_id] = std::string(new_tab_title);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndDisabled();
+
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+            else
+            {
+                first_open = true;
+            }
+        }
+        style.WindowPadding = original_window_padding;
+        ImGui::End();
+    }
+
+    void createWelcomeWindow()
+    {
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
+                                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        if (ImGui::Begin("##WelcomeWindow", nullptr, flags))
+        {
+            // 获取窗口内容区域的尺寸（可用宽度和高度）
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            float windowWidth = contentRegion.x;
+            float windowHeight = contentRegion.y;
+
+            // 按钮参数
+            const float buttonWidth = 300.0f;
+            const float buttonHeight = 60.0f;
+            const float spacing = ImGui::GetStyle().ItemSpacing.x; // 按钮间水平间距（默认6px）
+
+            // 计算按钮组的总宽度和总高度
+            float totalWidth = 2 * buttonWidth + spacing;
+            float totalHeight = buttonHeight; // 同一行，总高度等于单个按钮高度
+
+            // 计算水平居中偏移量（窗口中心 - 按钮组中心）
+            float offsetX = (windowWidth - totalWidth) * 0.5f;
+            // 计算垂直居中偏移量（窗口中心 - 按钮组中心）
+            float offsetY = (windowHeight - totalHeight) * 0.5f;
+
+            // 设置光标位置到居中坐标
+            ImGui::SetCursorPos(ImVec2(offsetX, offsetY));
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 10));
+            // 绘制按钮
+            if (ImGui::Button("ViewOnlineData", ImVec2(buttonWidth, buttonHeight)))
+            {
+                currentState = AppState::ZcmView;
+            }
+            ImGui::SameLine(); // 自动应用ItemSpacing间距
+            if (ImGui::Button("ViewOfflineData", ImVec2(buttonWidth, buttonHeight)))
+            {
+                currentState = AppState::McapView;
+            }
+            ImGui::PopStyleVar();
+        }
+        ImGui::End();
+    }
+
+    void createTabBarWithImPlotForMcapFile()
+    {
+        if (!openViewerOfMcapData)
+        {
+            return;
+        }
+        int windowWidth, windowHeight;
+        glfwGetFramebufferSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
+        ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+        ImGuiStyle &style = ImGui::GetStyle();
+        ImVec2 original_window_padding = style.WindowPadding;
+        style.WindowPadding.x = 4.0f; // keep TabItem distance to left window edge is 4
+        style.WindowPadding.y = 4.0f; // keep TabItem distance to top window edge is 4
+        if (ImGui::Begin("##ViewerOfZcmData", &openViewerOfMcapData, flags))
+        {
+            ImGui::SetWindowPos(ImVec2(0, 0));
+            ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
+            //style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
+            //style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
+            //style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+            static ImVector<int> active_tabs;
+            static int next_tab_id = 0;
+            static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
+                                                    ImGuiTabBarFlags_FittingPolicyResizeDown;
+            static char new_tab_title[64] = "";
+            static bool open_new_tab_dialog{false};
+            static std::unordered_map<int, std::string> tab_titles;
+            static std::string error_message;
+
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
+            ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
+            ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
+            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+            {
+                if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+                {
+                    open_new_tab_dialog = true;
+                    strcpy(new_tab_title, "Untitled");
+                    error_message.clear();
+                }
+                if (ImGui::TabItemButton("[x]", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+                {
+                    openViewerOfMcapData = false;
+                    currentState = AppState::MainMenu;
+                }
+                ImGui::PopStyleVar(4);
+                for (int n = 0; n < active_tabs.Size;)
+                {
+                    int tab_id = active_tabs[n];
+                    bool tab_open = true;
+                    const char* tab_title = tab_titles[tab_id].c_str();
+
+                    if (!h.tab_selected_channels.count(tab_id))
+                    {
+                        h.tab_selected_channels[tab_id] = {};
+                    }
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
+                    ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
+                    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
+                    ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
+                    if (ImGui::BeginTabItem(tab_title, &tab_open))
+                    {
+                        ImGui::PopStyleVar(4);
+                        if (tab_open)
+                        {
+                            bool popup_menu_open = false;
+                            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                            {
+                                ImGui::OpenPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str());
+                            }
+                            if (ImGui::BeginPopup(("ChannelMenu_" + std::to_string(tab_id)).c_str()))
+                            {
+                                popup_menu_open = true;
+                                auto &selected_channels = h.tab_selected_channels[tab_id];
+                                static char filter_text[128] = "";
+                                ImGui::Text("Filter Channels:");
+                                ImGui::PushItemWidth(300);
+                                ImGui::InputText("##FilterCondition", filter_text, IM_ARRAYSIZE(filter_text),
+                                                 ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoHorizontalScroll);
+                                trimString(new_tab_title);
+
+                                ImGui::Separator();
+                                for (const std::string &channel : h.all_channels)
+                                {
+                                    if (strlen(filter_text) != 0 && channel.find(filter_text) == std::string::npos)
+                                    {
+                                        continue;
+                                    }
+                                    bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
+                                    if (ImGui::Checkbox(channel.c_str(), &is_selected))
+                                    {
+                                        if (is_selected)
+                                        {
+                                            selected_channels.push_back(channel);
+                                        }
+                                        else
+                                        {
+                                            auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
+                                            if (it != selected_channels.end())
+                                            {
+                                                selected_channels.erase(it);
+                                            }
+                                        }
+                                    }
+                                }
+                                ImGui::Separator();
+                                if (ImGui::Button("Apply Selection"))
+                                {
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                ImGui::SameLine();
+                                if (ImGui::Button("Clear Selection"))
+                                {
+                                    selected_channels.clear();
+                                    ImGui::CloseCurrentPopup();
+                                }
+                                ImGui::EndPopup();
+                            }
+                            //if (!popup_menu_open && !open_new_tab_dialog)
+                            {
+                                auto &channels = h.tab_selected_channels[tab_id];
+                                h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
+                            }
+                        }
+                        ImGui::EndTabItem();
+                    }
+                    else
+                    {
+                        ImGui::PopStyleVar(4);
+                    }
+                    if (!tab_open)
+                    {
+                        tab_titles.erase(tab_id);
+                        active_tabs.erase(active_tabs.begin() + n);
+                        h.tab_selected_channels.erase(tab_id);
+                    }
+                    else
+                    {
+                        n++;
+                    }
+                }
+                ImGui::EndTabBar();
+            }
+
+            if (open_new_tab_dialog)
+            {
+                ImGui::OpenPopup("##TabItemTitle");
+                open_new_tab_dialog = false;
+            }
+
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+                                            ImGuiWindowFlags_NoNav;
+            static bool first_open = true;
+            if (ImGui::BeginPopupModal("##TabItemTitle", nullptr, window_flags))
+            {
+                ImGui::SetWindowFocus();
+                ImGui::Text("Enter tab title:");
+                ImGui::PushItemWidth(300);
+                if (ImGui::InputText("##TitleInput", new_tab_title, IM_ARRAYSIZE(new_tab_title)))
+                {
+                    error_message.clear();
+                }
+                if (first_open)
+                {
+                    ImGui::SetKeyboardFocusHere(-1);
+                    first_open = false;
+                }
+                ImGui::PopItemWidth();
+
+                if (!error_message.empty())
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f)); // 红色文本
+                    ImGui::TextWrapped("%s", error_message.c_str());
+                    ImGui::PopStyleColor();
+                }
+                ImGui::Separator();
+                bool can_create = false;
+                trimString(new_tab_title);
+                if (strlen(new_tab_title) == 0)
+                {
+                    error_message = "Title cannot be empty!";
+                }
+                else if (isTitleExists(new_tab_title, tab_titles))
+                {
+                    error_message = "Title already exists!";
+                }
+                else
+                {
+                    can_create = true;
+                    error_message.clear();
+                }
+                ImGui::BeginDisabled(!can_create);
+                if (ImGui::Button("Create", ImVec2(120, 0)))
+                {
+                    int new_id = next_tab_id++;
+                    active_tabs.push_back(new_id);
+                    tab_titles[new_id] = std::string(new_tab_title);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndDisabled();
+
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(120, 0)))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+            else
+            {
+                first_open = true;
+            }
+        }
+        style.WindowPadding = original_window_padding;
+        ImGui::End();
     }
 
 protected:
