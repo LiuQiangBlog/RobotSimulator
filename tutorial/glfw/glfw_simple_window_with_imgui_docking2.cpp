@@ -198,7 +198,7 @@ public:
             }
 
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-            if (ImPlot::BeginPlot((title + "##ChannelPlot").c_str(), contentRegion))
+            if (ImPlot::BeginPlot(("##" + title + "##ChannelPlot").c_str(), contentRegion))
             {
                 ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
                 ImPlot::SetupAxisFormat(ImAxis_Y1, "%.3f");
@@ -219,17 +219,10 @@ public:
                             auto &[ts, vals] = channel_plot_data[channel];
                             if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
                             {
-//                                double min_time = *std::min_element(ts.begin(), ts.end());
-//                                double max_time = *std::max_element(ts.begin(), ts.end());
-//                                ImPlot::SetupAxisLimits(ImAxis_X1, min_time, max_time, ImGuiCond_Always);
-//                                auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
-//                                ImPlot::SetupAxisLimits(ImAxis_Y1, *y_min, *y_max, ImGuiCond_Always);
-
-//                                ImVec4 color = ImPlot::GetColormapColor(int(i));
-//                                ImPlot::SetNextLineStyle(color, 2.0f);
+                                ImVec4 color = ImPlot::GetColormapColor(int(i));
+                                ImPlot::SetNextLineStyle(color, 2.0f);
                                 ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
-//                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, -1.0f, color, 4.0f, color);
-//                                ImPlot::SetNextMarkerStyle(ImPlotMarker_Square,6);
+                                //ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, -1.0f, color, 4.0f, color);
                                 ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
                             }
                         }
@@ -394,7 +387,7 @@ void createTabBarWithImPlot(Handler &h)
                             }
                             ImGui::EndPopup();
                         }
-                        if (!popup_menu_open && !open_new_tab_dialog)
+//                        if (!popup_menu_open && !open_new_tab_dialog)
                         {
                             auto &channels = h.tab_selected_channels[tab_id];
                             h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
@@ -511,14 +504,9 @@ private:
     std::atomic_bool exit{false};
 
 public:
-    explicit DataViewer(const std::string &name)
+    explicit DataViewer(const std::string &name = "DataViewer")
     {
         winTitle = name;
-        zcm::RegisterAllPlugins();
-    }
-    DataViewer()
-    {
-        winTitle = "Plotter";
         zcm::RegisterAllPlugins();
     }
 
