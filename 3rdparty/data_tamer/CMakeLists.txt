@@ -69,6 +69,7 @@ add_library(data_tamer STATIC
     src/types.cpp
 
     src/sinks/mcap_sink.cpp
+    src/sinks/mcap_read_sink.cpp
     ${ROS2_SINK}
 
     include/data_tamer/logged_value.hpp
