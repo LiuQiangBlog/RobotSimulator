@@ -52,6 +52,7 @@ public:
     /// Use this static mentod do create an instance of LogChannel.
     /// it is recommended to use ChannelsRegistry::getChannel() instead
     static std::shared_ptr<LogChannel> create(std::string name);
+    static std::shared_ptr<LogChannel> create();
 
     ~LogChannel();
 

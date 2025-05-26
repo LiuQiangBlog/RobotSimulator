@@ -115,7 +115,7 @@ set(INSTALL_TARGETS data_tamer)
 #elseif( USE_VENDORED_MCAP )
     target_include_directories(data_tamer PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/mcap/include> )
-    target_link_libraries(data_tamer PRIVATE mcap_lib)
+    target_link_libraries(data_tamer PRIVATE mcap_lib uuid)
     list(APPEND INSTALL_TARGETS mcap_lib)
 #else()
 #    find_package(mcap REQUIRED)

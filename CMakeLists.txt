@@ -104,6 +104,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imguifiledialog)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/ctools/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imtools)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/math)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/uuid)
 
 add_subdirectory(3rdparty)
 
@@ -314,5 +315,6 @@ add_subdirectory(tutorial/imguifiledialog)
 add_subdirectory(tutorial/glfw)
 add_subdirectory(tutorial/cpp)
 add_subdirectory(tutorial/mcap)
+add_subdirectory(tutorial/uuid)
 
 

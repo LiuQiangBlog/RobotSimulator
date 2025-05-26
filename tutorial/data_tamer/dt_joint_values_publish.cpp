@@ -12,7 +12,8 @@
 int main()
 {
     zcm::RegisterAllPlugins();
-    auto channel = DataTamer::LogChannel::create("channel1");
+    //auto channel = DataTamer::LogChannel::create("channel1");
+    auto channel = DataTamer::LogChannel::create();
     auto publisher = std::make_shared<DataTamer::PublishSink>();
     if (!publisher->init())
     {

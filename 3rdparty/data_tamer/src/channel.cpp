@@ -1,7 +1,7 @@
 #include "data_tamer/channel.hpp"
 #include "data_tamer/data_sink.hpp"
 #include "data_tamer/contrib/SerializeMe.hpp"
-
+#include <UUID.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -122,6 +122,12 @@ LogChannel::LogChannel(std::string name) : _p(new Pimpl)
 std::shared_ptr<LogChannel> LogChannel::create(std::string name)
 {
     return std::shared_ptr<LogChannel>(new LogChannel(std::move(name)));
+}
+
+std::shared_ptr<LogChannel> LogChannel::create()
+{
+    UUID uuid{UUID::Version::v4};
+    return std::shared_ptr<LogChannel>(new LogChannel(std::move(uuid.str())));
 }
 
 const std::string &LogChannel::channelName() const
