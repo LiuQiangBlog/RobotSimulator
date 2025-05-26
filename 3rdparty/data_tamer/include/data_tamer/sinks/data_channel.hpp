@@ -10,93 +10,105 @@
 
 #include <string>
 
-
 class data_channel
 {
-    public:
-        std::string channel;
+public:
+    std::string channel;
 
-        int32_t    cnt;
+    int32_t cnt;
 
-    public:
-        /**
-         * Destructs a message properly if anything inherits from it
-        */
-        virtual ~data_channel() {}
+public:
+    /**
+     * Destructs a message properly if anything inherits from it
+     */
+    virtual ~data_channel() {}
 
-        /**
-         * Encode a message into binary form.
-         *
-         * @param buf The output buffer.
-         * @param offset Encoding starts at thie byte offset into @p buf.
-         * @param maxlen Maximum number of bytes to write.  This should generally be
-         *  equal to getEncodedSize().
-         * @return The number of bytes encoded, or <0 on error.
-         */
-        inline int encode(void* buf, uint32_t offset, uint32_t maxlen) const;
+    /**
+     * Encode a message into binary form.
+     *
+     * @param buf The output buffer.
+     * @param offset Encoding starts at thie byte offset into @p buf.
+     * @param maxlen Maximum number of bytes to write.  This should generally be
+     *  equal to getEncodedSize().
+     * @return The number of bytes encoded, or <0 on error.
+     */
+    inline int encode(void *buf, uint32_t offset, uint32_t maxlen) const;
 
-        /**
-         * Check how many bytes are required to encode this message.
-         */
-        inline uint32_t getEncodedSize() const;
+    /**
+     * Check how many bytes are required to encode this message.
+     */
+    inline uint32_t getEncodedSize() const;
 
-        /**
-         * Decode a message from binary form into this instance.
-         *
-         * @param buf The buffer containing the encoded message.
-         * @param offset The byte offset into @p buf where the encoded message starts.
-         * @param maxlen The maximum number of bytes to read while decoding.
-         * @return The number of bytes decoded, or <0 if an error occured.
-         */
-        inline int decode(const void* buf, uint32_t offset, uint32_t maxlen);
+    /**
+     * Decode a message from binary form into this instance.
+     *
+     * @param buf The buffer containing the encoded message.
+     * @param offset The byte offset into @p buf where the encoded message starts.
+     * @param maxlen The maximum number of bytes to read while decoding.
+     * @return The number of bytes decoded, or <0 if an error occured.
+     */
+    inline int decode(const void *buf, uint32_t offset, uint32_t maxlen);
 
-        /**
-         * Retrieve the 64-bit fingerprint identifying the structure of the message.
-         * Note that the fingerprint is the same for all instances of the same
-         * message type, and is a fingerprint on the message type definition, not on
-         * the message contents.
-         */
-        inline static int64_t getHash();
+    /**
+     * Retrieve the 64-bit fingerprint identifying the structure of the message.
+     * Note that the fingerprint is the same for all instances of the same
+     * message type, and is a fingerprint on the message type definition, not on
+     * the message contents.
+     */
+    inline static int64_t getHash();
 
-        /**
-         * Returns "data_channel"
-         */
-        inline static const char* getTypeName();
+    /**
+     * Returns "data_channel"
+     */
+    inline static const char *getTypeName();
 
-        // ZCM support functions. Users should not call these
-        inline int      _encodeNoHash(void* buf, uint32_t offset, uint32_t maxlen) const;
-        inline uint32_t _getEncodedSizeNoHash() const;
-        inline int      _decodeNoHash(const void* buf, uint32_t offset, uint32_t maxlen);
-        inline static uint64_t _computeHash(const __zcm_hash_ptr* p);
+    // ZCM support functions. Users should not call these
+    inline int _encodeNoHash(void *buf, uint32_t offset, uint32_t maxlen) const;
+    inline uint32_t _getEncodedSizeNoHash() const;
+    inline int _decodeNoHash(const void *buf, uint32_t offset, uint32_t maxlen);
+    inline static uint64_t _computeHash(const __zcm_hash_ptr *p);
 };
 
-int data_channel::encode(void* buf, uint32_t offset, uint32_t maxlen) const
+int data_channel::encode(void *buf, uint32_t offset, uint32_t maxlen) const
 {
     uint32_t pos = 0;
     int thislen;
     int64_t hash = (int64_t)getHash();
 
     thislen = __int64_t_encode_array(buf, offset + pos, maxlen - pos, &hash, 1);
-    if(thislen < 0) return thislen; else pos += thislen;
+    if (thislen < 0)
+        return thislen;
+    else
+        pos += thislen;
 
     thislen = this->_encodeNoHash(buf, offset + pos, maxlen - pos);
-    if (thislen < 0) return thislen; else pos += thislen;
+    if (thislen < 0)
+        return thislen;
+    else
+        pos += thislen;
 
     return pos;
 }
 
-int data_channel::decode(const void* buf, uint32_t offset, uint32_t maxlen)
+int data_channel::decode(const void *buf, uint32_t offset, uint32_t maxlen)
 {
     uint32_t pos = 0;
     int thislen;
 
     int64_t msg_hash;
     thislen = __int64_t_decode_array(buf, offset + pos, maxlen - pos, &msg_hash, 1);
-    if (thislen < 0) return thislen; else pos += thislen;
-    if (msg_hash != getHash()) return -1;
+    if (thislen < 0)
+        return thislen;
+    else
+        pos += thislen;
+    if (msg_hash != getHash())
+        return -1;
 
     thislen = this->_decodeNoHash(buf, offset + pos, maxlen - pos);
-    if (thislen < 0) return thislen; else pos += thislen;
+    if (thislen < 0)
+        return thislen;
+    else
+        pos += thislen;
 
     return pos;
 }
@@ -112,40 +124,54 @@ int64_t data_channel::getHash()
     return hash;
 }
 
-const char* data_channel::getTypeName()
+const char *data_channel::getTypeName()
 {
     return "data_channel";
 }
 
-int data_channel::_encodeNoHash(void* buf, uint32_t offset, uint32_t maxlen) const
+int data_channel::_encodeNoHash(void *buf, uint32_t offset, uint32_t maxlen) const
 {
     uint32_t pos_byte = 0;
     int thislen;
 
-    char* channel_cstr = (char*) this->channel.c_str();
+    char *channel_cstr = (char *)this->channel.c_str();
     thislen = __string_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &channel_cstr, 1);
-    if(thislen < 0) return thislen; else pos_byte += thislen;
+    if (thislen < 0)
+        return thislen;
+    else
+        pos_byte += thislen;
 
     thislen = __int32_t_encode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
-    if(thislen < 0) return thislen; else pos_byte += thislen;
+    if (thislen < 0)
+        return thislen;
+    else
+        pos_byte += thislen;
 
     return pos_byte;
 }
 
-int data_channel::_decodeNoHash(const void* buf, uint32_t offset, uint32_t maxlen)
+int data_channel::_decodeNoHash(const void *buf, uint32_t offset, uint32_t maxlen)
 {
     uint32_t pos_byte = 0;
     int thislen;
 
     int32_t __channel_len__;
     thislen = __int32_t_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &__channel_len__, 1);
-    if(thislen < 0) return thislen; else pos_byte += thislen;
-    if((uint32_t)__channel_len__ > maxlen - pos_byte) return -1;
-    this->channel.assign(((const char*)buf) + offset + pos_byte, __channel_len__ - ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS);
+    if (thislen < 0)
+        return thislen;
+    else
+        pos_byte += thislen;
+    if ((uint32_t)__channel_len__ > maxlen - pos_byte)
+        return -1;
+    this->channel.assign(((const char *)buf) + offset + pos_byte,
+                         __channel_len__ - ZCM_CORETYPES_INT8_NUM_BYTES_ON_BUS);
     pos_byte += __channel_len__;
 
     thislen = __int32_t_decode_array(buf, offset + pos_byte, maxlen - pos_byte, &this->cnt, 1);
-    if(thislen < 0) return thislen; else pos_byte += thislen;
+    if (thislen < 0)
+        return thislen;
+    else
+        pos_byte += thislen;
 
     return pos_byte;
 }
@@ -161,10 +187,11 @@ uint32_t data_channel::_getEncodedSizeNoHash() const
 #if defined(__clang__)
 __attribute__((no_sanitize("integer")))
 #endif
-uint64_t data_channel::_computeHash(const __zcm_hash_ptr*)
+uint64_t
+data_channel::_computeHash(const __zcm_hash_ptr *)
 {
     uint64_t hash = (uint64_t)0x505759b17d36abd7LL;
-    return (hash<<1) + ((hash>>63)&1);
+    return (hash << 1) + ((hash >> 63) & 1);
 }
 
 #endif

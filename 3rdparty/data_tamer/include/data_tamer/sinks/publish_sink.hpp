@@ -58,7 +58,7 @@ public:
     std::unordered_map<uint64_t, std::string> schema_names;
     std::unordered_map<uint64_t, long> snapshots_count;
     Snapshot latest_snapshot;
-//    Mutex schema_mutex;
+    // Mutex schema_mutex;
     // std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
     // std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     uint64_t start_time;
@@ -67,7 +67,7 @@ public:
     all_timed_value all_value;
     std::unordered_set<std::string> pub_channels;
     std::unordered_map<std::string, std::deque<timed_value>> buffer_data;
-//    data_channel new_channel;
+    // data_channel new_channel;
     std::thread th_zcm_channels, th_zcm;
     Handler h;
     std::atomic_bool exit{false};
@@ -90,10 +90,10 @@ public:
         {
             th_zcm_channels.join();
         }
-//        if (th_zcm.joinable())
-//        {
-//            th_zcm.join();
-//        }
+        // if (th_zcm.joinable())
+        // {
+        //     th_zcm.join();
+        // }
     }
 
     bool init()
@@ -107,58 +107,58 @@ public:
             zcm_channels.reset();
             return false;
         }
-//        h.zcm = zcm_channels.get();
-//        zcm_channels->subscribe("channels_req", &Handler::channels_req, &h);
-//        th_zcm_channels = std::thread(
-//            [&]()
-//            {
-//                zcm_channels->run();
-//            });
-//        th_zcm = std::thread(
-//            [&]()
-//            {
-//                while (!exit)
-//                {
-//                    std::vector<std::string> channels_to_publish;
-//                    {
-//                        std::shared_lock<std::shared_mutex> lock(h.mtx);
-//                        channels_to_publish = h.fields.channels;
-//                    }
-//                    for (auto &channel : channels_to_publish)
-//                    {
-//                        if (buffer_data.count(channel) > 0)
-//                        {
-//                            timed_value temp;
-//                            {
-//                                std::lock_guard<std::shared_mutex> lock(h.mtx);
-//                                if (buffer_data[channel].empty())
-//                                {
-//                                    continue;
-//                                }
-//                                temp = buffer_data[channel].front();
-//                                buffer_data[channel].pop_front();
-//                            }
-//                            zcm->publish(channel, &temp);
-//                        }
-//                        else
-//                        {
-//                            CLOG_ERROR << "No channel: " << channel;
-//                        }
-//                    }
-//                    if (exit)
-//                    {
-//                        CLOG_INFO << "aaaaaaa";
-//                        return;
-//                    }
-//                    CLOG_INFO << "ccccccc";
-//                }
-//            });
+        // h.zcm = zcm_channels.get();
+        // zcm_channels->subscribe("channels_req", &Handler::channels_req, &h);
+        // th_zcm_channels = std::thread(
+        //     [&]()
+        //     {
+        //         zcm_channels->run();
+        //     });
+        // th_zcm = std::thread(
+        //     [&]()
+        //     {
+        //         while (!exit)
+        //         {
+        //             std::vector<std::string> channels_to_publish;
+        //             {
+        //                 std::shared_lock<std::shared_mutex> lock(h.mtx);
+        //                 channels_to_publish = h.fields.channels;
+        //             }
+        //             for (auto &channel : channels_to_publish)
+        //             {
+        //                 if (buffer_data.count(channel) > 0)
+        //                 {
+        //                     timed_value temp;
+        //                     {
+        //                         std::lock_guard<std::shared_mutex> lock(h.mtx);
+        //                         if (buffer_data[channel].empty())
+        //                         {
+        //                             continue;
+        //                         }
+        //                         temp = buffer_data[channel].front();
+        //                         buffer_data[channel].pop_front();
+        //                     }
+        //                     zcm->publish(channel, &temp);
+        //                 }
+        //                 else
+        //                 {
+        //                     CLOG_ERROR << "No channel: " << channel;
+        //                 }
+        //             }
+        //             if (exit)
+        //             {
+        //                 CLOG_INFO << "aaaaaaa";
+        //                 return;
+        //             }
+        //             CLOG_INFO << "ccccccc";
+        //         }
+        //     });
         return true;
     }
 
     void addChannel(std::string const &name, Schema const &schema) override
     {
-//        std::scoped_lock lk(schema_mutex);
+        // std::scoped_lock lk(schema_mutex);
         std::scoped_lock lk(h.mtx);
         schemas[schema.hash] = schema;
         schema_names[schema.hash] = name;
@@ -175,7 +175,7 @@ public:
 
     bool storeSnapshot(const Snapshot &snapshot) override
     {
-//        std::scoped_lock lk(schema_mutex);
+        // std::scoped_lock lk(schema_mutex);
         std::unique_lock lk(h.mtx);
         latest_snapshot = snapshot;
 
@@ -213,8 +213,8 @@ public:
                 if (pub_channels.count(key) <= 0)
                 {
                     pub_channels.insert(key);
-//                    new_channel.channel = key;
-//                    new_channel.cnt = (int)parsed_values.size();
+                    // new_channel.channel = key;
+                    // new_channel.cnt = (int)parsed_values.size();
                     // std::scoped_lock lck(h.mtx);
                     h.fields.channels.push_back(key);
                     h.fields.cnt = (int)h.fields.channels.size();
@@ -225,7 +225,7 @@ public:
             all_value.channel_updated = 0;
             if (pre_pub_channels != pub_channels)
             {
-//                zcm_channels->publish("channels_rep", &h.fields);
+                // zcm_channels->publish("channels_rep", &h.fields);
                 all_value.channel_updated = 1;
                 pre_pub_channels = pub_channels;
                 std::cout << "Update all available channels: " << std::endl;
@@ -237,29 +237,29 @@ public:
 
             for (auto &[key, pair] : parsed_values)
             {
-//                data.set(pair.first, pair.second, (int)parsed_values.size());
-//                buffer_data[key].push_back(data);
-//                if (buffer_data[key].size() > MAX_CACHE_SIZE)
-//                {
-//                    buffer_data[key].pop_front();
-//                }
+                // data.set(pair.first, pair.second, (int)parsed_values.size());
+                // buffer_data[key].push_back(data);
+                // if (buffer_data[key].size() > MAX_CACHE_SIZE)
+                // {
+                //     buffer_data[key].pop_front();
+                // }
                 data.name = key + "_" + uuid.str(); // make sure data channel is unique
                 data.timestamp = pair.first;
                 data.value = pair.second;
                 all_value.channels.push_back(data);
                 all_value.cnt = int(all_value.channels.size());
-//                std::cerr << "  data: " << data.timestamp << ", " << data.value << std::endl;
-//                CLOG_INFO << "bbbbbb";
+                // std::cerr << "  data: " << data.timestamp << ", " << data.value << std::endl;
+                // CLOG_INFO << "bbbbbb";
             }
-//            CLOG_INFO << "all_value";
+            //            CLOG_INFO << "all_value";
             zcm->publish("all_channel_data", &all_value);
             all_value.channels.clear();
             all_value.cnt = 0;
-//            std::cerr << "------------------------------" << std::endl;
-//            CLOG_INFO << "parsed_values size: " << parsed_values.size();
-//            for (const auto &[field, value] : parsed_values) {
-//                CLOG_INFO << "  Field: " << field << ", value: " << value.first << ", " << value.second;
-//            }
+            // std::cerr << "------------------------------" << std::endl;
+            // CLOG_INFO << "parsed_values size: " << parsed_values.size();
+            // for (const auto &[field, value] : parsed_values) {
+            //     CLOG_INFO << "  Field: " << field << ", value: " << value.first << ", " << value.second;
+            // }
         }
 
         return true;
