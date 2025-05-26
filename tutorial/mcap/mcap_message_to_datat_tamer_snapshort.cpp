@@ -19,95 +19,107 @@ void problem(const mcap::Status &status)
     }
 }
 
-class DataTamerMCAPParser
+class McapFileParser
 {
 public:
-    explicit DataTamerMCAPParser(const std::string &filepath) : reader_(),
-          message_view_(std::make_unique<mcap::LinearMessageView>(reader_, problem)),
-          iter_(message_view_->begin()), end_(message_view_->end())
+    std::vector<DataTamerParser::Schema> schemas;
+    std::vector<DataTamerParser::SnapshotView> snapshots;
+
+    explicit McapFileParser() : reader() {}
+
+    bool open(const std::string &filepath)
     {
-        auto status = reader_.open(filepath);
+        // step1: open
+        auto status = reader.open(filepath);
         if (!status.ok())
         {
-            throw std::runtime_error("Failed to open MCAP file: " + status.message);
+            // throw std::runtime_error("Failed to open MCAP file: " + status.message);
+            CLOG_ERROR << "Failed to open MCAP file: " << status.message;
+            return false;
         }
-        loadSchemas();
-    }
-
-    std::optional<DataTamerParser::SnapshotView> next()
-    {
-        if (iter_ == end_)
+        // step2: readSummary
+        status = reader.readSummary(mcap::ReadSummaryMethod::NoFallbackScan, problem);
+        if (!status.ok())
         {
-            return std::nullopt;
+            CLOG_ERROR << "Can't open summary of the file";
+            return -1;
         }
-
-        // 获取当前消息
-        const mcap::MessageView &msgView = *iter_;
-        ++iter_; // 安全递增迭代器
-
-        // 通过channel_name查找对应的Schema
-        const std::string &channel_name = msgView.channel->topic;
-
-        auto schema_it = std::find_if(schemas_.begin(), schemas_.end(),
-                                      [&](const auto &schema)
-                                      {
-                                          return schema.channel_name == channel_name;
-                                      });
-
-        if (schema_it == schemas_.end())
+        // step3: schemas
+        for (const auto &[schema_id, schema] : reader.schemas())
         {
-            return std::nullopt;
-        }
-
-        // 构建SnapshotView
-        DataTamerParser::SnapshotView snapshot;
-        snapshot.schema_hash = schema_it->hash;
-        snapshot.timestamp = msgView.message.logTime;
-        snapshot.active_mask = {
-            reinterpret_cast<const uint8_t *>(msgView.message.data),
-            sizeof(uint64_t) // 假设active_mask占前8字节
-        };
-        snapshot.payload = {reinterpret_cast<const uint8_t *>(msgView.message.data + sizeof(uint64_t)),
-                            msgView.message.dataSize - sizeof(uint64_t)};
-
-        return snapshot;
-    }
-
-    const std::vector<DataTamerParser::Schema> &getSchemas() const
-    {
-        return schemas_;
-    }
-
-private:
-    mcap::McapReader reader_;
-    std::unique_ptr<mcap::LinearMessageView> message_view_;
-    mcap::LinearMessageView::Iterator iter_;
-    mcap::LinearMessageView::Iterator end_;
-    std::vector<DataTamerParser::Schema> schemas_;
-
-    void loadSchemas()
-    {
-        for (const auto &[mcap_schema_id, mcap_schema] : reader_.schemas())
-        {
-            if (mcap_schema->encoding == "data_tamer")
+            if (schema->encoding == "data_tamer")
             {
-                // 将MCAP的Schema.data转换为字符串
-                std::string schema_str(reinterpret_cast<const char *>(mcap_schema->data.data()),
-                                       mcap_schema->data.size());
-
-                // 使用官方函数解析Schema
+                std::string schema_str(reinterpret_cast<const char *>(schema->data.data()), schema->data.size());
                 try
                 {
                     DataTamerParser::Schema dt_schema = DataTamerParser::BuilSchemaFromText(schema_str, true);
-                    schemas_.push_back(dt_schema);
+                    schemas.push_back(dt_schema);
                 }
                 catch (const std::exception &e)
                 {
-                    std::cerr << "Failed to parse schema: " << e.what() << std::endl;
+                    CLOG_ERROR << "Failed to parse schema: " << e.what();
+                    return false;
                 }
             }
         }
+        // step4: snapshots
+        auto messages = reader.readMessages();
+        DataTamerParser::SnapshotView snapshot;
+        for (auto it = messages.begin(); it != messages.end();)
+        {
+            const mcap::MessageView &msgView = *it;
+            const std::string &channel_name = msgView.channel->topic;
+            auto schema_it = std::find_if(schemas.begin(), schemas.end(),
+                                          [&](const auto &schema)
+                                          {
+                                              return schema.channel_name == channel_name;
+                                          });
+
+            if (schema_it == schemas.end())
+            {
+                return false;
+            }
+            const size_t data_size = msgView.message.dataSize;
+            const auto *data_ptr = reinterpret_cast<const uint8_t *>(msgView.message.data);
+            try
+            {
+                SerializeMe::SpanBytesConst buffer(data_ptr, data_size);
+
+                DataTamer::ActiveMask active_mask;
+                DataTamer::PayloadVector payload;
+
+                SerializeMe::DeserializeFromBuffer(buffer, active_mask);
+                SerializeMe::DeserializeFromBuffer(buffer, payload);
+
+                snapshot.schema_hash = schema_it->hash;
+                snapshot.timestamp = msgView.message.logTime;
+                snapshot.active_mask = {active_mask.data(), active_mask.size()};
+                snapshot.payload = {payload.data(), payload.size()};
+            }
+            catch (const std::exception &e)
+            {
+                CLOG_ERROR << "Failed to deserialize snapshot: " << e.what();
+                return false;
+            }
+            ++it;
+            snapshots.push_back(snapshot);
+        }
+        return true;
     }
+
+private:
+    mcap::McapReader reader;
 };
 
-int main() {}
+int main()
+{
+    std::string filepath("/home/liuqiang/ClionProjects/RobotSimulator/cmake-build-debug/bin/test_sample.mcap");
+    McapFileParser parser;
+    if (parser.open(filepath))
+    {
+        for (auto &schema : parser.schemas)
+        {
+            CLOG_INFO << schema.channel_name;
+        }
+    }
+}
