@@ -22,6 +22,7 @@
 #include "all_timed_value.hpp"
 #include <thread>
 #include <atomic>
+#include <UUID.h>
 
 namespace DataTamer
 {
@@ -71,6 +72,7 @@ public:
     Handler h;
     std::atomic_bool exit{false};
     std::condition_variable_any cv;
+    UUID uuid{UUID::Version::v4};
 
     PublishSink()
     {
@@ -241,7 +243,7 @@ public:
 //                {
 //                    buffer_data[key].pop_front();
 //                }
-                data.name = key;
+                data.name = key + uuid.str(); // make sure data channel is unique
                 data.timestamp = pair.first;
                 data.value = pair.second;
                 all_value.channels.push_back(data);
