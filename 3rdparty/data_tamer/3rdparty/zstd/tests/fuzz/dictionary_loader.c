@@ -25,42 +25,42 @@
 /**
  * Compresses the data and returns the compressed size or an error.
  */
-static size_t compress(void *compressed,
-                       size_t compressedCapacity,
-                       void const *source,
-                       size_t sourceSize,
-                       void const *dict,
-                       size_t dictSize,
+static size_t compress(void* compressed, size_t compressedCapacity,
+                       void const* source, size_t sourceSize,
+                       void const* dict, size_t dictSize,
                        ZSTD_dictLoadMethod_e dictLoadMethod,
                        ZSTD_dictContentType_e dictContentType,
                        int const refPrefix)
 {
-    ZSTD_CCtx *cctx = ZSTD_createCCtx();
+    ZSTD_CCtx* cctx = ZSTD_createCCtx();
     if (refPrefix)
-        FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(cctx, dict, dictSize, dictContentType));
+        FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(
+            cctx, dict, dictSize, dictContentType));
     else
-        FUZZ_ZASSERT(ZSTD_CCtx_loadDictionary_advanced(cctx, dict, dictSize, dictLoadMethod, dictContentType));
-    size_t const compressedSize = ZSTD_compress2(cctx, compressed, compressedCapacity, source, sourceSize);
+        FUZZ_ZASSERT(ZSTD_CCtx_loadDictionary_advanced(
+            cctx, dict, dictSize, dictLoadMethod, dictContentType));
+    size_t const compressedSize = ZSTD_compress2(
+            cctx, compressed, compressedCapacity, source, sourceSize);
     ZSTD_freeCCtx(cctx);
     return compressedSize;
 }
 
-static size_t decompress(void *result,
-                         size_t resultCapacity,
-                         void const *compressed,
-                         size_t compressedSize,
-                         void const *dict,
-                         size_t dictSize,
-                         ZSTD_dictLoadMethod_e dictLoadMethod,
+static size_t decompress(void* result, size_t resultCapacity,
+                         void const* compressed, size_t compressedSize,
+                         void const* dict, size_t dictSize,
+                       ZSTD_dictLoadMethod_e dictLoadMethod,
                          ZSTD_dictContentType_e dictContentType,
                          int const refPrefix)
 {
-    ZSTD_DCtx *dctx = ZSTD_createDCtx();
+    ZSTD_DCtx* dctx = ZSTD_createDCtx();
     if (refPrefix)
-        FUZZ_ZASSERT(ZSTD_DCtx_refPrefix_advanced(dctx, dict, dictSize, dictContentType));
+        FUZZ_ZASSERT(ZSTD_DCtx_refPrefix_advanced(
+            dctx, dict, dictSize, dictContentType));
     else
-        FUZZ_ZASSERT(ZSTD_DCtx_loadDictionary_advanced(dctx, dict, dictSize, dictLoadMethod, dictContentType));
-    size_t const resultSize = ZSTD_decompressDCtx(dctx, result, resultCapacity, compressed, compressedSize);
+        FUZZ_ZASSERT(ZSTD_DCtx_loadDictionary_advanced(
+            dctx, dict, dictSize, dictLoadMethod, dictContentType));
+    size_t const resultSize = ZSTD_decompressDCtx(
+            dctx, result, resultCapacity, compressed, compressedSize);
     FUZZ_ZASSERT(resultSize);
     ZSTD_freeDCtx(dctx);
     return resultSize;
@@ -71,26 +71,29 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_SEQ_PROD_SETUP();
     FUZZ_dataProducer_t *producer = FUZZ_dataProducer_create(src, size);
     int const refPrefix = FUZZ_dataProducer_uint32Range(producer, 0, 1) != 0;
-    ZSTD_dictLoadMethod_e const dlm = size = FUZZ_dataProducer_uint32Range(producer, 0, 1);
-    ZSTD_dictContentType_e const dct = FUZZ_dataProducer_uint32Range(producer, 0, 2);
+    ZSTD_dictLoadMethod_e const dlm =
+    size = FUZZ_dataProducer_uint32Range(producer, 0, 1);
+    ZSTD_dictContentType_e const dct =
+            FUZZ_dataProducer_uint32Range(producer, 0, 2);
     size = FUZZ_dataProducer_remainingBytes(producer);
 
     DEBUGLOG(4, "Dict load method %d", dlm);
     DEBUGLOG(4, "Dict content type %d", dct);
     DEBUGLOG(4, "Dict size %u", (unsigned)size);
 
-    void *const rBuf = FUZZ_malloc(size);
+    void* const rBuf = FUZZ_malloc(size);
     size_t const cBufSize = ZSTD_compressBound(size);
-    void *const cBuf = FUZZ_malloc(cBufSize);
+    void* const cBuf = FUZZ_malloc(cBufSize);
 
-    size_t const cSize = compress(cBuf, cBufSize, src, size, src, size, dlm, dct, refPrefix);
+    size_t const cSize =
+            compress(cBuf, cBufSize, src, size, src, size, dlm, dct, refPrefix);
     /* compression failing is okay */
-    if (ZSTD_isError(cSize))
-    {
-        FUZZ_ASSERT_MSG(dct != ZSTD_dct_rawContent, "Raw must always succeed!");
-        goto out;
+    if (ZSTD_isError(cSize)) {
+      FUZZ_ASSERT_MSG(dct != ZSTD_dct_rawContent, "Raw must always succeed!");
+      goto out;
     }
-    size_t const rSize = decompress(rBuf, size, cBuf, cSize, src, size, dlm, dct, refPrefix);
+    size_t const rSize =
+            decompress(rBuf, size, cBuf, cSize, src, size, dlm, dct, refPrefix);
     FUZZ_ASSERT_MSG(rSize == size, "Incorrect regenerated size");
     FUZZ_ASSERT_MSG(!FUZZ_memcmp(src, rBuf, size), "Corruption!");
 

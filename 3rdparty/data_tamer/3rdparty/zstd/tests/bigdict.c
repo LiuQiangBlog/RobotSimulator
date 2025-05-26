@@ -18,21 +18,17 @@
 #define ZSTD_STATIC_LINKING_ONLY
 #include "zstd.h"
 
-static int compress(ZSTD_CCtx *cctx,
-                    ZSTD_DCtx *dctx,
-                    void *dst,
-                    size_t dstCapacity,
-                    void const *src,
-                    size_t srcSize,
-                    void *roundtrip,
-                    ZSTD_EndDirective end)
+static int
+compress(ZSTD_CCtx* cctx, ZSTD_DCtx* dctx,
+         void* dst, size_t dstCapacity,
+         void const* src, size_t srcSize,
+         void* roundtrip, ZSTD_EndDirective end)
 {
     ZSTD_inBuffer in = {src, srcSize, 0};
     ZSTD_outBuffer out = {dst, dstCapacity, 0};
     int ended = 0;
 
-    while (!ended && (in.pos < in.size || out.pos > 0))
-    {
+    while (!ended && (in.pos < in.size || out.pos > 0)) {
         size_t rc;
         out.pos = 0;
         rc = ZSTD_compressStream2(cctx, &out, &in, end);
@@ -44,20 +40,17 @@ static int compress(ZSTD_CCtx *cctx,
             ZSTD_inBuffer rtIn = {dst, out.pos, 0};
             ZSTD_outBuffer rtOut = {roundtrip, srcSize, 0};
             rc = 1;
-            while (rtIn.pos < rtIn.size || rtOut.pos > 0)
-            {
+            while (rtIn.pos < rtIn.size || rtOut.pos > 0) {
                 rtOut.pos = 0;
                 rc = ZSTD_decompressStream(dctx, &rtOut, &rtIn);
-                if (ZSTD_isError(rc))
-                {
+                if (ZSTD_isError(rc)) {
                     fprintf(stderr, "Decompression error: %s\n", ZSTD_getErrorName(rc));
                     return 1;
                 }
                 if (rc == 0)
                     break;
             }
-            if (ended && rc != 0)
-            {
+            if (ended && rc != 0) {
                 fprintf(stderr, "Frame not finished!\n");
                 return 1;
             }
@@ -67,22 +60,21 @@ static int compress(ZSTD_CCtx *cctx,
     return 0;
 }
 
-int main(int argc, const char **argv)
+int main(int argc, const char** argv)
 {
-    ZSTD_CCtx *cctx = ZSTD_createCCtx();
-    ZSTD_DCtx *dctx = ZSTD_createDCtx();
+    ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    ZSTD_DCtx* dctx = ZSTD_createDCtx();
     const size_t dataSize = (size_t)1 << 30;
     const size_t outSize = ZSTD_compressBound(dataSize);
     const size_t bufferSize = (size_t)1 << 31;
-    char *buffer = (char *)malloc(bufferSize);
-    void *out = malloc(outSize);
-    void *roundtrip = malloc(dataSize);
+    char* buffer = (char*)malloc(bufferSize);
+    void* out = malloc(outSize);
+    void* roundtrip = malloc(dataSize);
     int _exit_code = 0;
     (void)argc;
     (void)argv;
 
-    if (!buffer || !out || !roundtrip || !cctx || !dctx)
-    {
+    if (!buffer || !out || !roundtrip || !cctx || !dctx) {
         fprintf(stderr, "Allocation failure\n");
         _exit_code = 1;
         goto cleanup;
@@ -117,8 +109,7 @@ int main(int argc, const char **argv)
     /* Compress 30 GB */
     {
         int i;
-        for (i = 0; i < 10; ++i)
-        {
+        for (i = 0; i < 10; ++i) {
             fprintf(stderr, "Compressing 1 GB\n");
             if (compress(cctx, dctx, out, outSize, buffer, dataSize, roundtrip, ZSTD_e_continue))
                 return 1;

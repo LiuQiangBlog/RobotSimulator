@@ -10,8 +10,7 @@
 
 #include <utility>
 
-namespace pzstd
-{
+namespace pzstd {
 
 /**
  * Dismissable scope guard.
@@ -24,32 +23,28 @@ namespace pzstd
  *   auto guard = makeScopeGuard([&] { cleanup(); });
  */
 template <typename Function>
-class ScopeGuard
-{
-    Function function;
-    bool dismissed;
+class ScopeGuard {
+  Function function;
+  bool dismissed;
 
-public:
-    explicit ScopeGuard(Function &&function) : function(std::move(function)), dismissed(false) {}
+ public:
+  explicit ScopeGuard(Function&& function)
+      : function(std::move(function)), dismissed(false) {}
 
-    void dismiss()
-    {
-        dismissed = true;
+  void dismiss() {
+    dismissed = true;
+  }
+
+  ~ScopeGuard() noexcept {
+    if (!dismissed) {
+      function();
     }
-
-    ~ScopeGuard() noexcept
-    {
-        if (!dismissed)
-        {
-            function();
-        }
-    }
+  }
 };
 
 /// Creates a scope guard from `function`.
 template <typename Function>
-ScopeGuard<Function> makeScopeGuard(Function &&function)
-{
-    return ScopeGuard<Function>(std::forward<Function>(function));
+ScopeGuard<Function> makeScopeGuard(Function&& function) {
+  return ScopeGuard<Function>(std::forward<Function>(function));
 }
-} // namespace pzstd
+}

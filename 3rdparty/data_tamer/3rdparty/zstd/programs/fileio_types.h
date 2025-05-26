@@ -11,44 +11,30 @@
 #ifndef FILEIO_TYPES_HEADER
 #define FILEIO_TYPES_HEADER
 
-#define ZSTD_STATIC_LINKING_ONLY /* ZSTD_compressionParameters */
-#include "../lib/zstd.h"         /* ZSTD_* */
+#define ZSTD_STATIC_LINKING_ONLY   /* ZSTD_compressionParameters */
+#include "../lib/zstd.h"           /* ZSTD_* */
 
 /*-*************************************
- *  Parameters: FIO_prefs_t
- ***************************************/
+*  Parameters: FIO_prefs_t
+***************************************/
 
 typedef struct FIO_display_prefs_s FIO_display_prefs_t;
 
-typedef enum
-{
-    FIO_ps_auto,
-    FIO_ps_never,
-    FIO_ps_always
-} FIO_progressSetting_e;
+typedef enum { FIO_ps_auto, FIO_ps_never, FIO_ps_always } FIO_progressSetting_e;
 
-struct FIO_display_prefs_s
-{
-    int displayLevel; /* 0 : no display;  1: errors;  2: + result + interaction + warnings;  3: + progression;  4: +
-                         information */
+struct FIO_display_prefs_s {
+    int displayLevel;   /* 0 : no display;  1: errors;  2: + result + interaction + warnings;  3: + progression;  4: + information */
     FIO_progressSetting_e progressSetting;
 };
 
-typedef enum
-{
-    FIO_zstdCompression,
-    FIO_gzipCompression,
-    FIO_xzCompression,
-    FIO_lzmaCompression,
-    FIO_lz4Compression
-} FIO_compressionType_t;
 
-typedef struct FIO_prefs_s
-{
+typedef enum { FIO_zstdCompression, FIO_gzipCompression, FIO_xzCompression, FIO_lzmaCompression, FIO_lz4Compression } FIO_compressionType_t;
+
+typedef struct FIO_prefs_s {
 
     /* Algorithm preferences */
     FIO_compressionType_t compressionType;
-    int sparseFileSupport; /* 0: no sparse allowed; 1: auto (file yes, stdout no); 2: force sparse */
+    int sparseFileSupport;   /* 0: no sparse allowed; 1: auto (file yes, stdout no); 2: force sparse */
     int dictIDFlag;
     int checksumFlag;
     int blockSize;
@@ -86,15 +72,10 @@ typedef struct FIO_prefs_s
     ZSTD_ParamSwitch_e mmapDict;
 } FIO_prefs_t;
 
-typedef enum
-{
-    FIO_mallocDict,
-    FIO_mmapDict
-} FIO_dictBufferType_t;
+typedef enum {FIO_mallocDict, FIO_mmapDict} FIO_dictBufferType_t;
 
-typedef struct
-{
-    void *dictBuffer;
+typedef struct {
+    void* dictBuffer;
     size_t dictBufferSize;
     FIO_dictBufferType_t dictBufferType;
 #if defined(_MSC_VER) || defined(_WIN32)

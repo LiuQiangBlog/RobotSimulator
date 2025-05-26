@@ -8,6 +8,7 @@
  * You may select, at your option, one of the above-listed licenses.
  */
 
+
 #include "pool.h"
 #include "threading.h"
 #include "util.h"
@@ -15,89 +16,79 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#define ASSERT_TRUE(p) \
-    do                 \
-    {                  \
-        if (!(p))      \
-        {              \
-            return 1;  \
-        }              \
-    } while (0)
+#define ASSERT_TRUE(p)                                                       \
+  do {                                                                       \
+    if (!(p)) {                                                              \
+      return 1;                                                              \
+    }                                                                        \
+  } while (0)
 #define ASSERT_FALSE(p) ASSERT_TRUE(!(p))
 #define ASSERT_EQ(lhs, rhs) ASSERT_TRUE((lhs) == (rhs))
 
-struct data
-{
-    ZSTD_pthread_mutex_t mutex;
-    unsigned data[16];
-    size_t i;
+struct data {
+  ZSTD_pthread_mutex_t mutex;
+  unsigned data[16];
+  size_t i;
 };
 
 static void fn(void *opaque)
 {
-    struct data *data = (struct data *)opaque;
-    ZSTD_pthread_mutex_lock(&data->mutex);
-    data->data[data->i] = (unsigned)(data->i);
-    ++data->i;
-    ZSTD_pthread_mutex_unlock(&data->mutex);
+  struct data *data = (struct data *)opaque;
+  ZSTD_pthread_mutex_lock(&data->mutex);
+  data->data[data->i] = (unsigned)(data->i);
+  ++data->i;
+  ZSTD_pthread_mutex_unlock(&data->mutex);
 }
 
 static int testOrder(size_t numThreads, size_t queueSize)
 {
-    struct data data;
-    POOL_ctx *const ctx = POOL_create(numThreads, queueSize);
-    ASSERT_TRUE(ctx);
-    data.i = 0;
-    ASSERT_FALSE(ZSTD_pthread_mutex_init(&data.mutex, NULL));
-    {
-        size_t i;
-        for (i = 0; i < 16; ++i)
-        {
-            POOL_add(ctx, &fn, &data);
-        }
+  struct data data;
+  POOL_ctx* const ctx = POOL_create(numThreads, queueSize);
+  ASSERT_TRUE(ctx);
+  data.i = 0;
+  ASSERT_FALSE(ZSTD_pthread_mutex_init(&data.mutex, NULL));
+  { size_t i;
+    for (i = 0; i < 16; ++i) {
+      POOL_add(ctx, &fn, &data);
     }
-    POOL_free(ctx);
-    ASSERT_EQ(16, data.i);
-    {
-        size_t i;
-        for (i = 0; i < data.i; ++i)
-        {
-            ASSERT_EQ(i, data.data[i]);
-        }
+  }
+  POOL_free(ctx);
+  ASSERT_EQ(16, data.i);
+  { size_t i;
+    for (i = 0; i < data.i; ++i) {
+      ASSERT_EQ(i, data.data[i]);
     }
-    ZSTD_pthread_mutex_destroy(&data.mutex);
-    return 0;
+  }
+  ZSTD_pthread_mutex_destroy(&data.mutex);
+  return 0;
 }
+
 
 /* --- test deadlocks --- */
 
-static void waitFn(void *opaque)
-{
-    (void)opaque;
-    UTIL_sleepMilli(1);
+static void waitFn(void *opaque) {
+  (void)opaque;
+  UTIL_sleepMilli(1);
 }
 
 /* Tests for deadlock */
-static int testWait(size_t numThreads, size_t queueSize)
-{
-    struct data data;
-    POOL_ctx *const ctx = POOL_create(numThreads, queueSize);
-    ASSERT_TRUE(ctx);
-    {
-        size_t i;
-        for (i = 0; i < 16; ++i)
-        {
-            POOL_add(ctx, &waitFn, &data);
-        }
+static int testWait(size_t numThreads, size_t queueSize) {
+  struct data data;
+  POOL_ctx* const ctx = POOL_create(numThreads, queueSize);
+  ASSERT_TRUE(ctx);
+  { size_t i;
+    for (i = 0; i < 16; ++i) {
+        POOL_add(ctx, &waitFn, &data);
     }
-    POOL_free(ctx);
-    return 0;
+  }
+  POOL_free(ctx);
+  return 0;
 }
+
 
 /* --- test POOL_resize() --- */
 
-typedef struct
-{
+typedef struct {
     ZSTD_pthread_mutex_t mut;
     int countdown;
     int val;
@@ -105,26 +96,25 @@ typedef struct
     ZSTD_pthread_cond_t cond;
 } poolTest_t;
 
-static void waitLongFn(void *opaque)
-{
-    poolTest_t *const test = (poolTest_t *)opaque;
-    ZSTD_pthread_mutex_lock(&test->mut);
-    test->val++;
-    if (test->val > test->max)
-        test->max = test->val;
-    ZSTD_pthread_mutex_unlock(&test->mut);
+static void waitLongFn(void *opaque) {
+  poolTest_t* const test = (poolTest_t*) opaque;
+  ZSTD_pthread_mutex_lock(&test->mut);
+  test->val++;
+  if (test->val > test->max)
+      test->max = test->val;
+  ZSTD_pthread_mutex_unlock(&test->mut);
 
-    UTIL_sleepMilli(10);
+  UTIL_sleepMilli(10);
 
-    ZSTD_pthread_mutex_lock(&test->mut);
-    test->val--;
-    test->countdown--;
-    if (test->countdown == 0)
-        ZSTD_pthread_cond_signal(&test->cond);
-    ZSTD_pthread_mutex_unlock(&test->mut);
+  ZSTD_pthread_mutex_lock(&test->mut);
+  test->val--;
+  test->countdown--;
+  if (test->countdown == 0)
+      ZSTD_pthread_cond_signal(&test->cond);
+  ZSTD_pthread_mutex_unlock(&test->mut);
 }
 
-static int testThreadReduction_internal(POOL_ctx *ctx, poolTest_t test)
+static int testThreadReduction_internal(POOL_ctx* ctx, poolTest_t test)
 {
     int const nbWaits = 16;
 
@@ -132,9 +122,8 @@ static int testThreadReduction_internal(POOL_ctx *ctx, poolTest_t test)
     test.val = 0;
     test.max = 0;
 
-    {
-        int i;
-        for (i = 0; i < nbWaits; i++)
+    {   int i;
+        for (i=0; i<nbWaits; i++)
             POOL_add(ctx, &waitLongFn, &test);
     }
     ZSTD_pthread_mutex_lock(&test.mut);
@@ -144,13 +133,12 @@ static int testThreadReduction_internal(POOL_ctx *ctx, poolTest_t test)
     ASSERT_EQ(test.max, 4);
     ZSTD_pthread_mutex_unlock(&test.mut);
 
-    ASSERT_EQ(POOL_resize(ctx, 2 /*nbThreads*/), 0);
+    ASSERT_EQ( POOL_resize(ctx, 2/*nbThreads*/) , 0 );
     test.countdown = nbWaits;
     test.val = 0;
     test.max = 0;
-    {
-        int i;
-        for (i = 0; i < nbWaits; i++)
+    {   int i;
+        for (i=0; i<nbWaits; i++)
             POOL_add(ctx, &waitLongFn, &test);
     }
     ZSTD_pthread_mutex_lock(&test.mut);
@@ -163,17 +151,16 @@ static int testThreadReduction_internal(POOL_ctx *ctx, poolTest_t test)
     return 0;
 }
 
-static int testThreadReduction(void)
-{
+static int testThreadReduction(void) {
     int result;
     poolTest_t test;
-    POOL_ctx *const ctx = POOL_create(4 /*nbThreads*/, 2 /*queueSize*/);
+    POOL_ctx* const ctx = POOL_create(4 /*nbThreads*/, 2 /*queueSize*/);
 
     ASSERT_TRUE(ctx);
 
     memset(&test, 0, sizeof(test));
-    ASSERT_FALSE(ZSTD_pthread_mutex_init(&test.mut, NULL));
-    ASSERT_FALSE(ZSTD_pthread_cond_init(&test.cond, NULL));
+    ASSERT_FALSE( ZSTD_pthread_mutex_init(&test.mut, NULL) );
+    ASSERT_FALSE( ZSTD_pthread_cond_init(&test.cond, NULL) );
 
     result = testThreadReduction_internal(ctx, test);
 
@@ -184,50 +171,47 @@ static int testThreadReduction(void)
     return result;
 }
 
+
 /* --- test abrupt ending --- */
 
-typedef struct
-{
+typedef struct {
     ZSTD_pthread_mutex_t mut;
     int val;
 } abruptEndCanary_t;
 
-static void waitIncFn(void *opaque)
-{
-    abruptEndCanary_t *test = (abruptEndCanary_t *)opaque;
-    UTIL_sleepMilli(10);
-    ZSTD_pthread_mutex_lock(&test->mut);
-    test->val = test->val + 1;
-    ZSTD_pthread_mutex_unlock(&test->mut);
+static void waitIncFn(void *opaque) {
+  abruptEndCanary_t* test = (abruptEndCanary_t*) opaque;
+  UTIL_sleepMilli(10);
+  ZSTD_pthread_mutex_lock(&test->mut);
+  test->val = test->val + 1;
+  ZSTD_pthread_mutex_unlock(&test->mut);
 }
 
 static int testAbruptEnding_internal(abruptEndCanary_t test)
 {
     int const nbWaits = 16;
 
-    POOL_ctx *const ctx = POOL_create(3 /*numThreads*/, nbWaits /*queueSize*/);
+    POOL_ctx* const ctx = POOL_create(3 /*numThreads*/, nbWaits /*queueSize*/);
     ASSERT_TRUE(ctx);
     test.val = 0;
 
-    {
-        int i;
-        for (i = 0; i < nbWaits; i++)
-            POOL_add(ctx, &waitIncFn, &test); /* all jobs pushed into queue */
+    {   int i;
+        for (i=0; i<nbWaits; i++)
+            POOL_add(ctx, &waitIncFn, &test);  /* all jobs pushed into queue */
     }
-    ASSERT_EQ(POOL_resize(ctx, 1 /*numThreads*/), 0); /* downsize numThreads, to try to break end condition */
+    ASSERT_EQ( POOL_resize(ctx, 1 /*numThreads*/) , 0 );   /* downsize numThreads, to try to break end condition */
 
-    POOL_free(ctx); /* must finish all jobs in queue before giving back control */
+    POOL_free(ctx);  /* must finish all jobs in queue before giving back control */
     ASSERT_EQ(test.val, nbWaits);
     return 0;
 }
 
-static int testAbruptEnding(void)
-{
+static int testAbruptEnding(void) {
     int result;
     abruptEndCanary_t test;
 
     memset(&test, 0, sizeof(test));
-    ASSERT_FALSE(ZSTD_pthread_mutex_init(&test.mut, NULL));
+    ASSERT_FALSE( ZSTD_pthread_mutex_init(&test.mut, NULL) );
 
     result = testAbruptEnding_internal(test);
 
@@ -235,62 +219,53 @@ static int testAbruptEnding(void)
     return result;
 }
 
+
+
 /* --- test launcher --- */
 
-int main(int argc, const char **argv)
-{
-    size_t numThreads;
-    (void)argc;
-    (void)argv;
+int main(int argc, const char **argv) {
+  size_t numThreads;
+  (void)argc;
+  (void)argv;
 
-    if (POOL_create(0, 1))
-    { /* should not be possible */
-        printf("FAIL: should not create POOL with 0 threads\n");
+  if (POOL_create(0, 1)) {   /* should not be possible */
+    printf("FAIL: should not create POOL with 0 threads\n");
+    return 1;
+  }
+
+  for (numThreads = 1; numThreads <= 4; ++numThreads) {
+    size_t queueSize;
+    for (queueSize = 0; queueSize <= 2; ++queueSize) {
+      printf("queueSize==%u, numThreads=%u \n",
+            (unsigned)queueSize, (unsigned)numThreads);
+      if (testOrder(numThreads, queueSize)) {
+        printf("FAIL: testOrder\n");
         return 1;
-    }
-
-    for (numThreads = 1; numThreads <= 4; ++numThreads)
-    {
-        size_t queueSize;
-        for (queueSize = 0; queueSize <= 2; ++queueSize)
-        {
-            printf("queueSize==%u, numThreads=%u \n", (unsigned)queueSize, (unsigned)numThreads);
-            if (testOrder(numThreads, queueSize))
-            {
-                printf("FAIL: testOrder\n");
-                return 1;
-            }
-            printf("SUCCESS: testOrder\n");
-            if (testWait(numThreads, queueSize))
-            {
-                printf("FAIL: testWait\n");
-                return 1;
-            }
-            printf("SUCCESS: testWait\n");
-        }
-    }
-
-    if (testThreadReduction())
-    {
-        printf("FAIL: thread reduction not effective \n");
+      }
+      printf("SUCCESS: testOrder\n");
+      if (testWait(numThreads, queueSize)) {
+        printf("FAIL: testWait\n");
         return 1;
+      }
+      printf("SUCCESS: testWait\n");
     }
-    else
-    {
-        printf("SUCCESS: thread reduction effective \n");
-    }
+  }
 
-    if (testAbruptEnding())
-    {
-        printf("FAIL: jobs in queue not completed on early end \n");
-        return 1;
-    }
-    else
-    {
-        printf("SUCCESS: all jobs in queue completed on early end \n");
-    }
+  if (testThreadReduction()) {
+      printf("FAIL: thread reduction not effective \n");
+      return 1;
+  } else {
+      printf("SUCCESS: thread reduction effective \n");
+  }
 
-    printf("PASS: all POOL tests\n");
+  if (testAbruptEnding()) {
+      printf("FAIL: jobs in queue not completed on early end \n");
+      return 1;
+  } else {
+      printf("SUCCESS: all jobs in queue completed on early end \n");
+  }
 
-    return 0;
+  printf("PASS: all POOL tests\n");
+
+  return 0;
 }

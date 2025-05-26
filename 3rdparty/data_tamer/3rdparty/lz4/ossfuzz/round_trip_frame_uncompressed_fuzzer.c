@@ -15,36 +15,33 @@
 #include "lz4frame.h"
 #include "lz4frame_static.h"
 
-static void decompress(LZ4F_dctx *dctx, void *src, void *dst, size_t dstCapacity, size_t readSize)
-{
+static void decompress(LZ4F_dctx *dctx, void *src, void *dst,
+                       size_t dstCapacity, size_t readSize) {
     size_t ret = 1;
-    const void *srcPtr = (const char *)src;
-    void *dstPtr = (char *)dst;
-    const void *const srcEnd = (const char *)srcPtr + readSize;
+    const void *srcPtr = (const char *) src;
+    void *dstPtr = (char *) dst;
+    const void *const srcEnd = (const char *) srcPtr + readSize;
 
-    while (ret != 0)
-    {
-        while (srcPtr < srcEnd && ret != 0)
-        {
+    while (ret != 0) {
+        while (srcPtr < srcEnd && ret != 0) {
             /* Any data within dst has been flushed at this stage */
             size_t dstSize = dstCapacity;
-            size_t srcSize = (const char *)srcEnd - (const char *)srcPtr;
+            size_t srcSize = (const char *) srcEnd - (const char *) srcPtr;
             ret = LZ4F_decompress(dctx, dstPtr, &dstSize, srcPtr, &srcSize,
-                                  /* LZ4F_decompressOptions_t */ NULL);
+                    /* LZ4F_decompressOptions_t */ NULL);
             FUZZ_ASSERT(!LZ4F_isError(ret));
 
             /* Update input */
-            srcPtr = (const char *)srcPtr + srcSize;
-            dstPtr = (char *)dstPtr + dstSize;
+            srcPtr = (const char *) srcPtr + srcSize;
+            dstPtr = (char *) dstPtr + dstSize;
         }
 
         FUZZ_ASSERT(srcPtr <= srcEnd);
     }
 }
 
-static void
-compress_round_trip(const uint8_t *data, size_t size, FUZZ_dataProducer_t *producer, LZ4F_preferences_t const prefs)
-{
+static void compress_round_trip(const uint8_t *data, size_t size,
+                                FUZZ_dataProducer_t *producer, LZ4F_preferences_t const prefs) {
 
     // Choose random uncompressed offset start and end by producing seeds from random data, calculate the remaining
     // data size that will be used for compression later and use the seeds to actually calculate the offsets
@@ -60,10 +57,12 @@ compress_round_trip(const uint8_t *data, size_t size, FUZZ_dataProducer_t *produ
 
     const uint8_t *const uncompressedData = data + uncompressedOffset;
 
-    size_t const dstCapacity = LZ4F_compressFrameBound(LZ4_compressBound(size), &prefs) + uncompressedSize;
-    char *const dst = (char *)malloc(dstCapacity);
+    size_t const dstCapacity =
+            LZ4F_compressFrameBound(LZ4_compressBound(size), &prefs) +
+            uncompressedSize;
+    char *const dst = (char *) malloc(dstCapacity);
     size_t rtCapacity = dstCapacity;
-    char *const rt = (char *)malloc(rtCapacity);
+    char *const rt = (char *) malloc(rtCapacity);
 
     FUZZ_ASSERT(dst);
     FUZZ_ASSERT(rt);
@@ -78,18 +77,20 @@ compress_round_trip(const uint8_t *data, size_t size, FUZZ_dataProducer_t *produ
     size_t compressedSize = headerSize;
 
     /* Compress data before uncompressed offset */
-    size_t lz4Return = LZ4F_compressUpdate(ctx, dst + compressedSize, dstCapacity, data, uncompressedOffset, NULL);
+    size_t lz4Return = LZ4F_compressUpdate(ctx, dst + compressedSize, dstCapacity,
+                                           data, uncompressedOffset, NULL);
     FUZZ_ASSERT(!LZ4F_isError(lz4Return));
     compressedSize += lz4Return;
 
     /* Add uncompressed data */
-    lz4Return =
-        LZ4F_uncompressedUpdate(ctx, dst + compressedSize, dstCapacity, uncompressedData, uncompressedSize, NULL);
+    lz4Return = LZ4F_uncompressedUpdate(ctx, dst + compressedSize, dstCapacity,
+                                        uncompressedData, uncompressedSize, NULL);
     FUZZ_ASSERT(!LZ4F_isError(lz4Return));
     compressedSize += lz4Return;
 
     /* Compress data after uncompressed offset */
-    lz4Return = LZ4F_compressUpdate(ctx, dst + compressedSize, dstCapacity, data + uncompressedEndOffset,
+    lz4Return = LZ4F_compressUpdate(ctx, dst + compressedSize, dstCapacity,
+                                    data + uncompressedEndOffset,
                                     size - uncompressedEndOffset, NULL);
     FUZZ_ASSERT(!LZ4F_isError(lz4Return));
     compressedSize += lz4Return;
@@ -119,16 +120,15 @@ compress_round_trip(const uint8_t *data, size_t size, FUZZ_dataProducer_t *produ
     LZ4F_freeCompressionContext(ctx);
 }
 
-static void compress_independent_block_mode(const uint8_t *data, size_t size)
-{
+static void compress_independent_block_mode(const uint8_t *data, size_t size) {
     FUZZ_dataProducer_t *producer = FUZZ_dataProducer_create(data, size);
     LZ4F_preferences_t prefs = FUZZ_dataProducer_preferences(producer);
     prefs.frameInfo.blockMode = LZ4F_blockIndependent;
     compress_round_trip(data, size, producer, prefs);
 }
 
-int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
-{
+
+int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     compress_independent_block_mode(data, size);
     return 0;
 }

@@ -31,10 +31,8 @@ REL_EXCLUDES = [
     "contrib/linux-kernel/test/include",
 ]
 
-
 def to_abs(d):
     return os.path.normpath(os.path.join(ROOT, d)) + "/"
-
 
 DIRS = [to_abs(d) for d in RELDIRS]
 EXCLUDES = [to_abs(d) for d in REL_EXCLUDES]
@@ -135,7 +133,6 @@ def exclude(filename):
             return True
     return False
 
-
 def main():
     invalid_files = []
     for directory in DIRS:
@@ -154,7 +151,6 @@ def main():
     else:
         print("Pass!", file=sys.stderr)
         return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

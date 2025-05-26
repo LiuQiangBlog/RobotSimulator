@@ -32,8 +32,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_dataProducer_t *producer = FUZZ_dataProducer_create(src, size);
     size = FUZZ_dataProducer_reserveDataPrefix(producer);
 
-    if (!dctx)
-    {
+    if (!dctx) {
         dctx = ZSTD_createDCtx();
         FUZZ_ASSERT(dctx);
     }
@@ -42,8 +41,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
         size_t const bufSize = FUZZ_dataProducer_uint32Range(producer, 0, 10 * size);
         void *rBuf = FUZZ_malloc(bufSize);
         size_t const dSize = ZSTD_decompressDCtx(dctx, rBuf, bufSize, src, size);
-        if (!ZSTD_isError(dSize))
-        {
+        if (!ZSTD_isError(dSize)) {
             /* If decompression was successful, the content size from the frame header(s) should be valid. */
             unsigned long long const expectedSize = ZSTD_findDecompressedSize(src, size);
             FUZZ_ASSERT(expectedSize != ZSTD_CONTENTSIZE_ERROR);
@@ -55,8 +53,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_dataProducer_free(producer);
 
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeDCtx(dctx);
-    dctx = NULL;
+    ZSTD_freeDCtx(dctx); dctx = NULL;
 #endif
     return 0;
 }

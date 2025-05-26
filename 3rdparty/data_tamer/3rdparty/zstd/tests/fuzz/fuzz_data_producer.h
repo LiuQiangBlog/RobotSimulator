@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 /* Struct used for maintaining the state of the data */
 typedef struct FUZZ_dataProducer_s FUZZ_dataProducer_t;
 
@@ -34,13 +35,15 @@ FUZZ_dataProducer_t *FUZZ_dataProducer_create(const uint8_t *data, size_t size);
 void FUZZ_dataProducer_free(FUZZ_dataProducer_t *producer);
 
 /* Returns value between [min, max] */
-uint32_t FUZZ_dataProducer_uint32Range(FUZZ_dataProducer_t *producer, uint32_t min, uint32_t max);
+uint32_t FUZZ_dataProducer_uint32Range(FUZZ_dataProducer_t *producer, uint32_t min,
+                                  uint32_t max);
 
 /* Returns a uint32 value */
 uint32_t FUZZ_dataProducer_uint32(FUZZ_dataProducer_t *producer);
 
 /* Returns a signed value between [min, max] */
-int32_t FUZZ_dataProducer_int32Range(FUZZ_dataProducer_t *producer, int32_t min, int32_t max);
+int32_t FUZZ_dataProducer_int32Range(FUZZ_dataProducer_t *producer,
+                                    int32_t min, int32_t max);
 
 /* Returns the size of the remaining bytes of data in the producer */
 size_t FUZZ_dataProducer_remainingBytes(FUZZ_dataProducer_t *producer);

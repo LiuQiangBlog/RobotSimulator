@@ -9,13 +9,13 @@
  */
 
 #ifndef LEVEL
-#error LEVEL(x) must be defined
+# error LEVEL(x) must be defined
 #endif
 #ifndef FAST_LEVEL
-#error FAST_LEVEL(x) must be defined
+# error FAST_LEVEL(x) must be defined
 #endif
 #ifndef ROW_LEVEL
-#error ROW_LEVEL(x, y) must be defined
+# error ROW_LEVEL(x, y) must be defined
 #endif
 
 /**

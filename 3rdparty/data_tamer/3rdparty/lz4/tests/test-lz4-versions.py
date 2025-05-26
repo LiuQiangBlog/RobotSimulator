@@ -28,17 +28,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
 args = parser.parse_args()
 
-
 def debug_message(msg):
     if args.verbose:
         print(msg)
-
 
 def env_or_empty(env, key):
     if key in env:
         return " " + env[key]
     return ""
-
 
 def proc(cmd_args, pipe=True, env=False):
     if env == False:
@@ -48,9 +45,9 @@ def proc(cmd_args, pipe=True, env=False):
         s = subprocess.Popen(cmd_args,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
-                             env=env)
+                             env = env)
     else:
-        s = subprocess.Popen(cmd_args, env=env)
+        s = subprocess.Popen(cmd_args, env = env)
     stdout_data, stderr_data = s.communicate()
     if s.poll() != 0:
         print('Error Code:', s.poll())
@@ -58,22 +55,17 @@ def proc(cmd_args, pipe=True, env=False):
         sys.exit(1)
     return stdout_data, stderr_data
 
-
 def make(args, pipe=True, env=False):
     if env == False:
         env = os.environ.copy()
     # favor compilation speed for faster total test time, actual runtime is very short
     env["CFLAGS"] = env_or_empty(env, 'CFLAGS') + " -O0"
     # old versions of lz4 may require MOREFLAGS
-    env["MOREFLAGS"] = env_or_empty(env, 'MOREFLAGS') + env_or_empty(env, 'CFLAGS') + env_or_empty(env,
-                                                                                                   'CPPFLAGS') + env_or_empty(
-        env, 'LDFLAGS')
+    env["MOREFLAGS"] = env_or_empty(env, 'MOREFLAGS') + env_or_empty(env, 'CFLAGS') + env_or_empty(env, 'CPPFLAGS') + env_or_empty(env, 'LDFLAGS')
     return proc([make_cmd] + args, pipe, env)
-
 
 def git(args, pipe=True):
     return proc([git_cmd] + args, pipe)
-
 
 def get_git_tags():
     stdout, stderr = git(['tag', '-l', 'r[0-9][0-9][0-9]'])
@@ -82,19 +74,17 @@ def get_git_tags():
     tags += stdout.decode('utf-8').split()
     return tags
 
-
 # https://stackoverflow.com/a/19711609/2132223
 def sha1_of_file(filepath):
     with open(filepath, 'rb') as f:
         return hashlib.sha1(f.read()).hexdigest()
 
-
 if __name__ == '__main__':
     error_code = 0
-    base_dir = os.getcwd() + '/..'  # /path/to/lz4
+    base_dir = os.getcwd() + '/..'           # /path/to/lz4
     tmp_dir = base_dir + '/' + tmp_dir_name  # /path/to/lz4/tests/versionsTest
-    clone_dir = tmp_dir + '/' + 'lz4'  # /path/to/lz4/tests/versionsTest/lz4
-    programs_dir = base_dir + '/programs'  # /path/to/lz4/programs
+    clone_dir = tmp_dir + '/' + 'lz4'        # /path/to/lz4/tests/versionsTest/lz4
+    programs_dir = base_dir + '/programs'    # /path/to/lz4/programs
     os.makedirs(tmp_dir, exist_ok=True)
 
     # since Travis clones limited depth, we should clone full repository
@@ -113,8 +103,8 @@ if __name__ == '__main__':
     for tag in tags:
         print("processing tag " + tag)
         os.chdir(base_dir)
-        dst_lz4c = '{}/lz4c.{}'.format(tmp_dir, tag)  # /path/to/lz4/test/lz4test/lz4c.<TAG>
-        dst_lz4c32 = '{}/lz4c32.{}'.format(tmp_dir, tag)  # /path/to/lz4/test/lz4test/lz4c32.<TAG>
+        dst_lz4c   = '{}/lz4c.{}'  .format(tmp_dir, tag) # /path/to/lz4/test/lz4test/lz4c.<TAG>
+        dst_lz4c32 = '{}/lz4c32.{}'.format(tmp_dir, tag) # /path/to/lz4/test/lz4test/lz4c32.<TAG>
         if not os.path.isfile(dst_lz4c) or not os.path.isfile(dst_lz4c32) or tag == head:
             if tag != head:
                 r_dir = '{}/{}'.format(tmp_dir, tag)  # /path/to/lz4/test/lz4test/<TAG>
@@ -126,7 +116,7 @@ if __name__ == '__main__':
                 os.chdir(programs_dir)
             make(['clean'], False)
             make(['lz4c'], False)
-            shutil.copy2('lz4c', dst_lz4c)
+            shutil.copy2('lz4c',   dst_lz4c)
             make(['clean'], False)
             make(['lz4c32'], False)
             shutil.copy2('lz4c32', dst_lz4c32)
@@ -137,8 +127,8 @@ if __name__ == '__main__':
     for lz4 in glob.glob("*.lz4"):
         os.remove(lz4)
     for tag in tags:
-        proc(['./lz4c.' + tag, '-1fz', test_dat, test_dat + '_1_64_' + tag + '.lz4'])
-        proc(['./lz4c.' + tag, '-9fz', test_dat, test_dat + '_9_64_' + tag + '.lz4'])
+        proc(['./lz4c.'   + tag, '-1fz', test_dat, test_dat + '_1_64_' + tag + '.lz4'])
+        proc(['./lz4c.'   + tag, '-9fz', test_dat, test_dat + '_9_64_' + tag + '.lz4'])
         proc(['./lz4c32.' + tag, '-1fz', test_dat, test_dat + '_1_32_' + tag + '.lz4'])
         proc(['./lz4c32.' + tag, '-9fz', test_dat, test_dat + '_9_32_' + tag + '.lz4'])
 
@@ -154,7 +144,7 @@ if __name__ == '__main__':
     for i, lz4 in enumerate(lz4s):
         if not os.path.isfile(lz4):
             continue
-        for j in range(i + 1, len(lz4s)):
+        for j in range(i+1, len(lz4s)):
             lz4t = lz4s[j]
             if not os.path.isfile(lz4t):
                 continue
@@ -176,9 +166,9 @@ if __name__ == '__main__':
         print(lz4, end=" ")
         for tag in tags:
             print(tag, end=" ")
-            proc(['./lz4c.' + tag, '-df', lz4, lz4 + '_d64_' + tag + '.dec'])
+            proc(['./lz4c.'   + tag, '-df', lz4, lz4 + '_d64_' + tag + '.dec'])
             proc(['./lz4c32.' + tag, '-df', lz4, lz4 + '_d32_' + tag + '.dec'])
-        print(' OK')  # well, here, decompression has worked; but file is not yet verified
+        print(' OK')   # well, here, decompression has worked; but file is not yet verified
 
     # Compare all '.dec' files with test_dat
     decs = glob.glob('*.dec')

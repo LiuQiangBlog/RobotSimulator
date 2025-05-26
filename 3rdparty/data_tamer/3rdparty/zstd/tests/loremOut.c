@@ -25,21 +25,24 @@
 #define LOREM_BLOCKSIZE (1 << 10)
 void LOREM_genOut(unsigned long long size, unsigned seed)
 {
-    char buff[LOREM_BLOCKSIZE] = {0};
-    unsigned long long total = 0;
-    size_t genBlockSize = (size_t)MIN(size, LOREM_BLOCKSIZE);
+    char buff[LOREM_BLOCKSIZE] = { 0 };
+    unsigned long long total   = 0;
+    size_t genBlockSize        = (size_t)MIN(size, LOREM_BLOCKSIZE);
 
     /* init */
     SET_BINARY_MODE(stdout);
 
     /* Generate Ipsum text, one paragraph at a time */
-    while (total < size)
-    {
-        size_t generated = LOREM_genBlock(buff, genBlockSize, seed++, total == 0, 0);
+    while (total < size) {
+        size_t generated =
+                LOREM_genBlock(buff, genBlockSize, seed++, total == 0, 0);
         assert(generated <= genBlockSize);
         total += generated;
         assert(total <= size);
-        fwrite(buff, 1, generated, stdout); /* note: should check potential write error */
+        fwrite(buff,
+               1,
+               generated,
+               stdout); /* note: should check potential write error */
         if (size - total < genBlockSize)
             genBlockSize = (size_t)(size - total);
     }

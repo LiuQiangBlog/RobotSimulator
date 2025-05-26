@@ -9,7 +9,6 @@ variables.
 
 As cmake doesn't support command like `cmake clean`, it's recommended to perform an "out of source build".
 To do this, you can create a new directory and build in it:
-
 ```sh
 cd build/cmake
 mkdir builddir
@@ -17,15 +16,12 @@ cd builddir
 cmake ..
 make
 ```
-
 Then you can clean all cmake caches by simply delete the new directory:
-
 ```sh
 rm -rf build/cmake/builddir
 ```
 
 And of course, you can directly build in build/cmake:
-
 ```sh
 cd build/cmake
 cmake
@@ -33,14 +29,12 @@ make
 ```
 
 To show cmake build options, you can:
-
 ```sh
 cd build/cmake/builddir
 cmake -LH ..
 ```
 
 Bool options can be set to `ON/OFF` with `-D[option]=[ON/OFF]`. You can configure cmake options like this:
-
 ```sh
 cd build/cmake/builddir
 cmake -DZSTD_BUILD_TESTS=ON -DZSTD_LEGACY_SUPPORT=OFF ..
@@ -48,15 +42,11 @@ make
 ```
 
 **Apple Frameworks**
-It's generally recommended to have CMake with versions higher than 3.14
-for [iOS-derived platforms](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#id27).
-
+It's generally recommended to have CMake with versions higher than 3.14 for [iOS-derived platforms](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#id27).
 ```sh
 cmake -S. -B build-cmake -DZSTD_FRAMEWORK=ON -DCMAKE_SYSTEM_NAME=iOS
 ```
-
 Or you can utilize [iOS-CMake](https://github.com/leetal/ios-cmake) toolchain for CMake versions lower than 3.14
-
 ```sh
 cmake -B build -G Xcode -DCMAKE_TOOLCHAIN_FILE=<Path To ios.toolchain.cmake> -DPLATFORM=OS64 -DZSTD_FRAMEWORK=ON
 ```
@@ -64,7 +54,6 @@ cmake -B build -G Xcode -DCMAKE_TOOLCHAIN_FILE=<Path To ios.toolchain.cmake> -DP
 ### how to use it with CMake FetchContent
 
 For all options available, you can see it on <https://github.com/facebook/zstd/blob/dev/build/cmake/lib/CMakeLists.txt>
-
 ```cmake
 include(FetchContent)
 
@@ -95,18 +84,17 @@ target_include_directories(
 ```
 
 ### referring
-
 [Looking for a 'cmake clean' command to clear up CMake output](https://stackoverflow.com/questions/9680420/looking-for-a-cmake-clean-command-to-clear-up-cmake-output)
 
 ## CMake Style Recommendations
 
 ### Indent all code correctly, i.e. the body of
 
-* if/else/endif
-* foreach/endforeach
-* while/endwhile
-* macro/endmacro
-* function/endfunction
+ * if/else/endif
+ * foreach/endforeach
+ * while/endwhile
+ * macro/endmacro
+ * function/endfunction
 
 Use spaces for indenting, 2, 3 or 4 spaces preferably. Use the same amount of
 spaces for indenting as is used in the rest of the file. Do not use tabs.
@@ -132,7 +120,6 @@ aDd_ExEcUtAbLe(blub blub.c)
 ```
 
 ### End commands
-
 To make the code easier to read, use empty commands for endforeach(), endif(),
 endfunction(), endmacro() and endwhile(). Also, use empty else() commands.
 

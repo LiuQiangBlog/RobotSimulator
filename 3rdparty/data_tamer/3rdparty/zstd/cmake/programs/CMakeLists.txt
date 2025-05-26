@@ -43,8 +43,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "(Solaris|SunOS)")
     target_link_libraries(zstd rt)
 endif ()
 install(TARGETS zstd
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-        BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}")
+  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
 if (UNIX)
     add_custom_target(zstdcat ALL ${CMAKE_COMMAND} -E create_symlink zstd zstdcat DEPENDS zstd COMMENT "Creating zstdcat symlink")
@@ -55,14 +55,14 @@ if (UNIX)
     install(PROGRAMS ${PROGRAMS_DIR}/zstdless DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
     add_custom_target(zstd.1 ALL
-            ${CMAKE_COMMAND} -E copy ${PROGRAMS_DIR}/zstd.1 .
-            COMMENT "Copying manpage zstd.1")
+        ${CMAKE_COMMAND} -E copy ${PROGRAMS_DIR}/zstd.1 .
+        COMMENT "Copying manpage zstd.1")
     add_custom_target(zstdgrep.1 ALL
-            ${CMAKE_COMMAND} -E copy ${PROGRAMS_DIR}/zstdgrep.1 .
-            COMMENT "Copying manpage zstdgrep.1")
+        ${CMAKE_COMMAND} -E copy ${PROGRAMS_DIR}/zstdgrep.1 .
+        COMMENT "Copying manpage zstdgrep.1")
     add_custom_target(zstdless.1 ALL
-            ${CMAKE_COMMAND} -E copy ${PROGRAMS_DIR}/zstdless.1 .
-            COMMENT "Copying manpage zstdless.1")
+        ${CMAKE_COMMAND} -E copy ${PROGRAMS_DIR}/zstdless.1 .
+        COMMENT "Copying manpage zstdless.1")
     add_custom_target(zstdcat.1 ALL ${CMAKE_COMMAND} -E create_symlink zstd.1 zstdcat.1 DEPENDS zstd.1 COMMENT "Creating zstdcat.1 symlink")
     add_custom_target(unzstd.1 ALL ${CMAKE_COMMAND} -E create_symlink zstd.1 unzstd.1 DEPENDS zstd.1 COMMENT "Creating unzstd.1 symlink")
 
@@ -73,16 +73,16 @@ if (UNIX)
     endif ()
 
     install(FILES
-            ${CMAKE_CURRENT_BINARY_DIR}/zstd.1
-            ${CMAKE_CURRENT_BINARY_DIR}/zstdcat.1
-            ${CMAKE_CURRENT_BINARY_DIR}/unzstd.1
-            ${CMAKE_CURRENT_BINARY_DIR}/zstdgrep.1
-            ${CMAKE_CURRENT_BINARY_DIR}/zstdless.1
-            DESTINATION "${MAN_INSTALL_DIR}")
+        ${CMAKE_CURRENT_BINARY_DIR}/zstd.1
+        ${CMAKE_CURRENT_BINARY_DIR}/zstdcat.1
+        ${CMAKE_CURRENT_BINARY_DIR}/unzstd.1
+        ${CMAKE_CURRENT_BINARY_DIR}/zstdgrep.1
+        ${CMAKE_CURRENT_BINARY_DIR}/zstdless.1
+        DESTINATION "${MAN_INSTALL_DIR}")
 
     add_executable(zstd-frugal ${PROGRAMS_DIR}/zstdcli.c
-            ${PROGRAMS_DIR}/util.c ${PROGRAMS_DIR}/timefn.c
-            ${PROGRAMS_DIR}/fileio.c ${PROGRAMS_DIR}/fileio_asyncio.c)
+        ${PROGRAMS_DIR}/util.c ${PROGRAMS_DIR}/timefn.c
+        ${PROGRAMS_DIR}/fileio.c ${PROGRAMS_DIR}/fileio_asyncio.c)
     target_link_libraries(zstd-frugal ${PROGRAMS_ZSTD_LINK_TARGET})
     set_property(TARGET zstd-frugal APPEND PROPERTY COMPILE_DEFINITIONS "ZSTD_NOBENCH;ZSTD_NODICT;ZSTD_NOTRACE")
 endif ()

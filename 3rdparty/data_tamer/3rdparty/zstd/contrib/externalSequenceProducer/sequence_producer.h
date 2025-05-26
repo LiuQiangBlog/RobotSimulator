@@ -14,14 +14,13 @@
 #define ZSTD_STATIC_LINKING_ONLY
 #include "zstd.h"
 
-size_t simpleSequenceProducer(void *sequenceProducerState,
-                              ZSTD_Sequence *outSeqs,
-                              size_t outSeqsCapacity,
-                              const void *src,
-                              size_t srcSize,
-                              const void *dict,
-                              size_t dictSize,
-                              int compressionLevel,
-                              size_t windowSize);
+size_t simpleSequenceProducer(
+  void* sequenceProducerState,
+  ZSTD_Sequence* outSeqs, size_t outSeqsCapacity,
+  const void* src, size_t srcSize,
+  const void* dict, size_t dictSize,
+  int compressionLevel,
+  size_t windowSize
+);
 
 #endif

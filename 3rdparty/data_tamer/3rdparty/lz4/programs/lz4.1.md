@@ -29,35 +29,35 @@ While decompression is single-threaded, it reaches multiple GB/s, generally fast
 `lz4` supports a command line syntax similar _but not identical_ to `gzip(1)`.
 Differences are :
 
-* `lz4` compresses a single file by default (see `-m` for multiple files)
-* `lz4 file1 file2` means : compress file1 _into_ file2
-* `lz4 file.lz4` will default to decompression (use `-z` to force compression)
-* `lz4` preserves original files (see `--rm` to erase source file on completion)
-* `lz4` shows real-time notification statistics
-  during compression or decompression of a single file
-  (use `-q` to silence them)
-* When no destination is specified, result is sent on implicit output,
-  which depends on `stdout` status.
-  When `stdout` _is Not the console_, it becomes the implicit output.
-  Otherwise, if `stdout` is the console, the implicit output is `filename.lz4`.
-* It is considered bad practice to rely on implicit output in scripts.
-  because the script's environment may change.
-  Always use explicit output in scripts.
-  `-c` ensures that output will be `stdout`.
-  Conversely, providing a destination name, or using `-m`
-  ensures that the output will be either the specified name, or `filename.lz4` respectively.
+  * `lz4` compresses a single file by default (see `-m` for multiple files)
+  * `lz4 file1 file2` means : compress file1 _into_ file2
+  * `lz4 file.lz4` will default to decompression (use `-z` to force compression)
+  * `lz4` preserves original files (see `--rm` to erase source file on completion)
+  * `lz4` shows real-time notification statistics
+     during compression or decompression of a single file
+     (use `-q` to silence them)
+  * When no destination is specified, result is sent on implicit output,
+    which depends on `stdout` status.
+    When `stdout` _is Not the console_, it becomes the implicit output.
+    Otherwise, if `stdout` is the console, the implicit output is `filename.lz4`.
+  * It is considered bad practice to rely on implicit output in scripts.
+    because the script's environment may change.
+    Always use explicit output in scripts.
+    `-c` ensures that output will be `stdout`.
+    Conversely, providing a destination name, or using `-m`
+    ensures that the output will be either the specified name, or `filename.lz4` respectively.
 
 Default behaviors can be modified by opt-in commands, detailed below.
 
-* `lz4 -m` makes it possible to provide multiple input filenames,
-  which will be compressed into files using suffix `.lz4`.
-  Progress notifications become disabled by default (use `-v` to enable them).
-  This mode has a behavior which more closely mimics `gzip` command line,
-  with the main remaining difference being that source files are preserved by default.
-* Similarly, `lz4 -m -d` can decompress multiple `*.lz4` files.
-* It's possible to opt-in to erase source files
-  on successful compression or decompression, using `--rm` command.
-* Consequently, `lz4 -m --rm` features a behavior closer to the `gzip` one.
+  * `lz4 -m` makes it possible to provide multiple input filenames,
+    which will be compressed into files using suffix `.lz4`.
+    Progress notifications become disabled by default (use `-v` to enable them).
+    This mode has a behavior which more closely mimics `gzip` command line,
+    with the main remaining difference being that source files are preserved by default.
+  * Similarly, `lz4 -m -d` can decompress multiple `*.lz4` files.
+  * It's possible to opt-in to erase source files
+    on successful compression or decompression, using `--rm` command.
+  * Consequently, `lz4 -m --rm` features a behavior closer to the `gzip` one.
 
 ### Concatenation of .lz4 files
 
@@ -234,6 +234,7 @@ only the latest one will be applied.
 * `--` :
   Treat all subsequent arguments as files
 
+
 ### Benchmark mode
 
 * `-b#`:
@@ -245,24 +246,20 @@ only the latest one will be applied.
 * `-i#`:
   Minimum evaluation time in seconds \[1-9\] (default : 3)
 
+
 ### Environment Variables
 
 It's possible to pass some parameters to `lz4` via environment variables.
-This can be useful in situations where `lz4` is known to be invoked (from a script for example) but there is no way to
-pass `lz4` parameters to influence the compression session.
-The environment variable has higher priority than executable default, but lower priority than corresponding runtime
-command.
-When set as global environment variables, it can be a way to enforce personalized defaults different from the executable
-set ones.
+This can be useful in situations where `lz4` is known to be invoked (from a script for example) but there is no way to pass `lz4` parameters to influence the compression session.
+The environment variable has higher priority than executable default, but lower priority than corresponding runtime command.
+When set as global environment variables, it can be a way to enforce personalized defaults different from the executable set ones.
 
 * `LZ4_CLEVEL`:
-  specify a default compression level that `lz4` employs for compression when no other compression level is specified on
-  command line. Executable default is generally `1`.
+  specify a default compression level that `lz4` employs for compression when no other compression level is specified on command line. Executable default is generally `1`.
 
 * `LZ4_NBWORKERS`:
-  specify a default number of threads that `lz4` will employ for compression. Executable default is generally `0`, which
-  means auto-determined based on local cpu. This functionality is only relevant when `lz4` is compiled with
-  multithreading support. The maximum number of workers is capped at `LZ4_NBWORKERS_MAX` (`200` by default).
+  specify a default number of threads that `lz4` will employ for compression. Executable default is generally `0`, which means auto-determined based on local cpu. This functionality is only relevant when `lz4` is compiled with multithreading support. The maximum number of workers is capped at `LZ4_NBWORKERS_MAX` (`200` by default).
+
 
 BUGS
 ----

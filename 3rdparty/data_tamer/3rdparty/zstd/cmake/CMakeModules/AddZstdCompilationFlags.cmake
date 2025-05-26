@@ -8,7 +8,7 @@ else ()
 endif ()
 if (ZSTD_HAVE_CHECK_LINKER_FLAG)
     include(CheckLinkerFlag)
-endif ()
+endif()
 
 function(EnableCompilerFlag _flag _C _CXX _LD)
     string(REGEX REPLACE "\\+" "PLUS" varname "${_flag}")
@@ -92,9 +92,9 @@ macro(ADD_ZSTD_COMPILATION_FLAGS)
                 if (${CXX_FLAG_WA_NOEXECSTACK})
                     # We've succeeded in marking the stack as non-executable
                     set(ZSTD_HAS_NOEXECSTACK true)
-                endif ()
-            endif ()
-        endif ()
+                endif()
+            endif()
+        endif()
     elseif (MSVC) # Add specific compilation flags for Windows Visual
 
         set(ACTIVATE_MULTITHREADED_COMPILATION "ON" CACHE BOOL "activate multi-threaded compilation (/MP flag)")
@@ -113,23 +113,23 @@ macro(ADD_ZSTD_COMPILATION_FLAGS)
 
     # Remove duplicates compilation flags
     foreach (flag_var CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-            CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
-            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-        if (${flag_var})
+             CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+             CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+             CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+        if( ${flag_var} )
             separate_arguments(${flag_var})
             string(REPLACE ";" " " ${flag_var} "${${flag_var}}")
-        endif ()
+        endif()
     endforeach ()
 
     if (MSVC AND ZSTD_USE_STATIC_RUNTIME)
         foreach (flag_var CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-                CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
-                CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-                CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-            if (${flag_var})
+                 CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO
+                 CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+                 CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+            if ( ${flag_var} )
                 string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-            endif ()
+            endif()
         endforeach ()
     endif ()
 

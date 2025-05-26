@@ -62,7 +62,7 @@ General Structure of LZ4 Frame format
 -------------------------------------
 
 | MagicNb | F. Descriptor | Data Block | (...) | EndMark | C. Checksum |
-|:-------:|:-------------:|------------|-------|---------|-------------|
+|:-------:|:-------------:| ---------- | ----- | ------- | ----------- |
 | 4 bytes |  3-15 bytes   |            |       | 4 bytes | 0-4 bytes   |
 
 __Magic Number__
@@ -123,24 +123,25 @@ to decode all concatenated frames in their sequential order.
 Frame Descriptor
 ----------------
 
-| FLG    | BD     | (Content Size) | (Dictionary ID) | HC     |
-|--------|--------|:--------------:|:---------------:|--------|
-| 1 byte | 1 byte |  0 - 8 bytes   |   0 - 4 bytes   | 1 byte |
+| FLG     | BD      | (Content Size) | (Dictionary ID) | HC      |
+| ------- | ------- |:--------------:|:---------------:| ------- |
+| 1 byte  | 1 byte  |  0 - 8 bytes   |   0 - 4 bytes   | 1 byte  |
 
 The descriptor uses a minimum of 3 bytes,
 and up to 15 bytes depending on optional parameters.
 
 __FLG byte__
 
-| BitNb     | 7-6     | 5       | 4          | 3      | 2          | 1          | 0      |
-|-----------|---------|---------|------------|--------|------------|------------|--------|
-| FieldName | Version | B.Indep | B.Checksum | C.Size | C.Checksum | *Reserved* | DictID |
+|  BitNb  |  7-6  |   5   |    4     |  3   |    2     |    1     |   0  |
+| ------- |-------|-------|----------|------|----------|----------|------|
+|FieldName|Version|B.Indep|B.Checksum|C.Size|C.Checksum|*Reserved*|DictID|
+
 
 __BD byte__
 
-| BitNb     | 7          | 6-5-4         | 3-2-1-0    |
-|-----------|------------|---------------|------------|
-| FieldName | *Reserved* | Block MaxSize | *Reserved* |
+|  BitNb  |     7    |     6-5-4     |  3-2-1-0 |
+| ------- | -------- | ------------- | -------- |
+|FieldName|*Reserved*| Block MaxSize |*Reserved*|
 
 In the tables, bit 7 is highest bit, while bit 0 is lowest.
 
@@ -190,8 +191,8 @@ This information is useful to help the decoder allocate memory.
 Size here refers to the original (uncompressed) data size.
 Block Maximum Size is one value among the following table :
 
-| 0   | 1   | 2   | 3   | 4     | 5      | 6    | 7    |
-|-----|-----|-----|-----|-------|--------|------|------|
+|  0  |  1  |  2  |  3  |   4   |   5    |  6   |  7   |
+| --- | --- | --- | --- | ----- | ------ | ---- | ---- |
 | N/A | N/A | N/A | N/A | 64 KB | 256 KB | 1 MB | 4 MB |
 
 The decoder may refuse to allocate block sizes above any system-specific size.
@@ -251,9 +252,10 @@ A wrong checksum indicates that the descriptor is erroneous.
 Data Blocks
 -----------
 
-| Block Size | data | (Block Checksum) |
-|:----------:|------|:----------------:|
-|  4 bytes   |      |   0 - 4 bytes    |
+| Block Size |  data  | (Block Checksum) |
+|:----------:| ------ |:----------------:|
+|  4 bytes   |        |   0 - 4 bytes    |
+
 
 __Block Size__
 
@@ -283,8 +285,7 @@ __Data__
 Where the actual data to decode stands.
 It might be compressed or not, depending on previous field indications.
 
-When compressed, the data must respect
-the [LZ4 block format specification](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md).
+When compressed, the data must respect the [LZ4 block format specification](https://github.com/lz4/lz4/blob/dev/doc/lz4_Block_format.md).
 
 Note that a block is not necessarily full.
 Uncompressed size of data can be any size __up to__ _Block_Maximum_Size_,
@@ -308,7 +309,7 @@ Skippable Frames
 ----------------
 
 | Magic Number | Frame Size | User Data |
-|:------------:|:----------:|-----------|
+|:------------:|:----------:| --------- |
 |   4 bytes    |  4 bytes   |           |
 
 Skippable frames allow the integration of user-defined data
@@ -324,6 +325,7 @@ encapsulated into a skippable frame,
 it’s recommended to start with a zero-byte LZ4 frame
 followed by a skippable frame.
 This will make it easier for file type identifiers.
+
 
 __Magic Number__
 
@@ -360,9 +362,10 @@ Main characteristics of the legacy format :
 - No checksum
 - Convention is Little endian
 
-| MagicNb | B.CSize | CData | B.CSize | CData | (...)   | EndMark |
-|---------|---------|-------|---------|-------|---------|---------|
-| 4 bytes | 4 bytes | CSize | 4 bytes | CSize | x times | EOF     |
+| MagicNb | B.CSize | CData | B.CSize | CData |  (...)  | EndMark |
+| ------- | ------- | ----- | ------- | ----- | ------- | ------- |
+| 4 bytes | 4 bytes | CSize | 4 bytes | CSize | x times |   EOF   |
+
 
 __Magic Number__
 

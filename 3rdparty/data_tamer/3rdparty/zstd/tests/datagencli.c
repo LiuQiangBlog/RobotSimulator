@@ -32,8 +32,7 @@
  **************************************/
 #define DISPLAY(...) fprintf(stderr, __VA_ARGS__)
 #define DISPLAYLEVEL(l, ...)  \
-    if (displayLevel >= l)    \
-    {                         \
+    if (displayLevel >= l) {  \
         DISPLAY(__VA_ARGS__); \
     }
 static unsigned displayLevel = 2;
@@ -41,7 +40,7 @@ static unsigned displayLevel = 2;
 /*-*******************************************************
  *  Command line
  *********************************************************/
-static int usage(const char *programName)
+static int usage(const char* programName)
 {
     DISPLAY("Compressible data generator\n");
     DISPLAY("Usage :\n");
@@ -55,87 +54,80 @@ static int usage(const char *programName)
     return 0;
 }
 
-int main(int argc, const char **argv)
+int main(int argc, const char** argv)
 {
-    unsigned probaU32 = COMPRESSIBILITY_DEFAULT;
-    double litProba = 0.0;
-    U64 size = SIZE_DEFAULT;
-    U32 seed = SEED_DEFAULT;
-    const char *const programName = argv[0];
+    unsigned probaU32             = COMPRESSIBILITY_DEFAULT;
+    double litProba               = 0.0;
+    U64 size                      = SIZE_DEFAULT;
+    U32 seed                      = SEED_DEFAULT;
+    const char* const programName = argv[0];
 
     int argNb;
-    for (argNb = 1; argNb < argc; argNb++)
-    {
-        const char *argument = argv[argNb];
+    for (argNb = 1; argNb < argc; argNb++) {
+        const char* argument = argv[argNb];
 
         if (!argument)
             continue; /* Protection if argument empty */
 
         /* Handle commands. Aggregated commands are allowed */
-        if (*argument == '-')
-        {
+        if (*argument == '-') {
             argument++;
-            while (*argument != 0)
-            {
-                switch (*argument)
-                {
-                case 'h':
-                    return usage(programName);
-                case 'g':
-                    argument++;
-                    size = 0;
-                    while ((*argument >= '0') && (*argument <= '9'))
-                        size *= 10, size += (U64)(*argument++ - '0');
-                    if (*argument == 'K')
-                    {
-                        size <<= 10;
+            while (*argument != 0) {
+                switch (*argument) {
+                    case 'h':
+                        return usage(programName);
+                    case 'g':
                         argument++;
-                    }
-                    if (*argument == 'M')
-                    {
-                        size <<= 20;
+                        size = 0;
+                        while ((*argument >= '0') && (*argument <= '9'))
+                            size *= 10, size += (U64)(*argument++ - '0');
+                        if (*argument == 'K') {
+                            size <<= 10;
+                            argument++;
+                        }
+                        if (*argument == 'M') {
+                            size <<= 20;
+                            argument++;
+                        }
+                        if (*argument == 'G') {
+                            size <<= 30;
+                            argument++;
+                        }
+                        if (*argument == 'B') {
+                            argument++;
+                        }
+                        break;
+                    case 's':
                         argument++;
-                    }
-                    if (*argument == 'G')
-                    {
-                        size <<= 30;
+                        seed = 0;
+                        while ((*argument >= '0') && (*argument <= '9'))
+                            seed *= 10, seed += (U32)(*argument++ - '0');
+                        break;
+                    case 'P':
                         argument++;
-                    }
-                    if (*argument == 'B')
-                    {
+                        probaU32 = 0;
+                        while ((*argument >= '0') && (*argument <= '9'))
+                            probaU32 *= 10,
+                                    probaU32 += (U32)(*argument++ - '0');
+                        if (probaU32 > 100)
+                            probaU32 = 100;
+                        break;
+                    case 'L': /* hidden argument : Literal distribution
+                                 probability */
                         argument++;
-                    }
-                    break;
-                case 's':
-                    argument++;
-                    seed = 0;
-                    while ((*argument >= '0') && (*argument <= '9'))
-                        seed *= 10, seed += (U32)(*argument++ - '0');
-                    break;
-                case 'P':
-                    argument++;
-                    probaU32 = 0;
-                    while ((*argument >= '0') && (*argument <= '9'))
-                        probaU32 *= 10, probaU32 += (U32)(*argument++ - '0');
-                    if (probaU32 > 100)
-                        probaU32 = 100;
-                    break;
-                case 'L': /* hidden argument : Literal distribution
-                             probability */
-                    argument++;
-                    litProba = 0.;
-                    while ((*argument >= '0') && (*argument <= '9'))
-                        litProba *= 10, litProba += *argument++ - '0';
-                    if (litProba > 100.)
-                        litProba = 100.;
-                    litProba /= 100.;
-                    break;
-                case 'v':
-                    displayLevel = 4;
-                    argument++;
-                    break;
-                default:
-                    return usage(programName);
+                        litProba = 0.;
+                        while ((*argument >= '0') && (*argument <= '9'))
+                            litProba *= 10, litProba += *argument++ - '0';
+                        if (litProba > 100.)
+                            litProba = 100.;
+                        litProba /= 100.;
+                        break;
+                    case 'v':
+                        displayLevel = 4;
+                        argument++;
+                        break;
+                    default:
+                        return usage(programName);
                 }
             }
         }
@@ -144,13 +136,10 @@ int main(int argc, const char **argv)
     DISPLAYLEVEL(4, "Compressible data Generator \n");
     DISPLAYLEVEL(3, "Seed = %u \n", (unsigned)seed);
 
-    if (probaU32 != COMPRESSIBILITY_DEFAULT)
-    {
+    if (probaU32 != COMPRESSIBILITY_DEFAULT) {
         DISPLAYLEVEL(3, "Compressibility : %i%%\n", probaU32);
         RDG_genStdout(size, (double)probaU32 / 100, litProba, seed);
-    }
-    else
-    {
+    } else {
         LOREM_genOut(size, seed);
     }
 

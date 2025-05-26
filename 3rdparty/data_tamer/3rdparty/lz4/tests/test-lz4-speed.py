@@ -24,8 +24,8 @@ import hashlib
 script_version = 'v1.7.2 (2016-11-08)'
 default_repo_url = 'https://github.com/lz4/lz4.git'
 working_dir_name = 'speedTest'
-working_path = os.getcwd() + '/' + working_dir_name  # /path/to/lz4/tests/speedTest
-clone_path = working_path + '/' + 'lz4'  # /path/to/lz4/tests/speedTest/lz4
+working_path = os.getcwd() + '/' + working_dir_name     # /path/to/lz4/tests/speedTest
+clone_path = working_path + '/' + 'lz4'                 # /path/to/lz4/tests/speedTest/lz4
 email_header = 'lz4_speedTest'
 pid = str(os.getpid())
 verbose = False
@@ -48,8 +48,7 @@ def log(text):
 def execute(command, print_command=True, print_output=False, print_error=True, param_shell=True):
     if print_command:
         log("> " + command)
-    popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=param_shell,
-                             cwd=execute.cwd)
+    popen = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=param_shell, cwd=execute.cwd)
     stdout_lines, stderr_lines = popen.communicate(timeout=args.timeout)
     stderr_lines = stderr_lines.decode("utf-8")
     stdout_lines = stdout_lines.decode("utf-8")
@@ -63,8 +62,6 @@ def execute(command, print_command=True, print_output=False, print_error=True, p
             print(stderr_lines)
         raise RuntimeError(stdout_lines + stderr_lines)
     return (stdout_lines + stderr_lines).splitlines()
-
-
 execute.cwd = None
 
 
@@ -135,7 +132,7 @@ def get_last_results(resultsFileName):
     with open(resultsFileName, 'r') as f:
         for line in f:
             words = line.split()
-            if len(words) <= 4:  # branch + commit + compilerVer + md5
+            if len(words) <= 4:   # branch + commit + compilerVer + md5
                 commit = words[1]
                 csize = []
                 cspeed = []
@@ -159,8 +156,7 @@ def benchmark_and_compare(branch, commit, last_commit, args, executableName, md5
     end_load = str(os.getloadavg())
     linesExpected = args.lastCLevel + 1
     if len(result) != linesExpected:
-        raise RuntimeError("ERROR: number of result lines=%d is different that expected %d\n%s" % (
-            len(result), linesExpected, '\n'.join(result)))
+        raise RuntimeError("ERROR: number of result lines=%d is different that expected %d\n%s" % (len(result), linesExpected, '\n'.join(result)))
     with open(resultsFileName, "a") as myfile:
         myfile.write('%s %s %s md5=%s\n' % (branch, commit, compilerVersion, md5sum))
         myfile.write('\n'.join(result) + '\n')
@@ -171,23 +167,15 @@ def benchmark_and_compare(branch, commit, last_commit, args, executableName, md5
         commit, csize, cspeed, dspeed = get_last_results(resultsFileName)
         text = ""
         for i in range(0, min(len(cspeed), len(last_cspeed))):
-            print(
-                "%s:%s -%d cSpeed=%6.2f cLast=%6.2f cDiff=%1.4f dSpeed=%6.2f dLast=%6.2f dDiff=%1.4f ratioDiff=%1.4f %s" % (
-                    branch, commit, i + 1, cspeed[i], last_cspeed[i], cspeed[i] / last_cspeed[i], dspeed[i],
-                    last_dspeed[i],
-                    dspeed[i] / last_dspeed[i], float(last_csize[i]) / csize[i], fileName))
-            if (cspeed[i] / last_cspeed[i] < args.lowerLimit):
-                text += "WARNING: %s -%d cSpeed=%.2f cLast=%.2f cDiff=%.4f %s\n" % (
-                    executableName, i + 1, cspeed[i], last_cspeed[i], cspeed[i] / last_cspeed[i], fileName)
-            if (dspeed[i] / last_dspeed[i] < args.lowerLimit):
-                text += "WARNING: %s -%d dSpeed=%.2f dLast=%.2f dDiff=%.4f %s\n" % (
-                    executableName, i + 1, dspeed[i], last_dspeed[i], dspeed[i] / last_dspeed[i], fileName)
-            if (float(last_csize[i]) / csize[i] < args.ratioLimit):
-                text += "WARNING: %s -%d cSize=%d last_cSize=%d diff=%.4f %s\n" % (
-                    executableName, i + 1, csize[i], last_csize[i], float(last_csize[i]) / csize[i], fileName)
+            print("%s:%s -%d cSpeed=%6.2f cLast=%6.2f cDiff=%1.4f dSpeed=%6.2f dLast=%6.2f dDiff=%1.4f ratioDiff=%1.4f %s" % (branch, commit, i+1, cspeed[i], last_cspeed[i], cspeed[i]/last_cspeed[i], dspeed[i], last_dspeed[i], dspeed[i]/last_dspeed[i], float(last_csize[i])/csize[i], fileName))
+            if (cspeed[i]/last_cspeed[i] < args.lowerLimit):
+                text += "WARNING: %s -%d cSpeed=%.2f cLast=%.2f cDiff=%.4f %s\n" % (executableName, i+1, cspeed[i], last_cspeed[i], cspeed[i]/last_cspeed[i], fileName)
+            if (dspeed[i]/last_dspeed[i] < args.lowerLimit):
+                text += "WARNING: %s -%d dSpeed=%.2f dLast=%.2f dDiff=%.4f %s\n" % (executableName, i+1, dspeed[i], last_dspeed[i], dspeed[i]/last_dspeed[i], fileName)
+            if (float(last_csize[i])/csize[i] < args.ratioLimit):
+                text += "WARNING: %s -%d cSize=%d last_cSize=%d diff=%.4f %s\n" % (executableName, i+1, csize[i], last_csize[i], float(last_csize[i])/csize[i], fileName)
         if text:
-            text = args.message + ("\nmaxLoadAvg=%s  load average at start=%s end=%s\n%s  last_commit=%s  md5=%s\n" % (
-                args.maxLoadAvg, start_load, end_load, compilerVersion, last_commit, md5sum)) + text
+            text = args.message + ("\nmaxLoadAvg=%s  load average at start=%s end=%s\n%s  last_commit=%s  md5=%s\n" % (args.maxLoadAvg, start_load, end_load, compilerVersion, last_commit, md5sum)) + text
         return text
 
 
@@ -205,12 +193,10 @@ def update_config_file(branch, commit):
 def double_check(branch, commit, args, executableName, md5sum, compilerVersion, resultsFileName, filePath, fileName):
     last_commit, csize, cspeed, dspeed = get_last_results(resultsFileName)
     if not args.dry_run:
-        text = benchmark_and_compare(branch, commit, last_commit, args, executableName, md5sum, compilerVersion,
-                                     resultsFileName, filePath, fileName, csize, cspeed, dspeed)
+        text = benchmark_and_compare(branch, commit, last_commit, args, executableName, md5sum, compilerVersion, resultsFileName, filePath, fileName, csize, cspeed, dspeed)
         if text:
             log("WARNING: redoing tests for branch %s: commit %s" % (branch, commit))
-            text = benchmark_and_compare(branch, commit, last_commit, args, executableName, md5sum, compilerVersion,
-                                         resultsFileName, filePath, fileName, csize, cspeed, dspeed)
+            text = benchmark_and_compare(branch, commit, last_commit, args, executableName, md5sum, compilerVersion, resultsFileName, filePath, fileName, csize, cspeed, dspeed)
     return text
 
 
@@ -218,10 +204,9 @@ def test_commit(branch, commit, last_commit, args, testFilePaths, have_mutt, hav
     local_branch = branch.split('/')[1]
     version = local_branch.rpartition('-')[2] + '_' + commit
     if not args.dry_run:
-        execute(
-            'make clean; CFLAGS="-Werror -Wconversion -Wno-sign-conversion" CPPFLAGS="-DLZ4_GIT_COMMIT=%s" make -C programs lz4 CC=clang && ' % version +
-            'mv programs/lz4 programs/lz4_clang && ' +
-            'make clean && CPPFLAGS="-DLZ4_GIT_COMMIT=%s" make -C programs lz4 lz4c32 ' % version)
+        execute('make clean; CFLAGS="-Werror -Wconversion -Wno-sign-conversion" CPPFLAGS="-DLZ4_GIT_COMMIT=%s" make -C programs lz4 CC=clang && ' % version +
+                'mv programs/lz4 programs/lz4_clang && ' +
+                'make clean && CPPFLAGS="-DLZ4_GIT_COMMIT=%s" make -C programs lz4 lz4c32 ' % version)
     md5_lz4 = hashfile(hashlib.md5(), clone_path + '/programs/lz4')
     md5_lz4c32 = hashfile(hashlib.md5(), clone_path + '/programs/lz4c32')
     md5_lz4_clang = hashfile(hashlib.md5(), clone_path + '/programs/lz4_clang')
@@ -234,30 +219,23 @@ def test_commit(branch, commit, last_commit, args, testFilePaths, have_mutt, hav
 
     for filePath in testFilePaths:
         fileName = filePath.rpartition('/')[2]
-        resultsFileName = working_path + "/results_" + branch.replace("/", "_") + "_" + fileName.replace(".",
-                                                                                                         "_") + ".txt"
-        text = double_check(branch, commit, args, 'lz4', md5_lz4, 'gcc_version=' + gcc_version, resultsFileName,
-                            filePath, fileName)
+        resultsFileName = working_path + "/results_" + branch.replace("/", "_") + "_" + fileName.replace(".", "_") + ".txt"
+        text = double_check(branch, commit, args, 'lz4', md5_lz4, 'gcc_version='+gcc_version, resultsFileName, filePath, fileName)
         if text:
             text_to_send.append(text)
             results_files += resultsFileName + " "
-        resultsFileName = working_path + "/results32_" + branch.replace("/", "_") + "_" + fileName.replace(".",
-                                                                                                           "_") + ".txt"
-        text = double_check(branch, commit, args, 'lz4c32', md5_lz4c32, 'gcc_version=' + gcc_version, resultsFileName,
-                            filePath, fileName)
+        resultsFileName = working_path + "/results32_" + branch.replace("/", "_") + "_" + fileName.replace(".", "_") + ".txt"
+        text = double_check(branch, commit, args, 'lz4c32', md5_lz4c32, 'gcc_version='+gcc_version, resultsFileName, filePath, fileName)
         if text:
             text_to_send.append(text)
             results_files += resultsFileName + " "
-        resultsFileName = working_path + "/resultsClang_" + branch.replace("/", "_") + "_" + fileName.replace(".",
-                                                                                                              "_") + ".txt"
-        text = double_check(branch, commit, args, 'lz4_clang', md5_lz4_clang, 'clang_version=' + clang_version,
-                            resultsFileName, filePath, fileName)
+        resultsFileName = working_path + "/resultsClang_" + branch.replace("/", "_") + "_" + fileName.replace(".", "_") + ".txt"
+        text = double_check(branch, commit, args, 'lz4_clang', md5_lz4_clang, 'clang_version='+clang_version, resultsFileName, filePath, fileName)
         if text:
             text_to_send.append(text)
             results_files += resultsFileName + " "
     if text_to_send:
-        send_email_with_attachments(branch, commit, last_commit, args, text_to_send, results_files, logFileName,
-                                    have_mutt, have_mail)
+        send_email_with_attachments(branch, commit, last_commit, args, text_to_send, results_files, logFileName, have_mutt, have_mail)
 
 
 if __name__ == '__main__':
@@ -266,10 +244,8 @@ if __name__ == '__main__':
     parser.add_argument('emails', help='list of e-mail addresses to send warnings')
     parser.add_argument('--message', '-m', help='attach an additional message to e-mail', default="")
     parser.add_argument('--repoURL', help='changes default repository URL', default=default_repo_url)
-    parser.add_argument('--lowerLimit', '-l', type=float, help='send email if speed is lower than given limit',
-                        default=0.98)
-    parser.add_argument('--ratioLimit', '-r', type=float, help='send email if ratio is lower than given limit',
-                        default=0.999)
+    parser.add_argument('--lowerLimit', '-l', type=float, help='send email if speed is lower than given limit', default=0.98)
+    parser.add_argument('--ratioLimit', '-r', type=float, help='send email if ratio is lower than given limit', default=0.999)
     parser.add_argument('--maxLoadAvg', type=float, help='maximum load average to start testing', default=0.75)
     parser.add_argument('--lastCLevel', type=int, help='last compression level for testing', default=5)
     parser.add_argument('--sleepTime', '-s', type=int, help='frequency of repository checking in seconds', default=300)
@@ -297,9 +273,7 @@ if __name__ == '__main__':
         log("ERROR: e-mail senders 'mail' or 'mutt' not found")
         exit(1)
 
-    clang_version = execute(
-        "clang -v 2>&1 | grep 'clang version' | sed -e 's:.*version \\([0-9.]*\\).*:\\1:' -e 's:\\.\\([0-9][0-9]\\):\\1:g'",
-        verbose)[0];
+    clang_version = execute("clang -v 2>&1 | grep 'clang version' | sed -e 's:.*version \\([0-9.]*\\).*:\\1:' -e 's:\\.\\([0-9][0-9]\\):\\1:g'", verbose)[0];
     gcc_version = execute("gcc -dumpversion", verbose)[0];
 
     if verbose:
@@ -336,8 +310,7 @@ if __name__ == '__main__':
         log("ERROR: %s already exists, exiting" % pidfile)
         exit(1)
 
-    send_email(args.emails, '[%s:%s] test-lz4-speed.py %s has been started' % (email_header, pid, script_version),
-               args.message, have_mutt, have_mail)
+    send_email(args.emails, '[%s:%s] test-lz4-speed.py %s has been started' % (email_header, pid, script_version), args.message, have_mutt, have_mail)
     with open(pidfile, 'w') as the_file:
         the_file.write(pid)
 
@@ -374,7 +347,5 @@ if __name__ == '__main__':
             print(stack)
         except KeyboardInterrupt:
             os.unlink(pidfile)
-            send_email(args.emails,
-                       '[%s:%s] test-lz4-speed.py %s has been stopped' % (email_header, pid, script_version),
-                       args.message, have_mutt, have_mail)
+            send_email(args.emails, '[%s:%s] test-lz4-speed.py %s has been stopped' % (email_header, pid, script_version), args.message, have_mutt, have_mail)
             exit(0)

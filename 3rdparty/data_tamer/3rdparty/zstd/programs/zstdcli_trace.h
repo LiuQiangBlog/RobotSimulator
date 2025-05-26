@@ -14,7 +14,7 @@
 /**
  * Enable tracing - log to filename.
  */
-void TRACE_enable(char const *filename);
+void TRACE_enable(char const* filename);
 
 /**
  * Shut down the tracing library.

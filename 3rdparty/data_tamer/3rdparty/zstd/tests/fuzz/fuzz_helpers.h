@@ -25,8 +25,7 @@
 #include <stdlib.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -38,16 +37,19 @@ extern "C"
 /**
  * Asserts for fuzzing that are always enabled.
  */
-#define FUZZ_ASSERT_MSG(cond, msg)                                                                                   \
-    ((cond) ? (void)0                                                                                                \
-            : (fprintf(stderr, "%s: %u: Assertion: `%s' failed. %s\n", __FILE__, __LINE__, FUZZ_QUOTE(cond), (msg)), \
-               abort()))
+#define FUZZ_ASSERT_MSG(cond, msg)                                             \
+  ((cond) ? (void)0                                                            \
+          : (fprintf(stderr, "%s: %u: Assertion: `%s' failed. %s\n", __FILE__, \
+                     __LINE__, FUZZ_QUOTE(cond), (msg)),                       \
+             abort()))
 #define FUZZ_ASSERT(cond) FUZZ_ASSERT_MSG((cond), "");
-#define FUZZ_ZASSERT(code) FUZZ_ASSERT_MSG(!ZSTD_isError(code), ZSTD_getErrorName(code))
+#define FUZZ_ZASSERT(code)                                                     \
+  FUZZ_ASSERT_MSG(!ZSTD_isError(code), ZSTD_getErrorName(code))
 
 #if defined(__GNUC__)
 #define FUZZ_STATIC static __inline __attribute__((unused))
-#elif defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
+#elif defined(__cplusplus) ||                                                  \
+    (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
 #define FUZZ_STATIC static inline
 #elif defined(_MSC_VER)
 #define FUZZ_STATIC static __inline
@@ -55,22 +57,22 @@ extern "C"
 #define FUZZ_STATIC static
 #endif
 
-    /**
-     * malloc except return NULL for zero sized data and FUZZ_ASSERT
-     * that malloc doesn't fail.
-     */
-    void *FUZZ_malloc(size_t size);
+/**
+ * malloc except return NULL for zero sized data and FUZZ_ASSERT
+ * that malloc doesn't fail.
+ */
+void* FUZZ_malloc(size_t size);
 
-    /**
-     * malloc except returns random pointer for zero sized data and FUZZ_ASSERT
-     * that malloc doesn't fail.
-     */
-    void *FUZZ_malloc_rand(size_t size, FUZZ_dataProducer_t *producer);
+/**
+ * malloc except returns random pointer for zero sized data and FUZZ_ASSERT
+ * that malloc doesn't fail.
+ */
+void* FUZZ_malloc_rand(size_t size,  FUZZ_dataProducer_t *producer);
 
-    /**
-     * memcmp but accepts NULL.
-     */
-    int FUZZ_memcmp(void const *lhs, void const *rhs, size_t size);
+/**
+ * memcmp but accepts NULL.
+ */
+int FUZZ_memcmp(void const* lhs, void const* rhs, size_t size);
 
 #ifdef __cplusplus
 }

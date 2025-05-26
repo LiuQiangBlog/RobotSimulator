@@ -11,7 +11,6 @@ so it can be used to understand how complex segments could be implemented.
 It also contains implementations of Huffman and FSE table decoding.
 
 [Zstandard format specification]: https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
-
 [format specification]: https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
 
 While the library's primary objective is code clarity,

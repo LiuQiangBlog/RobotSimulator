@@ -27,16 +27,13 @@
 
 static ZSTD_CCtx *cctx = NULL;
 static ZSTD_DCtx *dctx = NULL;
-static void *cBuf = NULL;
-static void *rBuf = NULL;
+static void* cBuf = NULL;
+static void* rBuf = NULL;
 static size_t bufSize = 0;
 
-static size_t roundTripTest(void *result,
-                            size_t resultCapacity,
-                            void *compressed,
-                            size_t compressedCapacity,
-                            const void *src,
-                            size_t srcSize,
+static size_t roundTripTest(void *result, size_t resultCapacity,
+                            void *compressed, size_t compressedCapacity,
+                            const void *src, size_t srcSize,
                             int cLevel)
 {
     ZSTD_parameters const params = ZSTD_getParams(cLevel, srcSize, 0);
@@ -45,11 +42,9 @@ static size_t roundTripTest(void *result,
 
     ret = ZSTD_compressBlock(cctx, compressed, compressedCapacity, src, srcSize);
     FUZZ_ZASSERT(ret);
-    if (ret == 0)
-    {
+    if (ret == 0) {
         FUZZ_ASSERT(resultCapacity >= srcSize);
-        if (srcSize > 0)
-        {
+        if (srcSize > 0) {
             memcpy(result, src, srcSize);
         }
         return srcSize;
@@ -74,37 +69,34 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
         size = ZSTD_BLOCKSIZE_MAX;
 
     /* Allocate all buffers and contexts if not already allocated */
-    if (neededBufSize > bufSize || !cBuf || !rBuf)
-    {
+    if (neededBufSize > bufSize || !cBuf || !rBuf) {
         free(cBuf);
         free(rBuf);
         cBuf = FUZZ_malloc(neededBufSize);
         rBuf = FUZZ_malloc(neededBufSize);
         bufSize = neededBufSize;
     }
-    if (!cctx)
-    {
+    if (!cctx) {
         cctx = ZSTD_createCCtx();
         FUZZ_ASSERT(cctx);
     }
-    if (!dctx)
-    {
+    if (!dctx) {
         dctx = ZSTD_createDCtx();
         FUZZ_ASSERT(dctx);
     }
 
     {
-        size_t const result = roundTripTest(rBuf, neededBufSize, cBuf, neededBufSize, src, size, cLevel);
+        size_t const result =
+            roundTripTest(rBuf, neededBufSize, cBuf, neededBufSize, src, size,
+              cLevel);
         FUZZ_ZASSERT(result);
         FUZZ_ASSERT_MSG(result == size, "Incorrect regenerated size");
         FUZZ_ASSERT_MSG(!FUZZ_memcmp(src, rBuf, size), "Corruption!");
     }
     FUZZ_dataProducer_free(producer);
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeCCtx(cctx);
-    cctx = NULL;
-    ZSTD_freeDCtx(dctx);
-    dctx = NULL;
+    ZSTD_freeCCtx(cctx); cctx = NULL;
+    ZSTD_freeDCtx(dctx); dctx = NULL;
 #endif
     FUZZ_SEQ_PROD_TEARDOWN();
     return 0;

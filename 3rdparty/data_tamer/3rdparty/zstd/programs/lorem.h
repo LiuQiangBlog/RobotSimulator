@@ -10,14 +10,14 @@
 
 /* lorem ipsum generator */
 
-#include <stddef.h> /* size_t */
+#include <stddef.h>   /* size_t */
 
 /*
  * LOREM_genBuffer():
  * Generate @size bytes of compressible data using lorem ipsum generator
  * into provided @buffer.
  */
-void LOREM_genBuffer(void *buffer, size_t size, unsigned seed);
+void LOREM_genBuffer(void* buffer, size_t size, unsigned seed);
 
 /*
  * LOREM_genBlock():
@@ -27,4 +27,6 @@ void LOREM_genBuffer(void *buffer, size_t size, unsigned seed);
  *           if ==0: generate one paragraph at most.
  * @return : nb of bytes generated into @buffer.
  */
-size_t LOREM_genBlock(void *buffer, size_t size, unsigned seed, int first, int fill);
+size_t LOREM_genBlock(void* buffer, size_t size,
+                      unsigned seed,
+                      int first, int fill);

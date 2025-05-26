@@ -59,15 +59,13 @@ to compress data into Zstandard format and/or decompress data from Zstandard for
 The Zstandard format is supported by an open source reference implementation,
 written in portable C, and available at : https://github.com/facebook/zstd .
 
+
 ### Overall conventions
-
 In this document:
-
 - square brackets i.e. `[` and `]` are used to indicate optional fields or parameters.
 - the naming convention for identifiers is `Mixed_Case_With_Underscores`
 
 ### Definitions
-
 Content compressed by Zstandard is transformed into a Zstandard __frame__.
 Multiple frames can be appended into a single file or stream.
 A frame is completely independent, has a defined beginning and end,
@@ -82,17 +80,16 @@ allowing streaming operations.
 
 Overview
 ---------
-
 - [Frames](#frames)
-    - [Zstandard frames](#zstandard-frames)
-        - [Blocks](#blocks)
-            - [Literals Section](#literals-section)
-            - [Sequences Section](#sequences-section)
-            - [Sequence Execution](#sequence-execution)
-    - [Skippable frames](#skippable-frames)
+  - [Zstandard frames](#zstandard-frames)
+    - [Blocks](#blocks)
+      - [Literals Section](#literals-section)
+      - [Sequences Section](#sequences-section)
+      - [Sequence Execution](#sequence-execution)
+  - [Skippable frames](#skippable-frames)
 - [Entropy Encoding](#entropy-encoding)
-    - [FSE](#fse)
-    - [Huffman Coding](#huffman-coding)
+  - [FSE](#fse)
+  - [Huffman Coding](#huffman-coding)
 - [Dictionary Format](#dictionary-format)
 
 Frames
@@ -103,17 +100,16 @@ The decompressed content of multiple concatenated frames is the concatenation of
 each frame decompressed content.
 
 There are two frame formats defined by Zstandard:
-Zstandard frames and Skippable frames.
+  Zstandard frames and Skippable frames.
 Zstandard frames contain compressed data, while
 skippable frames contain custom user metadata.
 
 ## Zstandard frames
-
 The structure of a single Zstandard frame is following:
 
-| `Magic_Number` | `Frame_Header` | `Data_Block` | [More data blocks] | [`Content_Checksum`] |
-|:--------------:|:--------------:|:------------:|--------------------|:--------------------:|
-|    4 bytes     |   2-14 bytes   |   n bytes    |                    |      0-4 bytes       |
+| `Magic_Number` | `Frame_Header` |`Data_Block`| [More data blocks] | [`Content_Checksum`] |
+|:--------------:|:--------------:|:----------:| ------------------ |:--------------------:|
+|  4 bytes       |  2-14 bytes    |  n bytes   |                    |     0-4 bytes        |
 
 __`Magic_Number`__
 
@@ -149,7 +145,7 @@ and up to 14 bytes depending on optional parameters.
 The structure of `Frame_Header` is following:
 
 | `Frame_Header_Descriptor` | [`Window_Descriptor`] | [`Dictionary_ID`] | [`Frame_Content_Size`] |
-|---------------------------|-----------------------|-------------------|------------------------|
+| ------------------------- | --------------------- | ----------------- | ---------------------- |
 | 1 byte                    | 0-1 byte              | 0-4 bytes         | 0-8 bytes              |
 
 #### `Frame_Header_Descriptor`
@@ -159,7 +155,7 @@ It describes which other fields are present.
 Decoding this byte is enough to tell the size of `Frame_Header`.
 
 | Bit number | Field name                |
-|------------|---------------------------|
+| ---------- | ----------                |
 | 7-6        | `Frame_Content_Size_flag` |
 | 5          | `Single_Segment_flag`     |
 | 4          | `Unused_bit`              |
@@ -178,9 +174,9 @@ is provided within the header.
 which is the number of bytes used by `Frame_Content_Size`
 according to the following table:
 
-| `Flag_Value`     | 0      | 1 | 2 | 3 |
-|------------------|--------|---|---|---|
-| `FCS_Field_Size` | 0 or 1 | 2 | 4 | 8 |
+|  `Flag_Value`  |    0   |  1  |  2  |  3  |
+| -------------- | ------ | --- | --- | --- |
+|`FCS_Field_Size`| 0 or 1 |  2  |  4  |  8  |
 
 When `Flag_Value` is `0`, `FCS_Field_Size` depends on `Single_Segment_flag` :
 if `Single_Segment_flag` is set, `FCS_Field_Size` is 1.
@@ -232,9 +228,9 @@ This is a 2-bits flag (`= FHD & 3`),
 telling if a dictionary ID is provided within the header.
 It also specifies the size of this field as `DID_Field_Size`.
 
-| `Flag_Value`     | 0 | 1 | 2 | 3 |
-|------------------|---|---|---|---|
-| `DID_Field_Size` | 0 | 1 | 2 | 4 |
+|`Flag_Value`    |  0  |  1  |  2  |  3  |
+| -------------- | --- | --- | --- | --- |
+|`DID_Field_Size`|  0  |  1  |  2  |  4  |
 
 #### `Window_Descriptor`
 
@@ -246,20 +242,18 @@ When `Single_Segment_flag` is set, `Window_Descriptor` is not present.
 In this case, `Window_Size` is `Frame_Content_Size`,
 which can be any value from 0 to 2^64-1 bytes (16 ExaBytes).
 
-| Bit numbers | 7-3        | 2-0        |
-|-------------|------------|------------|
+| Bit numbers |     7-3    |     2-0    |
+| ----------- | ---------- | ---------- |
 | Field name  | `Exponent` | `Mantissa` |
 
 The minimum memory buffer size is called `Window_Size`.
 It is described by the following formulas :
-
 ```
 windowLog = 10 + Exponent;
 windowBase = 1 << windowLog;
 windowAdd = (windowBase / 8) * Mantissa;
 Window_Size = windowBase + windowAdd;
 ```
-
 The minimum `Window_Size` is 1 KB.
 The maximum `Window_Size` is `(1<<41) + 7*(1<<38)` bytes, which is 3.75 TB.
 
@@ -309,13 +303,13 @@ This is the original (uncompressed) size. This information is optional.
 `FCS_Field_Size` is provided by the value of `Frame_Content_Size_flag`.
 `FCS_Field_Size` can be equal to 0 (not present), 1, 2, 4 or 8 bytes.
 
-| `FCS_Field_Size` | Range       |
-|------------------|-------------|
-| 0                | unknown     |
-| 1                | 0 - 255     |
-| 2                | 256 - 65791 |
-| 4                | 0 - 2^32-1  |
-| 8                | 0 - 2^64-1  |
+| `FCS_Field_Size` |    Range   |
+| ---------------- | ---------- |
+|        0         |   unknown  |
+|        1         |   0 - 255  |
+|        2         | 256 - 65791|
+|        4         | 0 - 2^32-1 |
+|        8         | 0 - 2^64-1 |
 
 `Frame_Content_Size` format is __little-endian__.
 When `FCS_Field_Size` is 1, 4 or 8 bytes, the value is read directly.
@@ -343,7 +337,7 @@ It contains 3 fields :
 
 | `Last_Block` | `Block_Type` | `Block_Size` |
 |:------------:|:------------:|:------------:|
-|    bit 0     |   bits 1-2   |  bits 3-23   |
+|    bit 0     |  bits 1-2    |  bits 3-23   |
 
 __`Last_Block`__
 
@@ -358,9 +352,9 @@ The next 2 bits represent the `Block_Type`.
 `Block_Type` influences the meaning of `Block_Size`.
 There are 4 block types :
 
-| Value        | 0           | 1           | 2                  | 3          |
-|--------------|-------------|-------------|--------------------|------------|
-| `Block_Type` | `Raw_Block` | `RLE_Block` | `Compressed_Block` | `Reserved` |
+|    Value     |      0      |      1      |         2          |     3     |
+| ------------ | ----------- | ----------- | ------------------ | --------- |
+| `Block_Type` | `Raw_Block` | `RLE_Block` | `Compressed_Block` | `Reserved`|
 
 - `Raw_Block` - this is an uncompressed block.
   `Block_Content` contains `Block_Size` bytes.
@@ -395,9 +389,8 @@ __`Block_Content`__ and __`Block_Maximum_Size`__
 
 The size of `Block_Content` is limited by `Block_Maximum_Size`,
 which is the smallest of:
-
-- `Window_Size`
-- 128 KB
+-  `Window_Size`
+-  128 KB
 
 `Block_Maximum_Size` is constant for a given frame.
 This maximum is applicable to both the decompressed size
@@ -415,7 +408,6 @@ To decompress a compressed block, the compressed size must be provided
 from `Block_Size` field within `Block_Header`.
 
 A compressed block consists of 2 sections :
-
 - [Literals Section](#literals-section)
 - [Sequences Section](#sequences-section)
 
@@ -423,9 +415,7 @@ The results of the two sections are then combined to produce the decompressed
 data in [Sequence Execution](#sequence-execution)
 
 #### Prerequisites
-
 To decode a compressed block, the following elements are necessary :
-
 - Previous decoded data, up to a distance of `Window_Size`,
   or beginning of the Frame, whichever is smaller.
 - List of "recent offsets" from previous `Compressed_Block`.
@@ -449,7 +439,8 @@ When compressed, a tree description may optionally be present,
 followed by 1 or 4 streams.
 
 | `Literals_Section_Header` | [`Huffman_Tree_Description`] | [jumpTable] | Stream1 | [Stream2] | [Stream3] | [Stream4] |
-|---------------------------|------------------------------|-------------|---------|-----------|-----------|-----------|
+| ------------------------- | ---------------------------- | ----------- | ------- | --------- | --------- | --------- |
+
 
 ### `Literals_Section_Header`
 
@@ -458,8 +449,8 @@ It's a byte-aligned variable-size bitfield, ranging from 1 to 5 bytes,
 using __little-endian__ convention.
 
 | `Literals_Block_Type` | `Size_Format` | `Regenerated_Size` | [`Compressed_Size`] |
-|-----------------------|---------------|--------------------|---------------------|
-| 2 bits                | 1 - 2 bits    | 5 - 20 bits        | 0 - 18 bits         |
+| --------------------- | ------------- | ------------------ | ------------------- |
+|       2 bits          |  1 - 2 bits   |    5 - 20 bits     |     0 - 18 bits     |
 
 In this representation, bits on the left are the lowest bits.
 
@@ -468,24 +459,24 @@ __`Literals_Block_Type`__
 This field uses 2 lowest bits of first byte, describing 4 different block types :
 
 | `Literals_Block_Type`       | Value |
-|-----------------------------|-------|
-| `Raw_Literals_Block`        | 0     |
-| `RLE_Literals_Block`        | 1     |
-| `Compressed_Literals_Block` | 2     |
-| `Treeless_Literals_Block`   | 3     |
+| --------------------------- | ----- |
+| `Raw_Literals_Block`        |   0   |
+| `RLE_Literals_Block`        |   1   |
+| `Compressed_Literals_Block` |   2   |
+| `Treeless_Literals_Block`   |   3   |
 
 - `Raw_Literals_Block` - Literals are stored uncompressed.
 - `RLE_Literals_Block` - Literals consist of a single byte value
-  repeated `Regenerated_Size` times.
+        repeated `Regenerated_Size` times.
 - `Compressed_Literals_Block` - This is a standard Huffman-compressed block,
-  starting with a Huffman tree description.
-  In this mode, there are at least 2 different literals represented in the Huffman tree description.
-  See details below.
+        starting with a Huffman tree description.
+        In this mode, there are at least 2 different literals represented in the Huffman tree description.
+        See details below.
 - `Treeless_Literals_Block` - This is a Huffman-compressed block,
-  using Huffman tree _from previous Huffman-compressed literals block_.
-  `Huffman_Tree_Description` will be skipped.
-  Note: If this mode is triggered without any previous Huffman-table in the frame
-  (or [dictionary](#dictionary-format)), this should be treated as data corruption.
+        using Huffman tree _from previous Huffman-compressed literals block_.
+        `Huffman_Tree_Description` will be skipped.
+        Note: If this mode is triggered without any previous Huffman-table in the frame
+        (or [dictionary](#dictionary-format)), this should be treated as data corruption.
 
 __`Size_Format`__
 
@@ -507,17 +498,17 @@ __`Size_Format` for `Raw_Literals_Block` and `RLE_Literals_Block`__ :
 Its value is : `Size_Format = (Literals_Section_Header[0]>>2) & 3`
 
 - `Size_Format` == 00 or 10 : `Size_Format` uses 1 bit.
-  `Regenerated_Size` uses 5 bits (0-31).
-  `Literals_Section_Header` uses 1 byte.
-  `Regenerated_Size = Literals_Section_Header[0]>>3`
+               `Regenerated_Size` uses 5 bits (0-31).
+               `Literals_Section_Header` uses 1 byte.
+               `Regenerated_Size = Literals_Section_Header[0]>>3`
 - `Size_Format` == 01 : `Size_Format` uses 2 bits.
-  `Regenerated_Size` uses 12 bits (0-4095).
-  `Literals_Section_Header` uses 2 bytes.
-  `Regenerated_Size = (Literals_Section_Header[0]>>4) + (Literals_Section_Header[1]<<4)`
+               `Regenerated_Size` uses 12 bits (0-4095).
+               `Literals_Section_Header` uses 2 bytes.
+               `Regenerated_Size = (Literals_Section_Header[0]>>4) + (Literals_Section_Header[1]<<4)`
 - `Size_Format` == 11 : `Size_Format` uses 2 bits.
-  `Regenerated_Size` uses 20 bits (0-1048575).
-  `Literals_Section_Header` uses 3 bytes.
-  `Regenerated_Size = (Literals_Section_Header[0]>>4) + (Literals_Section_Header[1]<<4) + (Literals_Section_Header[2]<<12)`
+               `Regenerated_Size` uses 20 bits (0-1048575).
+               `Literals_Section_Header` uses 3 bytes.
+               `Regenerated_Size = (Literals_Section_Header[0]>>4) + (Literals_Section_Header[1]<<4) + (Literals_Section_Header[2]<<12)`
 
 Only Stream1 is present for these cases.
 Note : it's allowed to represent a short value (for example `27`)
@@ -528,17 +519,17 @@ __`Size_Format` for `Compressed_Literals_Block` and `Treeless_Literals_Block`__ 
 `Size_Format` always uses 2 bits.
 
 - `Size_Format` == 00 : _A single stream_.
-  Both `Regenerated_Size` and `Compressed_Size` use 10 bits (0-1023).
-  `Literals_Section_Header` uses 3 bytes.
+               Both `Regenerated_Size` and `Compressed_Size` use 10 bits (0-1023).
+               `Literals_Section_Header` uses 3 bytes.
 - `Size_Format` == 01 : 4 streams.
-  Both `Regenerated_Size` and `Compressed_Size` use 10 bits (6-1023).
-  `Literals_Section_Header` uses 3 bytes.
+               Both `Regenerated_Size` and `Compressed_Size` use 10 bits (6-1023).
+               `Literals_Section_Header` uses 3 bytes.
 - `Size_Format` == 10 : 4 streams.
-  Both `Regenerated_Size` and `Compressed_Size` use 14 bits (6-16383).
-  `Literals_Section_Header` uses 4 bytes.
+               Both `Regenerated_Size` and `Compressed_Size` use 14 bits (6-16383).
+               `Literals_Section_Header` uses 4 bytes.
 - `Size_Format` == 11 : 4 streams.
-  Both `Regenerated_Size` and `Compressed_Size` use 18 bits (6-262143).
-  `Literals_Section_Header` uses 5 bytes.
+               Both `Regenerated_Size` and `Compressed_Size` use 18 bits (6-262143).
+               `Literals_Section_Header` uses 5 bytes.
 
 Both `Compressed_Size` and `Regenerated_Size` fields follow __little-endian__ convention.
 Note: `Compressed_Size` __includes__ the size of the Huffman Tree description
@@ -564,37 +555,31 @@ for such a small quantity, that would be wasteful.
 A more practical lower bound would be around ~256 bytes.
 
 #### Raw Literals Block
-
 The data in Stream1 is `Regenerated_Size` bytes long,
 it contains the raw literals data to be used during [Sequence Execution].
 
 #### RLE Literals Block
-
 Stream1 consists of a single byte which should be repeated `Regenerated_Size` times
 to generate the decoded literals.
 
 #### Compressed Literals Block and Treeless Literals Block
-
 Both of these modes contain Huffman encoded data.
 
 For `Treeless_Literals_Block`,
 the Huffman table comes from previously compressed literals block,
 or from a dictionary.
 
+
 ### `Huffman_Tree_Description`
-
 This section is only present when `Literals_Block_Type` type is `Compressed_Literals_Block` (`2`).
-The tree describes the weights of all literals symbols that can be present in the literals block, at least 2 and up to
-
-256.
-
+The tree describes the weights of all literals symbols that can be present in the literals block, at least 2 and up to 256.
 The format of the Huffman tree description can be found at [Huffman Tree description](#huffman-tree-description).
 The size of `Huffman_Tree_Description` is determined during decoding process,
 it must be used to determine where streams begin.
 `Total_Streams_Size = Compressed_Size - Huffman_Tree_Description_Size`.
 
-### Jump Table
 
+### Jump Table
 The Jump Table is only present when there are 4 Huffman-coded streams.
 
 Reminder : Huffman compressed data consists of either 1 or 4 streams.
@@ -648,16 +633,16 @@ followed by optional probability tables for each symbol type,
 followed by the bitstream.
 
 | `Sequences_Section_Header` | [`Literals_Length_Table`] | [`Offset_Table`] | [`Match_Length_Table`] | bitStream |
-|----------------------------|---------------------------|------------------|------------------------|-----------|
+| -------------------------- | ------------------------- | ---------------- | ---------------------- | --------- |
 
 To decode the `Sequences_Section`, it's required to know its size.
 Its size is deduced from the size of `Literals_Section`:
 `Sequences_Section_Size = Block_Size - Literals_Section_Size`.
 
+
 #### `Sequences_Section_Header`
 
 Consists of 2 items:
-
 - `Number_of_Sequences`
 - Symbol compression modes
 
@@ -665,24 +650,23 @@ __`Number_of_Sequences`__
 
 This is a variable size field using between 1 and 3 bytes.
 Let's call its first byte `byte0`.
-
 - `if (byte0 < 128)` : `Number_of_Sequences = byte0` . Uses 1 byte.
 - `if (byte0 < 255)` : `Number_of_Sequences = ((byte0 - 0x80) << 8) + byte1`. Uses 2 bytes.
-  Note that the 2 bytes format fully overlaps the 1 byte format.
+            Note that the 2 bytes format fully overlaps the 1 byte format.
 - `if (byte0 == 255)`: `Number_of_Sequences = byte1 + (byte2<<8) + 0x7F00`. Uses 3 bytes.
 
 `if (Number_of_Sequences == 0)` : there are no sequences.
-The sequence section stops immediately,
-FSE tables used in `Repeat_Mode` aren't updated.
-Block's decompressed content is defined solely by the Literals Section content.
+            The sequence section stops immediately,
+            FSE tables used in `Repeat_Mode` aren't updated.
+            Block's decompressed content is defined solely by the Literals Section content.
 
 __Symbol compression modes__
 
 This is a single byte, defining the compression mode of each symbol type.
 
-| Bit number | 7-6                     | 5-4            | 3-2                  | 1-0        |
-|------------|-------------------------|----------------|----------------------|------------|
-| Field name | `Literals_Lengths_Mode` | `Offsets_Mode` | `Match_Lengths_Mode` | `Reserved` |
+|Bit number|          7-6            |      5-4       |        3-2           |     1-0    |
+| -------- | ----------------------- | -------------- | -------------------- | ---------- |
+|Field name| `Literals_Lengths_Mode` | `Offsets_Mode` | `Match_Lengths_Mode` | `Reserved` |
 
 The last field, `Reserved`, must be all-zeroes.
 
@@ -691,29 +675,29 @@ literals lengths, offsets, and match lengths symbols respectively.
 
 They follow the same enumeration :
 
-| Value              | 0                 | 1          | 2                     | 3             |
-|--------------------|-------------------|------------|-----------------------|---------------|
+|        Value       |         0         |      1     |           2           |       3       |
+| ------------------ | ----------------- | ---------- | --------------------- | ------------- |
 | `Compression_Mode` | `Predefined_Mode` | `RLE_Mode` | `FSE_Compressed_Mode` | `Repeat_Mode` |
 
 - `Predefined_Mode` : A predefined FSE distribution table is used, defined in
-  [default distributions](#default-distributions).
-  No distribution table will be present.
+          [default distributions](#default-distributions).
+          No distribution table will be present.
 - `RLE_Mode` : The table description consists of a single byte, which contains the symbol's value.
-  This symbol will be used for all sequences.
+          This symbol will be used for all sequences.
 - `FSE_Compressed_Mode` : standard FSE compression.
-  A distribution table will be present.
-  The format of this distribution table is described in [FSE Table Description](#fse-table-description).
-  Note that the maximum allowed accuracy log for literals length and match length tables is 9,
-  and the maximum accuracy log for the offsets table is 8.
-  `FSE_Compressed_Mode` must not be used when only one symbol is present,
-  `RLE_Mode` should be used instead (although any other mode will work).
+          A distribution table will be present.
+          The format of this distribution table is described in [FSE Table Description](#fse-table-description).
+          Note that the maximum allowed accuracy log for literals length and match length tables is 9,
+          and the maximum accuracy log for the offsets table is 8.
+          `FSE_Compressed_Mode` must not be used when only one symbol is present,
+          `RLE_Mode` should be used instead (although any other mode will work).
 - `Repeat_Mode` : The table used in the previous `Compressed_Block` with `Number_of_Sequences > 0` will be used again,
-  or if this is the first block, table in the dictionary will be used.
-  Note that this includes `RLE_mode`, so if `Repeat_Mode` follows `RLE_Mode`, the same symbol will be repeated.
-  It also includes `Predefined_Mode`, in which case `Repeat_Mode` will have same outcome as `Predefined_Mode`.
-  No distribution table will be present.
-  If this mode is used without any previous sequence table in the frame
-  (nor [dictionary](#dictionary-format)) to repeat, this should be treated as corruption.
+          or if this is the first block, table in the dictionary will be used.
+          Note that this includes `RLE_mode`, so if `Repeat_Mode` follows `RLE_Mode`, the same symbol will be repeated.
+          It also includes `Predefined_Mode`, in which case `Repeat_Mode` will have same outcome as `Predefined_Mode`.
+          No distribution table will be present.
+          If this mode is used without any previous sequence table in the frame
+          (nor [dictionary](#dictionary-format)) to repeat, this should be treated as corruption.
 
 #### The codes for literals lengths, match lengths, and offsets.
 
@@ -730,25 +714,26 @@ The literals length is equal to the decoded `Baseline` plus
 the result of reading `Number_of_Bits` bits from the bitstream,
 as a __little-endian__ value.
 
-| `Literals_Length_Code` | 0-15                   |
-|------------------------|------------------------|
+| `Literals_Length_Code` |         0-15           |
+| ---------------------- | ---------------------- |
 | length                 | `Literals_Length_Code` |
-| `Number_of_Bits`       | 0                      |
+| `Number_of_Bits`       |          0             |
 
-| `Literals_Length_Code` | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 |
-|------------------------|----|----|----|----|----|----|----|----|
-| `Baseline`             | 16 | 18 | 20 | 22 | 24 | 28 | 32 | 40 |
-| `Number_of_Bits`       | 1  | 1  | 1  | 1  | 2  | 2  | 3  | 3  |
+| `Literals_Length_Code` |  16  |  17  |  18  |  19  |  20  |  21  |  22  |  23  |
+| ---------------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| `Baseline`             |  16  |  18  |  20  |  22  |  24  |  28  |  32  |  40  |
+| `Number_of_Bits`       |   1  |   1  |   1  |   1  |   2  |   2  |   3  |   3  |
 
-| `Literals_Length_Code` | 24 | 25 | 26  | 27  | 28  | 29   | 30   | 31   |
-|------------------------|----|----|-----|-----|-----|------|------|------|
-| `Baseline`             | 48 | 64 | 128 | 256 | 512 | 1024 | 2048 | 4096 |
-| `Number_of_Bits`       | 4  | 6  | 7   | 8   | 9   | 10   | 11   | 12   |
+| `Literals_Length_Code` |  24  |  25  |  26  |  27  |  28  |  29  |  30  |  31  |
+| ---------------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| `Baseline`             |  48  |  64  |  128 |  256 |  512 | 1024 | 2048 | 4096 |
+| `Number_of_Bits`       |   4  |   6  |   7  |   8  |   9  |  10  |  11  |  12  |
 
-| `Literals_Length_Code` | 32   | 33    | 34    | 35    |
-|------------------------|------|-------|-------|-------|
-| `Baseline`             | 8192 | 16384 | 32768 | 65536 |
-| `Number_of_Bits`       | 13   | 14    | 15    | 16    |
+| `Literals_Length_Code` |  32  |  33  |  34  |  35  |
+| ---------------------- | ---- | ---- | ---- | ---- |
+| `Baseline`             | 8192 |16384 |32768 |65536 |
+| `Number_of_Bits`       |  13  |  14  |  15  |  16  |
+
 
 ##### Match length codes
 
@@ -758,25 +743,25 @@ The match length is equal to the decoded `Baseline` plus
 the result of reading `Number_of_Bits` bits from the bitstream,
 as a __little-endian__ value.
 
-| `Match_Length_Code` | 0-31                    |
-|---------------------|-------------------------|
+| `Match_Length_Code` |         0-31            |
+| ------------------- | ----------------------- |
 | value               | `Match_Length_Code` + 3 |
-| `Number_of_Bits`    | 0                       |
+| `Number_of_Bits`    |          0              |
 
-| `Match_Length_Code` | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 |
-|---------------------|----|----|----|----|----|----|----|----|
-| `Baseline`          | 35 | 37 | 39 | 41 | 43 | 47 | 51 | 59 |
-| `Number_of_Bits`    | 1  | 1  | 1  | 1  | 2  | 2  | 3  | 3  |
+| `Match_Length_Code` |  32  |  33  |  34  |  35  |  36  |  37  |  38  |  39  |
+| ------------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| `Baseline`          |  35  |  37  |  39  |  41  |  43  |  47  |  51  |  59  |
+| `Number_of_Bits`    |   1  |   1  |   1  |   1  |   2  |   2  |   3  |   3  |
 
-| `Match_Length_Code` | 40 | 41 | 42 | 43  | 44  | 45  | 46   | 47   |
-|---------------------|----|----|----|-----|-----|-----|------|------|
-| `Baseline`          | 67 | 83 | 99 | 131 | 259 | 515 | 1027 | 2051 |
-| `Number_of_Bits`    | 4  | 4  | 5  | 7   | 8   | 9   | 10   | 11   |
+| `Match_Length_Code` |  40  |  41  |  42  |  43  |  44  |  45  |  46  |  47  |
+| ------------------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
+| `Baseline`          |  67  |  83  |  99  |  131 |  259 |  515 | 1027 | 2051 |
+| `Number_of_Bits`    |   4  |   4  |   5  |   7  |   8  |   9  |  10  |  11  |
 
-| `Match_Length_Code` | 48   | 49   | 50    | 51    | 52    |
-|---------------------|------|------|-------|-------|-------|
-| `Baseline`          | 4099 | 8195 | 16387 | 32771 | 65539 |
-| `Number_of_Bits`    | 12   | 13   | 14    | 15    | 16    |
+| `Match_Length_Code` |  48  |  49  |  50  |  51  |  52  |
+| ------------------- | ---- | ---- | ---- | ---- | ---- |
+| `Baseline`          | 4099 | 8195 |16387 |32771 |65539 |
+| `Number_of_Bits`    |  12  |  13  |  14  |  15  |  16  |
 
 ##### Offset codes
 
@@ -794,7 +779,6 @@ and can be translated into an `Offset_Value` using the following formulas :
 Offset_Value = (1 << offsetCode) + readNBits(offsetCode);
 if (Offset_Value > 3) offset = Offset_Value - 3;
 ```
-
 It means that maximum `Offset_Value` is `(2^(N+1))-1`
 supporting back-reference distances up to `(2^(N+1))-4`,
 but is limited by [maximum back-reference distance](#window_descriptor).
@@ -803,7 +787,6 @@ but is limited by [maximum back-reference distance](#window_descriptor).
 This is described in more detail in [Repeat Offsets](#repeat-offsets).
 
 #### Decoding Sequences
-
 FSE bitstreams are read in reverse direction than written. In zstd,
 the compressor writes bits forward into a block and the decompressor
 must read the bitstream _backwards_.
@@ -831,7 +814,6 @@ Some FSE primitives are also used.
 For more details on the operation of these primitives, see the [FSE section](#fse).
 
 ##### Starting states
-
 The bitstream starts with initial FSE state values,
 each using the required number of bits in their respective _accuracy_,
 decoded previously from their normalized distribution.
@@ -852,7 +834,6 @@ this means the compressor must encode the sequences starting with the last
 one and ending with the first.
 
 ##### Decoding a sequence
-
 For each of the symbol types, the FSE state can be used to determine the appropriate code.
 The code then defines the `Baseline` and `Number_of_Bits` to read for each type.
 See the [description of the codes] for how to determine these values.
@@ -876,7 +857,6 @@ At the end, the bitstream shall be entirely consumed,
 otherwise the bitstream is considered corrupted.
 
 #### Default Distributions
-
 If `Predefined_Mode` is selected for a symbol type,
 its FSE decoding table is generated from a predefined distribution table defined here.
 For details on how to convert this distribution into a decoding table, see the [FSE section].
@@ -884,9 +864,7 @@ For details on how to convert this distribution into a decoding table, see the [
 [FSE section]: #from-normalized-distribution-to-decoding-tables
 
 ##### Literals Length
-
 The decoding table uses an accuracy log of 6 bits (64 states).
-
 ```
 short literalsLength_defaultDistribution[36] =
         { 4, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1,
@@ -895,9 +873,7 @@ short literalsLength_defaultDistribution[36] =
 ```
 
 ##### Match Length
-
 The decoding table uses an accuracy log of 6 bits (64 states).
-
 ```
 short matchLengths_defaultDistribution[53] =
         { 1, 4, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
@@ -907,18 +883,17 @@ short matchLengths_defaultDistribution[53] =
 ```
 
 ##### Offset Codes
-
 The decoding table uses an accuracy log of 5 bits (32 states),
 and supports a maximum `N` value of 28, allowing offset values up to 536,870,908 .
 
 If any sequence in the compressed block requires a larger offset than this,
 it's not possible to use the default distribution to represent it.
-
 ```
 short offsetCodes_defaultDistribution[29] =
         { 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1,
           1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1 };
 ```
+
 
 Sequence Execution
 ------------------
@@ -943,7 +918,6 @@ Note that all offsets leading to previously decoded data
 must be smaller than `Window_Size` defined in `Frame_Header_Descriptor`.
 
 #### Repeat offsets
-
 As seen in [Sequence Execution](#sequence-execution),
 the first 3 values define a repeated offset and we will call them
 `Repeated_Offset1`, `Repeated_Offset2`, and `Repeated_Offset3`.
@@ -994,25 +968,26 @@ their order again reflects the recency of their use.
 The following table shows the values of the `Repeated_Offsets` as a series of
 sequences are applied to them:
 
-| `offset_value` | `literals_length` | `Repeated_Offset1` | `Repeated_Offset2` | `Repeated_Offset3` |               Comment               |
-|:--------------:|:-----------------:|:------------------:|:------------------:|:------------------:|:-----------------------------------:|
-|                |                   |         1          |         4          |         8          |           starting values           |
-|      1114      |        11         |        1111        |         1          |         4          |             non-repeat              |
-|       1        |        22         |        1111        |         1          |         4          |         repeat 1: no change         |
-|      2225      |        22         |        2222        |        1111        |         1          |             non-repeat              |
-|      1114      |        111        |        1111        |        2222        |        1111        |             non-repeat              |
-|      3336      |        33         |        3333        |        1111        |        2222        |             non-repeat              |
-|       2        |        22         |        1111        |        3333        |        2222        |        repeat 2: swap 1 & 2         |
-|       3        |        33         |        2222        |        1111        |        3333        |       repeat 3: rotate 3 to 1       |
-|       3        |         0         |        2221        |        2222        |        1111        | special case : insert `repeat1 - 1` |
-|       1        |         0         |        2222        |        2221        |        1111        |             == repeat 2             |
+| `offset_value` | `literals_length` | `Repeated_Offset1` | `Repeated_Offset2` | `Repeated_Offset3` | Comment                 |
+|:--------------:|:-----------------:|:------------------:|:------------------:|:------------------:|:-----------------------:|
+|                |                   |                  1 |                  4 |                  8 | starting values         |
+|           1114 |                11 |               1111 |                  1 |                  4 | non-repeat              |
+|              1 |                22 |               1111 |                  1 |                  4 | repeat 1: no change     |
+|           2225 |                22 |               2222 |               1111 |                  1 | non-repeat              |
+|           1114 |               111 |               1111 |               2222 |               1111 | non-repeat              |
+|           3336 |                33 |               3333 |               1111 |               2222 | non-repeat              |
+|              2 |                22 |               1111 |               3333 |               2222 | repeat 2: swap 1 & 2    |
+|              3 |                33 |               2222 |               1111 |               3333 | repeat 3: rotate 3 to 1 |
+|              3 |                 0 |               2221 |               2222 |               1111 | special case : insert `repeat1 - 1` |
+|              1 |                 0 |               2222 |               2221 |               1111 | == repeat 2             |
+
 
 Skippable Frames
 ----------------
 
 | `Magic_Number` | `Frame_Size` | `User_Data` |
 |:--------------:|:------------:|:-----------:|
-|    4 bytes     |   4 bytes    |   n bytes   |
+|   4 bytes      |  4 bytes     |   n bytes   |
 
 Skippable frames allow the insertion of user-defined metadata
 into a flow of concatenated frames.
@@ -1086,7 +1061,6 @@ the decoder should consume `Num_Bits` bits from the stream as a __little-endian_
 [ANS]: https://en.wikipedia.org/wiki/Asymmetric_Numeral_Systems
 
 ### FSE Table Description
-
 To decode an FSE bitstream, it is necessary to build its FSE decoding table.
 The decoding table is derived from a distribution of Probabilities.
 The Zstandard format encodes distributions of Probabilities as follows:
@@ -1126,7 +1100,7 @@ It depends on :
   This is achieved through this scheme :
 
   | 8-bit field read | Value decoded | Nb of bits consumed |
-        | ---------------- | ------------- | ------------------- |
+  | ---------------- | ------------- | ------------------- |
   |         0 -  97  |   0 -  97     |  7                  |
   |        98 - 127  |  98 - 127     |  8                  |
   |       128 - 225  |   0 -  97     |  7                  |
@@ -1191,7 +1165,6 @@ Starting from smallest present symbol, and table position `0`,
 each symbol gets allocated as many rows as its probability.
 
 Row allocation is not linear, it follows this order, in modular arithmetic:
-
 ```
 position += (tableSize>>1) + (tableSize>>3) + 3;
 position &= tableSize-1;
@@ -1236,14 +1209,14 @@ Baseline is assigned starting from the lowest state using fewer bits,
 continuing in natural state order, looping back at the beginning.
 Each state takes its allocated range from Baseline, sized by its `Number_of_Bits`.
 
-| state order      | 0     | 1     | 2      | 3    | 4     |
-|------------------|-------|-------|--------|------|-------|
-| state value      | 1     | 39    | 77     | 84   | 122   |
-| width            | 32    | 32    | 32     | 16   | 16    |
-| `Number_of_Bits` | 5     | 5     | 5      | 4    | 4     |
-| allocation order | 3     | 4     | 5      | 1    | 2     |
-| `Baseline`       | 32    | 64    | 96     | 0    | 16    |
-| range            | 32-63 | 64-95 | 96-127 | 0-15 | 16-31 |
+| state order      |   0   |   1   |    2   |   3  |    4   |
+| ---------------- | ----- | ----- | ------ | ---- | ------ |
+| state value      |   1   |  39   |   77   |  84  |  122   |
+| width            |  32   |  32   |   32   |  16  |   16   |
+| `Number_of_Bits` |   5   |   5   |    5   |   4  |    4   |
+| allocation order |   3   |   4   |    5   |   1  |    2   |
+| `Baseline`       |  32   |  64   |   96   |   0  |   16   |
+| range            | 32-63 | 64-95 | 96-127 | 0-15 | 16-31  |
 
 During decoding, the next state value is determined by using current state value as row number,
 then reading the required `Number_of_Bits` from the bitstream, and adding the specified `Baseline`.
@@ -1300,11 +1273,9 @@ This specification limits maximum code length to 11 bits.
 All literal symbols from zero (included) to last present one (excluded)
 are represented by `Weight` with values from `0` to `Max_Number_of_Bits`.
 Transformation from `Weight` to `Number_of_Bits` follows this formula :
-
 ```
 Number_of_Bits = Weight ? (Max_Number_of_Bits + 1 - Weight) : 0
 ```
-
 When a literal symbol is not present, it receives a `Weight` of 0.
 The least frequent symbol receives a `Weight` of 1.
 If no literal has a `Weight` of 1, then the data is considered corrupted.
@@ -1322,25 +1293,23 @@ otherwise the representation is considered corrupted.
 __Example__ :
 Let's presume the following Huffman tree must be described :
 
-| literal symbol   | A | B | C | D | E | F |
-|------------------|---|---|---|---|---|---|
-| `Number_of_Bits` | 1 | 2 | 3 | 0 | 4 | 4 |
+|  literal symbol  |  A  |  B  |  C  |  D  |  E  |  F  |
+| ---------------- | --- | --- | --- | --- | --- | --- |
+| `Number_of_Bits` |  1  |  2  |  3  |  0  |  4  |  4  |
 
 The tree depth is 4, since its longest elements uses 4 bits
 (longest elements are the ones with smallest frequency).
 
 All symbols will now receive a `Weight` instead of `Number_of_Bits`.
 Weight formula is :
-
 ```
 Weight = Number_of_Bits ? (Max_Number_of_Bits + 1 - Number_of_Bits) : 0
 ```
-
 It gives the following series of Weights :
 
-| literal symbol | A | B | C | D | E | F |
-|----------------|---|---|---|---|---|---|
-| `Weight`       | 4 | 3 | 2 | 0 | 1 | 1 |
+| literal symbol |  A  |  B  |  C  |  D  |  E  |  F  |
+| -------------- | --- | --- | --- | --- | --- | --- |
+|   `Weight`     |  4  |  3  |  2  |  0  |  1  |  1  |
 
 This list will be sent to the decoder, with the following modifications:
 
@@ -1367,23 +1336,24 @@ which describes how the series of weights is encoded.
   The length of the FSE-compressed series is equal to `headerByte` (0-127).
 
 - if `headerByte` >= 128 :
-    + the series of weights uses a direct representation,
-      where each `Weight` is encoded directly as a 4 bits field (0-15).
-    + They are encoded forward, 2 weights to a byte,
-      first weight taking the top four bits and second one taking the bottom four.
-        * e.g. the following operations could be used to read the weights:
-          `Weight[0] = (Byte[0] >> 4), Weight[1] = (Byte[0] & 0xf)`, etc.
-    + The full representation occupies `Ceiling(Number_of_Weights/2)` bytes,
-      meaning it uses only full bytes even if `Number_of_Weights` is odd.
-    + `Number_of_Weights = headerByte - 127`.
-        * Note that maximum `Number_of_Weights` is 255-127 = 128,
-          therefore, only up to 128 `Weight` can be encoded using direct representation.
-        * Since the last non-zero `Weight` is _not_ encoded,
-          this scheme is compatible with alphabet sizes of up to 129 symbols,
-          hence including literal symbol 128.
-        * If any literal symbol > 128 has a non-zero `Weight`,
-          direct representation is not possible.
-          In such case, it's necessary to use FSE compression.
+  + the series of weights uses a direct representation,
+    where each `Weight` is encoded directly as a 4 bits field (0-15).
+  + They are encoded forward, 2 weights to a byte,
+    first weight taking the top four bits and second one taking the bottom four.
+    * e.g. the following operations could be used to read the weights:
+      `Weight[0] = (Byte[0] >> 4), Weight[1] = (Byte[0] & 0xf)`, etc.
+  + The full representation occupies `Ceiling(Number_of_Weights/2)` bytes,
+    meaning it uses only full bytes even if `Number_of_Weights` is odd.
+  + `Number_of_Weights = headerByte - 127`.
+    * Note that maximum `Number_of_Weights` is 255-127 = 128,
+      therefore, only up to 128 `Weight` can be encoded using direct representation.
+    * Since the last non-zero `Weight` is _not_ encoded,
+      this scheme is compatible with alphabet sizes of up to 129 symbols,
+      hence including literal symbol 128.
+    * If any literal symbol > 128 has a non-zero `Weight`,
+      direct representation is not possible.
+      In such case, it's necessary to use FSE compression.
+
 
 #### Finite State Entropy (FSE) compression of Huffman weights
 
@@ -1413,25 +1383,23 @@ For more details on these FSE operations, see the [FSE section](#fse).
 The number of symbols to decode is determined
 by tracking bitStream overflow condition:
 If updating state after decoding a symbol would require more bits than
-remain in the stream, it is assumed that extra bits are 0. Then,
+remain in the stream, it is assumed that extra bits are 0.  Then,
 symbols for each of the final states are decoded and the process is complete.
 
 If this process would produce more weights than the maximum number of decoded
 weights (255), then the data is considered corrupted.
 
 If either of the 2 initial states are absent or truncated, then the data is
-considered corrupted. Consequently, it is not possible to encode fewer than
+considered corrupted.  Consequently, it is not possible to encode fewer than
 2 weights using this mode.
 
 #### Conversion from weights to Huffman prefix codes
 
 All present symbols shall now have a `Weight` value.
 It is possible to transform weights into `Number_of_Bits`, using this formula:
-
 ```
 Number_of_Bits = (Weight>0) ? Max_Number_of_Bits + 1 - Weight : 0
 ```
-
 In order to determine which prefix code is assigned to each Symbol,
 Symbols are first sorted by `Weight`, then by natural sequential order.
 Symbols with a `Weight` of zero are removed.
@@ -1441,17 +1409,17 @@ prefix codes are assigned in ascending order.
 __Example__ :
 Let's assume the following list of weights has been decoded:
 
-| Literal  | A | B | C | D | E | F |
-|----------|---|---|---|---|---|---|
-| `Weight` | 4 | 3 | 2 | 0 | 1 | 1 |
+| Literal  |  A  |  B  |  C  |  D  |  E  |  F  |
+| -------- | --- | --- | --- | --- | --- | --- |
+| `Weight` |  4  |  3  |  2  |  0  |  1  |  1  |
 
 Sorted by weight and then natural sequential order,
 it gives the following prefix codes distribution:
 
-| Literal          | D   | E    | F    | C    | B    | A    |
-|------------------|-----|------|------|------|------|------|
-| `Weight`         | 0   | 1    | 1    | 2    | 3    | 4    |
-| `Number_of_Bits` | 0   | 4    | 4    | 3    | 2    | 1    |
+| Literal          |  D  |   E  |   F  |   C  |   B  |   A  |
+| ---------------- | --- | ---- | ---- | ---- | ---- | ---- |
+| `Weight`         |  0  |   1  |   1  |   2  |   3  |   4  |
+| `Number_of_Bits` |  0  |   4  |   4  |   3  |   2  |   1  |
 | prefix code      | N/A | 0000 | 0001 | 001  | 01   | 1    |
 | ascending order  | N/A | 0000 | 0001 | 001x | 01xx | 1xxx |
 
@@ -1479,18 +1447,16 @@ order, starting from the end read symbols in forward order.
 For example, if the literal sequence `ABEF` was encoded using above prefix code,
 it would be encoded (in reverse order) as:
 
-| Symbol   | F      | E      | B    | A   | Padding |
-|----------|--------|--------|------|-----|---------|
-| Encoding | `0000` | `0001` | `01` | `1` | `00001` |
+|Symbol  |   F  |   E  |  B | A | Padding |
+|--------|------|------|----|---|---------|
+|Encoding|`0000`|`0001`|`01`|`1`| `00001` |
 
 Resulting in following 2-bytes bitstream :
-
 ```
 00010000 00001101
 ```
 
 Here is an alternative representation with the symbol codes separated by underscore:
-
 ```
 0001_0000 00001_1_01
 ```
@@ -1516,16 +1482,16 @@ of a formatted dictionary.
 But dictionaries created by `zstd --train` follow a format, described here.
 
 __Pre-requisites__ : a dictionary has a size,
-defined either by a buffer limit, or a file size.
+                     defined either by a buffer limit, or a file size.
 
 | `Magic_Number` | `Dictionary_ID` | `Entropy_Tables` | `Content` |
-|----------------|-----------------|------------------|-----------|
+| -------------- | --------------- | ---------------- | --------- |
 
 __`Magic_Number`__ : 4 bytes ID, value 0xEC30A437, __little-endian__ format
 
 __`Dictionary_ID`__ : 4 bytes, stored in __little-endian__ format.
-`Dictionary_ID` can be any value, except 0 (which means no `Dictionary_ID`).
-It's used by decoders to check if they use the correct dictionary.
+              `Dictionary_ID` can be any value, except 0 (which means no `Dictionary_ID`).
+              It's used by decoders to check if they use the correct dictionary.
 
 _Reserved ranges :_
 If the dictionary is going to be distributed in a public environment,
@@ -1539,27 +1505,28 @@ Outside of these ranges, any value of `Dictionary_ID`
 which is both `>= 32768` and `< (1<<31)` can be used freely,
 even in public environment.
 
+
 __`Entropy_Tables`__ : follow the same format as tables in [compressed blocks].
-See the relevant [FSE](#fse-table-description)
-and [Huffman](#huffman-tree-description) sections for how to decode these tables.
-They are stored in following order :
-Huffman tables for literals, FSE table for offsets,
-FSE table for match lengths, and FSE table for literals lengths.
-These tables populate the Repeat Stats literals mode and
-Repeat distribution mode for sequence decoding.
-It's finally followed by 3 offset values, populating recent offsets (instead of using `{1,4,8}`),
-stored in order, 4-bytes __little-endian__ each, for a total of 12 bytes.
-Each recent offset must have a value <= dictionary content size, and cannot equal 0.
+              See the relevant [FSE](#fse-table-description)
+              and [Huffman](#huffman-tree-description) sections for how to decode these tables.
+              They are stored in following order :
+              Huffman tables for literals, FSE table for offsets,
+              FSE table for match lengths, and FSE table for literals lengths.
+              These tables populate the Repeat Stats literals mode and
+              Repeat distribution mode for sequence decoding.
+              It's finally followed by 3 offset values, populating recent offsets (instead of using `{1,4,8}`),
+              stored in order, 4-bytes __little-endian__ each, for a total of 12 bytes.
+              Each recent offset must have a value <= dictionary content size, and cannot equal 0.
 
 __`Content`__ : The rest of the dictionary is its content.
-The content act as a "past" in front of data to compress or decompress,
-so it can be referenced in sequence commands.
-As long as the amount of data decoded from this frame is less than or
-equal to `Window_Size`, sequence commands may specify offsets longer
-than the total length of decoded output so far to reference back to the
-dictionary, even parts of the dictionary with offsets larger than `Window_Size`.
-After the total output has surpassed `Window_Size` however,
-this is no longer allowed and the dictionary is no longer accessible.
+              The content act as a "past" in front of data to compress or decompress,
+              so it can be referenced in sequence commands.
+              As long as the amount of data decoded from this frame is less than or
+              equal to `Window_Size`, sequence commands may specify offsets longer
+              than the total length of decoded output so far to reference back to the
+              dictionary, even parts of the dictionary with offsets larger than `Window_Size`.
+              After the total output has surpassed `Window_Size` however,
+              this is no longer allowed and the dictionary is no longer accessible.
 
 [compressed blocks]: #the-format-of-compressed_block
 
@@ -1581,177 +1548,179 @@ to crosscheck that an implementation build its decoding tables correctly.
 #### Literal Length Code:
 
 | State | Symbol | Number_Of_Bits | Base |
-|-------|--------|----------------|------|
-| 0     | 0      | 4              | 0    |
-| 1     | 0      | 4              | 16   |
-| 2     | 1      | 5              | 32   |
-| 3     | 3      | 5              | 0    |
-| 4     | 4      | 5              | 0    |
-| 5     | 6      | 5              | 0    |
-| 6     | 7      | 5              | 0    |
-| 7     | 9      | 5              | 0    |
-| 8     | 10     | 5              | 0    |
-| 9     | 12     | 5              | 0    |
-| 10    | 14     | 6              | 0    |
-| 11    | 16     | 5              | 0    |
-| 12    | 18     | 5              | 0    |
-| 13    | 19     | 5              | 0    |
-| 14    | 21     | 5              | 0    |
-| 15    | 22     | 5              | 0    |
-| 16    | 24     | 5              | 0    |
-| 17    | 25     | 5              | 32   |
-| 18    | 26     | 5              | 0    |
-| 19    | 27     | 6              | 0    |
-| 20    | 29     | 6              | 0    |
-| 21    | 31     | 6              | 0    |
-| 22    | 0      | 4              | 32   |
-| 23    | 1      | 4              | 0    |
-| 24    | 2      | 5              | 0    |
-| 25    | 4      | 5              | 32   |
-| 26    | 5      | 5              | 0    |
-| 27    | 7      | 5              | 32   |
-| 28    | 8      | 5              | 0    |
-| 29    | 10     | 5              | 32   |
-| 30    | 11     | 5              | 0    |
-| 31    | 13     | 6              | 0    |
-| 32    | 16     | 5              | 32   |
-| 33    | 17     | 5              | 0    |
-| 34    | 19     | 5              | 32   |
-| 35    | 20     | 5              | 0    |
-| 36    | 22     | 5              | 32   |
-| 37    | 23     | 5              | 0    |
-| 38    | 25     | 4              | 0    |
-| 39    | 25     | 4              | 16   |
-| 40    | 26     | 5              | 32   |
-| 41    | 28     | 6              | 0    |
-| 42    | 30     | 6              | 0    |
-| 43    | 0      | 4              | 48   |
-| 44    | 1      | 4              | 16   |
-| 45    | 2      | 5              | 32   |
-| 46    | 3      | 5              | 32   |
-| 47    | 5      | 5              | 32   |
-| 48    | 6      | 5              | 32   |
-| 49    | 8      | 5              | 32   |
-| 50    | 9      | 5              | 32   |
-| 51    | 11     | 5              | 32   |
-| 52    | 12     | 5              | 32   |
-| 53    | 15     | 6              | 0    |
-| 54    | 17     | 5              | 32   |
-| 55    | 18     | 5              | 32   |
-| 56    | 20     | 5              | 32   |
-| 57    | 21     | 5              | 32   |
-| 58    | 23     | 5              | 32   |
-| 59    | 24     | 5              | 32   |
-| 60    | 35     | 6              | 0    |
-| 61    | 34     | 6              | 0    |
-| 62    | 33     | 6              | 0    |
-| 63    | 32     | 6              | 0    |
+| ----- | ------ | -------------- | ---- |
+|     0 |      0 |              4 |    0 |
+|     1 |      0 |              4 |   16 |
+|     2 |      1 |              5 |   32 |
+|     3 |      3 |              5 |    0 |
+|     4 |      4 |              5 |    0 |
+|     5 |      6 |              5 |    0 |
+|     6 |      7 |              5 |    0 |
+|     7 |      9 |              5 |    0 |
+|     8 |     10 |              5 |    0 |
+|     9 |     12 |              5 |    0 |
+|    10 |     14 |              6 |    0 |
+|    11 |     16 |              5 |    0 |
+|    12 |     18 |              5 |    0 |
+|    13 |     19 |              5 |    0 |
+|    14 |     21 |              5 |    0 |
+|    15 |     22 |              5 |    0 |
+|    16 |     24 |              5 |    0 |
+|    17 |     25 |              5 |   32 |
+|    18 |     26 |              5 |    0 |
+|    19 |     27 |              6 |    0 |
+|    20 |     29 |              6 |    0 |
+|    21 |     31 |              6 |    0 |
+|    22 |      0 |              4 |   32 |
+|    23 |      1 |              4 |    0 |
+|    24 |      2 |              5 |    0 |
+|    25 |      4 |              5 |   32 |
+|    26 |      5 |              5 |    0 |
+|    27 |      7 |              5 |   32 |
+|    28 |      8 |              5 |    0 |
+|    29 |     10 |              5 |   32 |
+|    30 |     11 |              5 |    0 |
+|    31 |     13 |              6 |    0 |
+|    32 |     16 |              5 |   32 |
+|    33 |     17 |              5 |    0 |
+|    34 |     19 |              5 |   32 |
+|    35 |     20 |              5 |    0 |
+|    36 |     22 |              5 |   32 |
+|    37 |     23 |              5 |    0 |
+|    38 |     25 |              4 |    0 |
+|    39 |     25 |              4 |   16 |
+|    40 |     26 |              5 |   32 |
+|    41 |     28 |              6 |    0 |
+|    42 |     30 |              6 |    0 |
+|    43 |      0 |              4 |   48 |
+|    44 |      1 |              4 |   16 |
+|    45 |      2 |              5 |   32 |
+|    46 |      3 |              5 |   32 |
+|    47 |      5 |              5 |   32 |
+|    48 |      6 |              5 |   32 |
+|    49 |      8 |              5 |   32 |
+|    50 |      9 |              5 |   32 |
+|    51 |     11 |              5 |   32 |
+|    52 |     12 |              5 |   32 |
+|    53 |     15 |              6 |    0 |
+|    54 |     17 |              5 |   32 |
+|    55 |     18 |              5 |   32 |
+|    56 |     20 |              5 |   32 |
+|    57 |     21 |              5 |   32 |
+|    58 |     23 |              5 |   32 |
+|    59 |     24 |              5 |   32 |
+|    60 |     35 |              6 |    0 |
+|    61 |     34 |              6 |    0 |
+|    62 |     33 |              6 |    0 |
+|    63 |     32 |              6 |    0 |
 
 #### Match Length Code:
 
 | State | Symbol | Number_Of_Bits | Base |
-|-------|--------|----------------|------|
-| 0     | 0      | 6              | 0    |
-| 1     | 1      | 4              | 0    |
-| 2     | 2      | 5              | 32   |
-| 3     | 3      | 5              | 0    |
-| 4     | 5      | 5              | 0    |
-| 5     | 6      | 5              | 0    |
-| 6     | 8      | 5              | 0    |
-| 7     | 10     | 6              | 0    |
-| 8     | 13     | 6              | 0    |
-| 9     | 16     | 6              | 0    |
-| 10    | 19     | 6              | 0    |
-| 11    | 22     | 6              | 0    |
-| 12    | 25     | 6              | 0    |
-| 13    | 28     | 6              | 0    |
-| 14    | 31     | 6              | 0    |
-| 15    | 33     | 6              | 0    |
-| 16    | 35     | 6              | 0    |
-| 17    | 37     | 6              | 0    |
-| 18    | 39     | 6              | 0    |
-| 19    | 41     | 6              | 0    |
-| 20    | 43     | 6              | 0    |
-| 21    | 45     | 6              | 0    |
-| 22    | 1      | 4              | 16   |
-| 23    | 2      | 4              | 0    |
-| 24    | 3      | 5              | 32   |
-| 25    | 4      | 5              | 0    |
-| 26    | 6      | 5              | 32   |
-| 27    | 7      | 5              | 0    |
-| 28    | 9      | 6              | 0    |
-| 29    | 12     | 6              | 0    |
-| 30    | 15     | 6              | 0    |
-| 31    | 18     | 6              | 0    |
-| 32    | 21     | 6              | 0    |
-| 33    | 24     | 6              | 0    |
-| 34    | 27     | 6              | 0    |
-| 35    | 30     | 6              | 0    |
-| 36    | 32     | 6              | 0    |
-| 37    | 34     | 6              | 0    |
-| 38    | 36     | 6              | 0    |
-| 39    | 38     | 6              | 0    |
-| 40    | 40     | 6              | 0    |
-| 41    | 42     | 6              | 0    |
-| 42    | 44     | 6              | 0    |
-| 43    | 1      | 4              | 32   |
-| 44    | 1      | 4              | 48   |
-| 45    | 2      | 4              | 16   |
-| 46    | 4      | 5              | 32   |
-| 47    | 5      | 5              | 32   |
-| 48    | 7      | 5              | 32   |
-| 49    | 8      | 5              | 32   |
-| 50    | 11     | 6              | 0    |
-| 51    | 14     | 6              | 0    |
-| 52    | 17     | 6              | 0    |
-| 53    | 20     | 6              | 0    |
-| 54    | 23     | 6              | 0    |
-| 55    | 26     | 6              | 0    |
-| 56    | 29     | 6              | 0    |
-| 57    | 52     | 6              | 0    |
-| 58    | 51     | 6              | 0    |
-| 59    | 50     | 6              | 0    |
-| 60    | 49     | 6              | 0    |
-| 61    | 48     | 6              | 0    |
-| 62    | 47     | 6              | 0    |
-| 63    | 46     | 6              | 0    |
+| ----- | ------ | -------------- | ---- |
+|     0 |      0 |              6 |    0 |
+|     1 |      1 |              4 |    0 |
+|     2 |      2 |              5 |   32 |
+|     3 |      3 |              5 |    0 |
+|     4 |      5 |              5 |    0 |
+|     5 |      6 |              5 |    0 |
+|     6 |      8 |              5 |    0 |
+|     7 |     10 |              6 |    0 |
+|     8 |     13 |              6 |    0 |
+|     9 |     16 |              6 |    0 |
+|    10 |     19 |              6 |    0 |
+|    11 |     22 |              6 |    0 |
+|    12 |     25 |              6 |    0 |
+|    13 |     28 |              6 |    0 |
+|    14 |     31 |              6 |    0 |
+|    15 |     33 |              6 |    0 |
+|    16 |     35 |              6 |    0 |
+|    17 |     37 |              6 |    0 |
+|    18 |     39 |              6 |    0 |
+|    19 |     41 |              6 |    0 |
+|    20 |     43 |              6 |    0 |
+|    21 |     45 |              6 |    0 |
+|    22 |      1 |              4 |   16 |
+|    23 |      2 |              4 |    0 |
+|    24 |      3 |              5 |   32 |
+|    25 |      4 |              5 |    0 |
+|    26 |      6 |              5 |   32 |
+|    27 |      7 |              5 |    0 |
+|    28 |      9 |              6 |    0 |
+|    29 |     12 |              6 |    0 |
+|    30 |     15 |              6 |    0 |
+|    31 |     18 |              6 |    0 |
+|    32 |     21 |              6 |    0 |
+|    33 |     24 |              6 |    0 |
+|    34 |     27 |              6 |    0 |
+|    35 |     30 |              6 |    0 |
+|    36 |     32 |              6 |    0 |
+|    37 |     34 |              6 |    0 |
+|    38 |     36 |              6 |    0 |
+|    39 |     38 |              6 |    0 |
+|    40 |     40 |              6 |    0 |
+|    41 |     42 |              6 |    0 |
+|    42 |     44 |              6 |    0 |
+|    43 |      1 |              4 |   32 |
+|    44 |      1 |              4 |   48 |
+|    45 |      2 |              4 |   16 |
+|    46 |      4 |              5 |   32 |
+|    47 |      5 |              5 |   32 |
+|    48 |      7 |              5 |   32 |
+|    49 |      8 |              5 |   32 |
+|    50 |     11 |              6 |    0 |
+|    51 |     14 |              6 |    0 |
+|    52 |     17 |              6 |    0 |
+|    53 |     20 |              6 |    0 |
+|    54 |     23 |              6 |    0 |
+|    55 |     26 |              6 |    0 |
+|    56 |     29 |              6 |    0 |
+|    57 |     52 |              6 |    0 |
+|    58 |     51 |              6 |    0 |
+|    59 |     50 |              6 |    0 |
+|    60 |     49 |              6 |    0 |
+|    61 |     48 |              6 |    0 |
+|    62 |     47 |              6 |    0 |
+|    63 |     46 |              6 |    0 |
 
 #### Offset Code:
 
 | State | Symbol | Number_Of_Bits | Base |
-|-------|--------|----------------|------|
-| 0     | 0      | 5              | 0    |
-| 1     | 6      | 4              | 0    |
-| 2     | 9      | 5              | 0    |
-| 3     | 15     | 5              | 0    |
-| 4     | 21     | 5              | 0    |
-| 5     | 3      | 5              | 0    |
-| 6     | 7      | 4              | 0    |
-| 7     | 12     | 5              | 0    |
-| 8     | 18     | 5              | 0    |
-| 9     | 23     | 5              | 0    |
-| 10    | 5      | 5              | 0    |
-| 11    | 8      | 4              | 0    |
-| 12    | 14     | 5              | 0    |
-| 13    | 20     | 5              | 0    |
-| 14    | 2      | 5              | 0    |
-| 15    | 7      | 4              | 16   |
-| 16    | 11     | 5              | 0    |
-| 17    | 17     | 5              | 0    |
-| 18    | 22     | 5              | 0    |
-| 19    | 4      | 5              | 0    |
-| 20    | 8      | 4              | 16   |
-| 21    | 13     | 5              | 0    |
-| 22    | 19     | 5              | 0    |
-| 23    | 1      | 5              | 0    |
-| 24    | 6      | 4              | 16   |
-| 25    | 10     | 5              | 0    |
-| 26    | 16     | 5              | 0    |
-| 27    | 28     | 5              | 0    |
-| 28    | 27     | 5              | 0    |
-| 29    | 26     | 5              | 0    |
-| 30    | 25     | 5              | 0    |
-| 31    | 24     | 5              | 0    |
+| ----- | ------ | -------------- | ---- |
+|     0 |      0 |              5 |    0 |
+|     1 |      6 |              4 |    0 |
+|     2 |      9 |              5 |    0 |
+|     3 |     15 |              5 |    0 |
+|     4 |     21 |              5 |    0 |
+|     5 |      3 |              5 |    0 |
+|     6 |      7 |              4 |    0 |
+|     7 |     12 |              5 |    0 |
+|     8 |     18 |              5 |    0 |
+|     9 |     23 |              5 |    0 |
+|    10 |      5 |              5 |    0 |
+|    11 |      8 |              4 |    0 |
+|    12 |     14 |              5 |    0 |
+|    13 |     20 |              5 |    0 |
+|    14 |      2 |              5 |    0 |
+|    15 |      7 |              4 |   16 |
+|    16 |     11 |              5 |    0 |
+|    17 |     17 |              5 |    0 |
+|    18 |     22 |              5 |    0 |
+|    19 |      4 |              5 |    0 |
+|    20 |      8 |              4 |   16 |
+|    21 |     13 |              5 |    0 |
+|    22 |     19 |              5 |    0 |
+|    23 |      1 |              5 |    0 |
+|    24 |      6 |              4 |   16 |
+|    25 |     10 |              5 |    0 |
+|    26 |     16 |              5 |    0 |
+|    27 |     28 |              5 |    0 |
+|    28 |     27 |              5 |    0 |
+|    29 |     26 |              5 |    0 |
+|    30 |     25 |              5 |    0 |
+|    31 |     24 |              5 |    0 |
+
+
 
 Appendix B - Resources for implementers
 -------------------------------------------------
@@ -1773,7 +1742,6 @@ or at least provide a meaningful error code explaining for which reason it canno
 
 Version changes
 ---------------
-
 - 0.4.3 : clarifications for Huffman prefix code assignment example
 - 0.4.2 : refactor FSE table construction process, inspired by Donald Pian
 - 0.4.1 : clarifications on a few error scenarios, by Eric Lasota

@@ -27,24 +27,19 @@
 static ZSTD_CCtx *cctx = NULL;
 static ZSTD_DCtx *dctx = NULL;
 
-static size_t
-getDecompressionMargin(void const *compressed, size_t cSize, size_t srcSize, int hasSmallBlocks, int maxBlockSize)
+static size_t getDecompressionMargin(void const* compressed, size_t cSize, size_t srcSize, int hasSmallBlocks, int maxBlockSize)
 {
     size_t margin = ZSTD_decompressionMargin(compressed, cSize);
-    if (!hasSmallBlocks)
-    {
+    if (!hasSmallBlocks) {
         /* The macro should be correct in this case, but it may be smaller
          * because of e.g. block splitting, so take the smaller of the two.
          */
         ZSTD_FrameHeader zfh;
         size_t marginM;
         FUZZ_ZASSERT(ZSTD_getFrameHeader(&zfh, compressed, cSize));
-        if (maxBlockSize == 0)
-        {
+        if (maxBlockSize == 0) {
             maxBlockSize = zfh.blockSizeMax;
-        }
-        else
-        {
+        } else {
             maxBlockSize = MIN(maxBlockSize, (int)zfh.blockSizeMax);
         }
         marginM = ZSTD_DECOMPRESSION_MARGIN(srcSize, maxBlockSize);
@@ -54,20 +49,16 @@ getDecompressionMargin(void const *compressed, size_t cSize, size_t srcSize, int
     return margin;
 }
 
-static size_t roundTripTest(void *result,
-                            size_t resultCapacity,
-                            void *compressed,
-                            size_t compressedCapacity,
-                            const void *src,
-                            size_t srcSize,
+static size_t roundTripTest(void *result, size_t resultCapacity,
+                            void *compressed, size_t compressedCapacity,
+                            const void *src, size_t srcSize,
                             FUZZ_dataProducer_t *producer)
 {
     size_t cSize;
     size_t dSize;
     int targetCBlockSize = 0;
     int maxBlockSize = 0;
-    if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
-    {
+    if (FUZZ_dataProducer_uint32Range(producer, 0, 1)) {
         size_t const remainingBytes = FUZZ_dataProducer_remainingBytes(producer);
         FUZZ_setRandomParameters(cctx, srcSize, producer);
         cSize = ZSTD_compress2(cctx, compressed, compressedCapacity, src, srcSize);
@@ -84,23 +75,22 @@ static size_t roundTripTest(void *result,
             FUZZ_ASSERT(cSize == cSize0);
             FUZZ_ASSERT(XXH64(compressed, cSize, 0) == hash0);
         }
-    }
-    else
-    {
+    } else {
         int const cLevel = FUZZ_dataProducer_int32Range(producer, kMinClevel, kMaxClevel);
-        cSize = ZSTD_compressCCtx(cctx, compressed, compressedCapacity, src, srcSize, cLevel);
+        cSize = ZSTD_compressCCtx(
+            cctx, compressed, compressedCapacity, src, srcSize, cLevel);
         FUZZ_ZASSERT(cSize);
         // Compress a second time and check for determinism
         {
             size_t const cSize0 = cSize;
             XXH64_hash_t const hash0 = XXH64(compressed, cSize, 0);
-            cSize = ZSTD_compressCCtx(cctx, compressed, compressedCapacity, src, srcSize, cLevel);
+            cSize = ZSTD_compressCCtx(
+                cctx, compressed, compressedCapacity, src, srcSize, cLevel);
             FUZZ_ASSERT(cSize == cSize0);
             FUZZ_ASSERT(XXH64(compressed, cSize, 0) == hash0);
         }
     }
-    if (FUZZ_dataProducer_uint32Range(producer, 0, 1))
-    {
+    if (FUZZ_dataProducer_uint32Range(producer, 0, 1)) {
         FUZZ_ZASSERT(ZSTD_DCtx_setParameter(dctx, ZSTD_d_maxBlockSize, maxBlockSize));
     }
     dSize = ZSTD_decompressDCtx(dctx, result, resultCapacity, compressed, cSize);
@@ -111,8 +101,8 @@ static size_t roundTripTest(void *result,
     {
         size_t margin = getDecompressionMargin(compressed, cSize, srcSize, targetCBlockSize, maxBlockSize);
         size_t const outputSize = srcSize + margin;
-        char *const output = (char *)FUZZ_malloc(outputSize);
-        char *const input = output + outputSize - cSize;
+        char* const output = (char*)FUZZ_malloc(outputSize);
+        char* const input = output + outputSize - cSize;
         FUZZ_ASSERT(outputSize >= cSize);
         memcpy(input, compressed, cSize);
 
@@ -129,18 +119,17 @@ static size_t roundTripTest(void *result,
      * expand the block in the worst case. Once superblock mode has been improved we can
      * re-enable this test.
      */
-    if (0 && targetCBlockSize != 0)
-    {
+    if (0 && targetCBlockSize != 0) {
         size_t normalCSize;
         FUZZ_ZASSERT(ZSTD_CCtx_setParameter(cctx, ZSTD_c_targetCBlockSize, 0));
         normalCSize = ZSTD_compress2(cctx, compressed, compressedCapacity, src, srcSize);
         FUZZ_ZASSERT(normalCSize);
         {
-            size_t const bytesPerBlock = 3   /* block header */
-                                         + 5 /* Literal header */
-                                         + 6 /* Huffman jump table */
-                                         + 3 /* number of sequences */
-                                         + 1 /* symbol compression modes */;
+            size_t const bytesPerBlock = 3 /* block header */
+                + 5 /* Literal header */
+                + 6 /* Huffman jump table */
+                + 3 /* number of sequences */
+                + 1 /* symbol compression modes */;
             size_t const expectedExpansion = bytesPerBlock * (1 + (normalCSize / MAX(1, targetCBlockSize)));
             size_t const allowedExpansion = (srcSize >> 3) + 5 * expectedExpansion + 10;
             FUZZ_ASSERT(cSize <= normalCSize + allowedExpansion);
@@ -154,9 +143,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_SEQ_PROD_SETUP();
 
     size_t const rBufSize = size;
-    void *rBuf = FUZZ_malloc(rBufSize);
+    void* rBuf = FUZZ_malloc(rBufSize);
     size_t cBufSize = ZSTD_compressBound(size);
-    void *cBuf;
+    void* cBuf;
 
     /* Give a random portion of src data to the producer, to use for
     parameter generation. The rest will be used for (de)compression */
@@ -171,13 +160,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 
     cBuf = FUZZ_malloc(cBufSize);
 
-    if (!cctx)
-    {
+    if (!cctx) {
         cctx = ZSTD_createCCtx();
         FUZZ_ASSERT(cctx);
     }
-    if (!dctx)
-    {
+    if (!dctx) {
         dctx = ZSTD_createDCtx();
         FUZZ_ASSERT(dctx);
     }
@@ -187,10 +174,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     free(cBuf);
     FUZZ_dataProducer_free(producer);
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeCCtx(cctx);
-    cctx = NULL;
-    ZSTD_freeDCtx(dctx);
-    dctx = NULL;
+    ZSTD_freeCCtx(cctx); cctx = NULL;
+    ZSTD_freeDCtx(dctx); dctx = NULL;
 #endif
     FUZZ_SEQ_PROD_TEARDOWN();
     return 0;

@@ -10,7 +10,8 @@
  * LICENSE file in the root directory of this source tree) and the GPLv2 (found
  * in the COPYING file in the root directory of this source tree).
  * You may select, at your option, one of the above-listed licenses.
- ****************************************************************** */
+****************************************************************** */
+
 
 /*
  * This module only hosts one global variable
@@ -20,7 +21,7 @@
 
 #include "debug.h"
 
-#if !defined(ZSTD_LINUX_KERNEL) || (DEBUGLEVEL >= 2)
+#if !defined(ZSTD_LINUX_KERNEL) || (DEBUGLEVEL>=2)
 /* We only use this when DEBUGLEVEL>=2, but we get -Werror=pedantic errors if a
  * translation unit is empty. So remove this from Linux kernel builds, but
  * otherwise just leave it in.

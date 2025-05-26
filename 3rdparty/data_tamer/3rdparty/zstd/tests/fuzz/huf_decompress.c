@@ -28,31 +28,28 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     /* Select random parameters: #streams, X1 or X2 decoding, bmi2 */
     int const streams = FUZZ_dataProducer_int32Range(producer, 0, 1);
     int const symbols = FUZZ_dataProducer_int32Range(producer, 0, 1);
-    int const flags =
-        0 | (ZSTD_cpuid_bmi2(ZSTD_cpuid()) && FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_bmi2 : 0) |
-        (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_optimalDepth : 0) |
-        (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_preferRepeat : 0) |
-        (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_suspectUncompressible : 0) |
-        (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_disableAsm : 0) |
-        (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_disableFast : 0);
+    int const flags = 0
+        | (ZSTD_cpuid_bmi2(ZSTD_cpuid()) && FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_bmi2 : 0)
+        | (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_optimalDepth : 0)
+        | (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_preferRepeat : 0)
+        | (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_suspectUncompressible : 0)
+        | (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_disableAsm : 0)
+        | (FUZZ_dataProducer_int32Range(producer, 0, 1) ? HUF_flags_disableFast : 0);
     /* Select a random cBufSize - it may be too small */
     size_t const dBufSize = FUZZ_dataProducer_uint32Range(producer, 0, 8 * size + 500);
     size_t const maxTableLog = FUZZ_dataProducer_uint32Range(producer, 1, HUF_TABLELOG_MAX);
-    HUF_DTable *dt = (HUF_DTable *)FUZZ_malloc(HUF_DTABLE_SIZE(maxTableLog) * sizeof(HUF_DTable));
+    HUF_DTable* dt = (HUF_DTable*)FUZZ_malloc(HUF_DTABLE_SIZE(maxTableLog) * sizeof(HUF_DTable));
     size_t const wkspSize = HUF_WORKSPACE_SIZE;
-    void *wksp = FUZZ_malloc(wkspSize);
-    void *dBuf = FUZZ_malloc(dBufSize);
+    void* wksp = FUZZ_malloc(wkspSize);
+    void* dBuf = FUZZ_malloc(dBufSize);
     dt[0] = maxTableLog * 0x01000001;
     size = FUZZ_dataProducer_remainingBytes(producer);
 
-    if (symbols == 0)
-    {
+    if (symbols == 0) {
         size_t const err = HUF_readDTableX1_wksp(dt, src, size, wksp, wkspSize, flags);
         if (ZSTD_isError(err))
             goto _out;
-    }
-    else
-    {
+    } else {
         size_t const err = HUF_readDTableX2_wksp(dt, src, size, wksp, wkspSize, flags);
         if (ZSTD_isError(err))
             goto _out;

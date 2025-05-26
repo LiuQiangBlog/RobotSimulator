@@ -19,9 +19,9 @@ function(parse_lz4_version VERSION_TYPE)
     set(LZ4_VERSION_${VERSION_TYPE} ${version_number} PARENT_SCOPE)
 endfunction()
 
-foreach (version_type IN ITEMS MAJOR MINOR RELEASE)
+foreach(version_type IN ITEMS MAJOR MINOR RELEASE)
     parse_lz4_version(${version_type})
-endforeach ()
+endforeach()
 
 set(LZ4_VERSION_STRING "${LZ4_VERSION_MAJOR}.${LZ4_VERSION_MINOR}.${LZ4_VERSION_RELEASE}")
 mark_as_advanced(LZ4_VERSION_STRING LZ4_VERSION_MAJOR LZ4_VERSION_MINOR LZ4_VERSION_RELEASE)
@@ -37,26 +37,26 @@ option(LZ4_BUILD_CLI "Build lz4 program" ON)
 # Determine if LZ4 is being built as part of another project.
 # If LZ4 is bundled in another project, we don't want to install anything.
 # Default behavior can be overridden by setting the LZ4_BUNDLED_MODE variable.
-if (NOT DEFINED LZ4_BUNDLED_MODE)
-    get_directory_property(LZ4_IS_SUBPROJECT PARENT_DIRECTORY)
-    if (LZ4_IS_SUBPROJECT)
-        set(LZ4_BUNDLED_MODE ON)
-    else ()
-        set(LZ4_BUNDLED_MODE OFF)
-    endif ()
-endif ()
+if(NOT DEFINED LZ4_BUNDLED_MODE)
+  get_directory_property(LZ4_IS_SUBPROJECT PARENT_DIRECTORY)
+  if(LZ4_IS_SUBPROJECT)
+    set(LZ4_BUNDLED_MODE ON)
+  else()
+    set(LZ4_BUNDLED_MODE OFF)
+  endif()
+endif()
 mark_as_advanced(LZ4_BUNDLED_MODE)
 
 # CPack
-if (NOT LZ4_BUNDLED_MODE AND NOT CPack_CMake_INCLUDED)
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LZ4 compression library")
-    set(CPACK_PACKAGE_DESCRIPTION_FILE "${LZ4_TOP_SOURCE_DIR}/README.md")
-    set(CPACK_RESOURCE_FILE_LICENSE "${LZ4_TOP_SOURCE_DIR}/LICENSE")
-    set(CPACK_PACKAGE_VERSION_MAJOR ${LZ4_VERSION_MAJOR})
-    set(CPACK_PACKAGE_VERSION_MINOR ${LZ4_VERSION_MINOR})
-    set(CPACK_PACKAGE_VERSION_PATCH ${LZ4_VERSION_RELEASE})
-    include(CPack)
-endif (NOT LZ4_BUNDLED_MODE AND NOT CPack_CMake_INCLUDED)
+if(NOT LZ4_BUNDLED_MODE AND NOT CPack_CMake_INCLUDED)
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LZ4 compression library")
+  set(CPACK_PACKAGE_DESCRIPTION_FILE "${LZ4_TOP_SOURCE_DIR}/README.md")
+  set(CPACK_RESOURCE_FILE_LICENSE "${LZ4_TOP_SOURCE_DIR}/LICENSE")
+  set(CPACK_PACKAGE_VERSION_MAJOR ${LZ4_VERSION_MAJOR})
+  set(CPACK_PACKAGE_VERSION_MINOR ${LZ4_VERSION_MINOR})
+  set(CPACK_PACKAGE_VERSION_PATCH ${LZ4_VERSION_RELEASE})
+  include(CPack)
+endif(NOT LZ4_BUNDLED_MODE AND NOT CPack_CMake_INCLUDED)
 
 # Allow people to choose whether to build shared or static libraries
 # via the BUILD_SHARED_LIBS option unless we are in bundled mode, in
@@ -77,9 +77,9 @@ include_directories("${LZ4_LIB_SOURCE_DIR}")
 
 # CLI sources
 file(GLOB LZ4_SOURCES
-        "${LZ4_LIB_SOURCE_DIR}/*.c")
+     "${LZ4_LIB_SOURCE_DIR}/*.c")
 file(GLOB LZ4_CLI_SOURCES
-        "${LZ4_PROG_SOURCE_DIR}/*.c")
+     "${LZ4_PROG_SOURCE_DIR}/*.c")
 list(APPEND LZ4_CLI_SOURCES ${LZ4_SOURCES}) # LZ4_CLI always use liblz4 sources directly.
 
 # Whether to use position independent code for the static library.  If
@@ -91,20 +91,20 @@ list(APPEND LZ4_CLI_SOURCES ${LZ4_SOURCES}) # LZ4_CLI always use liblz4 sources 
 include(GNUInstallDirs)
 set(LZ4_LIBRARIES_BUILT)
 #if(BUILD_SHARED_LIBS)
-add_library(lz4_shared SHARED ${LZ4_SOURCES})
+  add_library(lz4_shared SHARED ${LZ4_SOURCES})
 MESSAGE(STATUS "lz4_shared lz4_shared")
-target_include_directories(lz4_shared
-        PUBLIC $<BUILD_INTERFACE:${LZ4_LIB_SOURCE_DIR}>
-        INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-set_target_properties(lz4_shared PROPERTIES
-        OUTPUT_NAME lz4
-        SOVERSION "${LZ4_VERSION_MAJOR}"
-        VERSION "${LZ4_VERSION_STRING}")
-if (MSVC)
+  target_include_directories(lz4_shared
+    PUBLIC $<BUILD_INTERFACE:${LZ4_LIB_SOURCE_DIR}>
+    INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+  set_target_properties(lz4_shared PROPERTIES
+    OUTPUT_NAME lz4
+    SOVERSION "${LZ4_VERSION_MAJOR}"
+    VERSION "${LZ4_VERSION_STRING}")
+  if(MSVC)
     target_compile_definitions(lz4_shared PRIVATE
-            LZ4_DLL_EXPORT=1)
-endif ()
-list(APPEND LZ4_LIBRARIES_BUILT lz4_shared)
+      LZ4_DLL_EXPORT=1)
+  endif()
+  list(APPEND LZ4_LIBRARIES_BUILT lz4_shared)
 #endif()
 #if(BUILD_STATIC_LIBS)
 #  set(STATIC_LIB_NAME lz4)
@@ -124,15 +124,15 @@ list(APPEND LZ4_LIBRARIES_BUILT lz4_shared)
 add_library(lz4 INTERFACE)
 list(APPEND LZ4_LIBRARIES_BUILT lz4)
 #if(BUILD_SHARED_LIBS)
-target_link_libraries(lz4 INTERFACE lz4_shared)
+  target_link_libraries(lz4 INTERFACE lz4_shared)
 #else()
 #  target_link_libraries(lz4 INTERFACE lz4_static)
 #endif()
 
 # xxhash namespace
 #if(BUILD_SHARED_LIBS)
-target_compile_definitions(lz4_shared PRIVATE
-        XXH_NAMESPACE=LZ4_)
+  target_compile_definitions(lz4_shared PRIVATE
+    XXH_NAMESPACE=LZ4_)
 #endif()
 #if(BUILD_STATIC_LIBS)
 #  target_compile_definitions(lz4_static PRIVATE
@@ -141,44 +141,44 @@ target_compile_definitions(lz4_shared PRIVATE
 
 # lz4
 if (LZ4_BUILD_CLI)
-    set(LZ4_PROGRAMS_BUILT lz4cli)
-    add_executable(lz4cli ${LZ4_CLI_SOURCES})
-    set_target_properties(lz4cli PROPERTIES OUTPUT_NAME lz4)
-endif ()
+  set(LZ4_PROGRAMS_BUILT lz4cli)
+  add_executable(lz4cli ${LZ4_CLI_SOURCES})
+  set_target_properties(lz4cli PROPERTIES OUTPUT_NAME lz4)
+endif()
 
 # Extra warning flags
-if (MSVC)
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /W4")
-else ()
-    include(CheckCCompilerFlag)
-    foreach (flag
-            # GCC-style
-            -pedantic-errors
-            -Wall
-            -Wextra
-            -Wundef
-            -Wcast-qual
-            -Wcast-align
-            -Wshadow
-            -Wswitch-enum
-            -Wdeclaration-after-statement
-            -Wstrict-prototypes
-            -Wpointer-arith)
+if(MSVC)
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /W4")
+else()
+  include (CheckCCompilerFlag)
+  foreach (flag
+      # GCC-style
+      -pedantic-errors
+      -Wall
+      -Wextra
+      -Wundef
+      -Wcast-qual
+      -Wcast-align
+      -Wshadow
+      -Wswitch-enum
+      -Wdeclaration-after-statement
+      -Wstrict-prototypes
+      -Wpointer-arith)
 
-        # Because https://gcc.gnu.org/wiki/FAQ#wnowarning
-        string(REGEX REPLACE "\\-Wno\\-(.+)" "-W\\1" flag_to_test "${flag}")
-        string(REGEX REPLACE "[^a-zA-Z0-9]+" "_" test_name "CFLAG_${flag_to_test}")
+    # Because https://gcc.gnu.org/wiki/FAQ#wnowarning
+    string(REGEX REPLACE "\\-Wno\\-(.+)" "-W\\1" flag_to_test "${flag}")
+    string(REGEX REPLACE "[^a-zA-Z0-9]+" "_" test_name "CFLAG_${flag_to_test}")
 
-        check_c_compiler_flag("${ADD_COMPILER_FLAGS_PREPEND} ${flag_to_test}" ${test_name})
+    check_c_compiler_flag("${ADD_COMPILER_FLAGS_PREPEND} ${flag_to_test}" ${test_name})
 
-        if (${test_name})
-            set(CMAKE_C_FLAGS_DEBUG "${flag} ${CMAKE_C_FLAGS_DEBUG}")
-        endif ()
+    if(${test_name})
+      set(CMAKE_C_FLAGS_DEBUG "${flag} ${CMAKE_C_FLAGS_DEBUG}")
+    endif()
 
-        unset(test_name)
-        unset(flag_to_test)
-    endforeach (flag)
-endif ()
+    unset(test_name)
+    unset(flag_to_test)
+  endforeach (flag)
+endif()
 
 
 #if(NOT LZ4_BUNDLED_MODE)

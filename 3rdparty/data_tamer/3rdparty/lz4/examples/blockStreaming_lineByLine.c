@@ -1,9 +1,10 @@
 // LZ4 streaming API example : line-by-line logfile compression
 // by Takayuki Matsuoka
 
-#if defined(_MSC_VER) && (_MSC_VER <= 1800) /* Visual Studio <= 2013 */
-#define _CRT_SECURE_NO_WARNINGS
-#define snprintf sprintf_s
+
+#if defined(_MSC_VER) && (_MSC_VER <= 1800)  /* Visual Studio <= 2013 */
+#  define _CRT_SECURE_NO_WARNINGS
+#  define snprintf sprintf_s
 #endif
 #include "lz4.h"
 
@@ -12,37 +13,42 @@
 #include <stdlib.h>
 #include <string.h>
 
-static size_t write_uint16(FILE *fp, uint16_t i)
+static size_t write_uint16(FILE* fp, uint16_t i)
 {
     return fwrite(&i, sizeof(i), 1, fp);
 }
 
-static size_t write_bin(FILE *fp, const void *array, int arrayBytes)
+static size_t write_bin(FILE* fp, const void* array, int arrayBytes)
 {
     return fwrite(array, 1, arrayBytes, fp);
 }
 
-static size_t read_uint16(FILE *fp, uint16_t *i)
+static size_t read_uint16(FILE* fp, uint16_t* i)
 {
     return fread(i, sizeof(*i), 1, fp);
 }
 
-static size_t read_bin(FILE *fp, void *array, int arrayBytes)
+static size_t read_bin(FILE* fp, void* array, int arrayBytes)
 {
     return fread(array, 1, arrayBytes, fp);
 }
 
-static void test_compress(FILE *outFp, FILE *inpFp, size_t messageMaxBytes, size_t ringBufferBytes)
+
+static void test_compress(
+    FILE* outFp,
+    FILE* inpFp,
+    size_t messageMaxBytes,
+    size_t ringBufferBytes)
 {
-    LZ4_stream_t *const lz4Stream = LZ4_createStream();
+    LZ4_stream_t* const lz4Stream = LZ4_createStream();
     const size_t cmpBufBytes = LZ4_COMPRESSBOUND(messageMaxBytes);
-    char *const cmpBuf = (char *)malloc(cmpBufBytes);
-    char *const inpBuf = (char *)malloc(ringBufferBytes);
+    char* const cmpBuf = (char*) malloc(cmpBufBytes);
+    char* const inpBuf = (char*) malloc(ringBufferBytes);
     int inpOffset = 0;
 
-    for (;;)
+    for ( ; ; )
     {
-        char *const inpPtr = &inpBuf[inpOffset];
+        char* const inpPtr = &inpBuf[inpOffset];
 
 #if 0
         // Read random length data to the ring buffer.
@@ -52,22 +58,21 @@ static void test_compress(FILE *outFp, FILE *inpFp, size_t messageMaxBytes, size
 #else
         // Read line to the ring buffer.
         int inpBytes = 0;
-        if (!fgets(inpPtr, (int)messageMaxBytes, inpFp))
+        if (!fgets(inpPtr, (int) messageMaxBytes, inpFp))
             break;
-        inpBytes = (int)strlen(inpPtr);
+        inpBytes = (int) strlen(inpPtr);
 #endif
 
         {
-            const int cmpBytes = LZ4_compress_fast_continue(lz4Stream, inpPtr, cmpBuf, inpBytes, (int)cmpBufBytes, 1);
-            if (cmpBytes <= 0)
-                break;
-            write_uint16(outFp, (uint16_t)cmpBytes);
+            const int cmpBytes = LZ4_compress_fast_continue(
+                lz4Stream, inpPtr, cmpBuf, inpBytes, (int) cmpBufBytes, 1);
+            if (cmpBytes <= 0) break;
+            write_uint16(outFp, (uint16_t) cmpBytes);
             write_bin(outFp, cmpBuf, cmpBytes);
 
             // Add and wraparound the ringbuffer offset
             inpOffset += inpBytes;
-            if ((size_t)inpOffset >= ringBufferBytes - messageMaxBytes)
-                inpOffset = 0;
+            if ((size_t)inpOffset >= ringBufferBytes - messageMaxBytes) inpOffset = 0;
         }
     }
     write_uint16(outFp, 0);
@@ -77,36 +82,36 @@ static void test_compress(FILE *outFp, FILE *inpFp, size_t messageMaxBytes, size
     LZ4_freeStream(lz4Stream);
 }
 
-static void test_decompress(FILE *outFp, FILE *inpFp, size_t messageMaxBytes, size_t ringBufferBytes)
+
+static void test_decompress(
+    FILE* outFp,
+    FILE* inpFp,
+    size_t messageMaxBytes,
+    size_t ringBufferBytes)
 {
-    LZ4_streamDecode_t *const lz4StreamDecode = LZ4_createStreamDecode();
-    char *const cmpBuf = (char *)malloc(LZ4_COMPRESSBOUND(messageMaxBytes));
-    char *const decBuf = (char *)malloc(ringBufferBytes);
+    LZ4_streamDecode_t* const lz4StreamDecode = LZ4_createStreamDecode();
+    char* const cmpBuf = (char*) malloc(LZ4_COMPRESSBOUND(messageMaxBytes));
+    char* const decBuf = (char*) malloc(ringBufferBytes);
     int decOffset = 0;
 
-    for (;;)
+    for ( ; ; )
     {
         uint16_t cmpBytes = 0;
 
-        if (read_uint16(inpFp, &cmpBytes) != 1)
-            break;
-        if (cmpBytes == 0)
-            break;
-        if (read_bin(inpFp, cmpBuf, cmpBytes) != cmpBytes)
-            break;
+        if (read_uint16(inpFp, &cmpBytes) != 1) break;
+        if (cmpBytes == 0) break;
+        if (read_bin(inpFp, cmpBuf, cmpBytes) != cmpBytes) break;
 
         {
-            char *const decPtr = &decBuf[decOffset];
-            const int decBytes =
-                LZ4_decompress_safe_continue(lz4StreamDecode, cmpBuf, decPtr, cmpBytes, (int)messageMaxBytes);
-            if (decBytes <= 0)
-                break;
+            char* const decPtr = &decBuf[decOffset];
+            const int decBytes = LZ4_decompress_safe_continue(
+                lz4StreamDecode, cmpBuf, decPtr, cmpBytes, (int) messageMaxBytes);
+            if (decBytes <= 0) break;
             write_bin(outFp, decPtr, decBytes);
 
             // Add and wraparound the ringbuffer offset
             decOffset += decBytes;
-            if ((size_t)decOffset >= ringBufferBytes - messageMaxBytes)
-                decOffset = 0;
+            if ((size_t)decOffset >= ringBufferBytes - messageMaxBytes) decOffset = 0;
         }
     }
 
@@ -115,24 +120,23 @@ static void test_decompress(FILE *outFp, FILE *inpFp, size_t messageMaxBytes, si
     LZ4_freeStreamDecode(lz4StreamDecode);
 }
 
-static int compare(FILE *f0, FILE *f1)
+
+static int compare(FILE* f0, FILE* f1)
 {
     int result = 0;
     const size_t tempBufferBytes = 65536;
-    char *const b0 = (char *)malloc(tempBufferBytes);
-    char *const b1 = (char *)malloc(tempBufferBytes);
+    char* const b0 = (char*) malloc(tempBufferBytes);
+    char* const b1 = (char*) malloc(tempBufferBytes);
 
-    while (0 == result)
+    while(0 == result)
     {
         const size_t r0 = fread(b0, 1, tempBufferBytes, f0);
         const size_t r1 = fread(b1, 1, tempBufferBytes, f1);
 
-        result = (int)r0 - (int)r1;
+        result = (int) r0 - (int) r1;
 
-        if (0 == r0 || 0 == r1)
-            break;
-        if (0 == result)
-            result = memcmp(b0, b1, r0);
+        if (0 == r0 || 0 == r1) break;
+        if (0 == result) result = memcmp(b0, b1, r0);
     }
 
     free(b1);
@@ -140,17 +144,17 @@ static int compare(FILE *f0, FILE *f1)
     return result;
 }
 
-int main(int argc, char *argv[])
+
+int main(int argc, char* argv[])
 {
-    enum
-    {
-        MESSAGE_MAX_BYTES = 1024,
-        RING_BUFFER_BYTES = 1024 * 256 + MESSAGE_MAX_BYTES,
+    enum {
+        MESSAGE_MAX_BYTES   = 1024,
+        RING_BUFFER_BYTES   = 1024 * 256 + MESSAGE_MAX_BYTES,
     };
 
-    char inpFilename[256] = {0};
-    char lz4Filename[256] = {0};
-    char decFilename[256] = {0};
+    char inpFilename[256] = { 0 };
+    char lz4Filename[256] = { 0 };
+    char decFilename[256] = { 0 };
 
     if (argc < 2)
     {
@@ -168,8 +172,8 @@ int main(int argc, char *argv[])
 
     // compress
     {
-        FILE *inpFp = fopen(inpFilename, "rb");
-        FILE *outFp = fopen(lz4Filename, "wb");
+        FILE* inpFp = fopen(inpFilename, "rb");
+        FILE* outFp = fopen(lz4Filename, "wb");
 
         test_compress(outFp, inpFp, MESSAGE_MAX_BYTES, RING_BUFFER_BYTES);
 
@@ -179,8 +183,8 @@ int main(int argc, char *argv[])
 
     // decompress
     {
-        FILE *inpFp = fopen(lz4Filename, "rb");
-        FILE *outFp = fopen(decFilename, "wb");
+        FILE* inpFp = fopen(lz4Filename, "rb");
+        FILE* outFp = fopen(decFilename, "wb");
 
         test_decompress(outFp, inpFp, MESSAGE_MAX_BYTES, RING_BUFFER_BYTES);
 
@@ -190,8 +194,8 @@ int main(int argc, char *argv[])
 
     // verify
     {
-        FILE *inpFp = fopen(inpFilename, "rb");
-        FILE *decFp = fopen(decFilename, "rb");
+        FILE* inpFp = fopen(inpFilename, "rb");
+        FILE* decFp = fopen(decFilename, "rb");
 
         const int cmp = compare(inpFp, decFp);
         if (0 == cmp)

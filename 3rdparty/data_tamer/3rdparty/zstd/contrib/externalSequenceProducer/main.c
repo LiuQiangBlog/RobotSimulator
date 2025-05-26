@@ -18,30 +18,30 @@
 #include "zstd_errors.h"
 #include "sequence_producer.h" // simpleSequenceProducer
 
-#define CHECK(res)                                         \
-    do                                                     \
-    {                                                      \
-        if (ZSTD_isError(res))                             \
-        {                                                  \
-            printf("ERROR: %s\n", ZSTD_getErrorName(res)); \
-            return 1;                                      \
-        }                                                  \
-    } while (0)
+#define CHECK(res)                                      \
+do {                                                    \
+    if (ZSTD_isError(res)) {                            \
+        printf("ERROR: %s\n", ZSTD_getErrorName(res));  \
+        return 1;                                       \
+    }                                                   \
+} while (0)                                             \
 
-int main(int argc, char *argv[])
-{
-    if (argc != 2)
-    {
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
         printf("Usage: externalSequenceProducer <file>\n");
         return 1;
     }
 
-    ZSTD_CCtx *const zc = ZSTD_createCCtx();
+    ZSTD_CCtx* const zc = ZSTD_createCCtx();
 
     int simpleSequenceProducerState = 0xdeadbeef;
 
     // Here is the crucial bit of code!
-    ZSTD_registerSequenceProducer(zc, &simpleSequenceProducerState, simpleSequenceProducer);
+    ZSTD_registerSequenceProducer(
+        zc,
+        &simpleSequenceProducerState,
+        simpleSequenceProducer
+    );
 
     {
         size_t const res = ZSTD_CCtx_setParameter(zc, ZSTD_c_enableSeqProducerFallback, 1);
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         assert(ret == 0);
     }
 
-    char *const src = malloc(srcSize + 1);
+    char* const src = malloc(srcSize + 1);
     assert(src);
     {
         size_t const ret = fread(src, srcSize, 1, f);
@@ -70,13 +70,13 @@ int main(int argc, char *argv[])
     }
 
     size_t const dstSize = ZSTD_compressBound(srcSize);
-    char *const dst = malloc(dstSize);
+    char* const dst = malloc(dstSize);
     assert(dst);
 
     size_t const cSize = ZSTD_compress2(zc, dst, dstSize, src, srcSize);
     CHECK(cSize);
 
-    char *const val = malloc(srcSize);
+    char* const val = malloc(srcSize);
     assert(val);
 
     {
@@ -84,19 +84,14 @@ int main(int argc, char *argv[])
         CHECK(res);
     }
 
-    if (memcmp(src, val, srcSize) == 0)
-    {
+    if (memcmp(src, val, srcSize) == 0) {
         printf("Compression and decompression were successful!\n");
         printf("Original size: %lu\n", srcSize);
         printf("Compressed size: %lu\n", cSize);
-    }
-    else
-    {
+    } else {
         printf("ERROR: input and validation buffers don't match!\n");
-        for (size_t i = 0; i < srcSize; i++)
-        {
-            if (src[i] != val[i])
-            {
+        for (size_t i = 0; i < srcSize; i++) {
+            if (src[i] != val[i]) {
                 printf("First bad index: %zu\n", i);
                 break;
             }

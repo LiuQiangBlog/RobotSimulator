@@ -8,15 +8,15 @@
  * You may select, at your option, one of the above-listed licenses.
  */
 
-#include <stdio.h>  // printf
-#include <stdlib.h> // free
-#include <zstd.h>   // presumes zstd library is installed
-#include "common.h" // Helper functions, CHECK(), and CHECK_ZSTD()
+#include <stdio.h>     // printf
+#include <stdlib.h>    // free
+#include <zstd.h>      // presumes zstd library is installed
+#include "common.h"    // Helper functions, CHECK(), and CHECK_ZSTD()
 
-static void decompress(const char *fname)
+static void decompress(const char* fname)
 {
     size_t cSize;
-    void *const cBuff = mallocAndLoadFile_orDie(fname, &cSize);
+    void* const cBuff = mallocAndLoadFile_orDie(fname, &cSize);
     /* Read the content size from the frame header. For simplicity we require
      * that it is always present. By default, zstd will write the content size
      * in the header when it is known. If you can't guarantee that the frame
@@ -27,7 +27,7 @@ static void decompress(const char *fname)
     CHECK(rSize != ZSTD_CONTENTSIZE_ERROR, "%s: not compressed by zstd!", fname);
     CHECK(rSize != ZSTD_CONTENTSIZE_UNKNOWN, "%s: original size unknown!", fname);
 
-    void *const rBuff = malloc_orDie((size_t)rSize);
+    void* const rBuff = malloc_orDie((size_t)rSize);
 
     /* Decompress.
      * If you are doing many decompressions, you may want to reuse the context
@@ -46,12 +46,11 @@ static void decompress(const char *fname)
     free(cBuff);
 }
 
-int main(int argc, const char **argv)
+int main(int argc, const char** argv)
 {
-    const char *const exeName = argv[0];
+    const char* const exeName = argv[0];
 
-    if (argc != 2)
-    {
+    if (argc!=2) {
         printf("wrong arguments\n");
         printf("usage:\n");
         printf("%s FILE\n", exeName);

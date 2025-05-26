@@ -20,6 +20,7 @@ import sys
 import tempfile
 import typing
 
+
 ZSTD_SYMLINKS = [
     "zstd",
     "zstdmt",
@@ -37,11 +38,13 @@ ZSTD_SYMLINKS = [
     "unlz4",
 ]
 
+
 EXCLUDED_DIRS = {
     "bin",
     "common",
     "scratch",
 }
+
 
 EXCLUDED_BASENAMES = {
     "setup",
@@ -79,7 +82,6 @@ def exclude_file(filename: str) -> bool:
             return True
     return False
 
-
 def read_file(filename: str) -> bytes:
     """Reads the file :filename: and returns the contents as bytes."""
     with open(filename, "rb") as f:
@@ -96,8 +98,7 @@ def diff(a: bytes, b: bytes) -> str:
             fb.write(b)
             fb.flush()
 
-            diff_bytes = subprocess.run(["diff", fa.name, fb.name], stdout=subprocess.PIPE,
-                                        stderr=subprocess.DEVNULL).stdout
+            diff_bytes = subprocess.run(["diff", fa.name, fb.name], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
             return diff_bytes.decode("utf8")
 
 
@@ -192,16 +193,15 @@ def glob_diff(actual: bytes, expect: bytes) -> bytes:
 
 class Options:
     """Options configuring how to run a :TestCase:."""
-
     def __init__(
-            self,
-            env: typing.Dict[str, str],
-            timeout: typing.Optional[int],
-            verbose: bool,
-            preserve: bool,
-            scratch_dir: str,
-            test_dir: str,
-            set_exact_output: bool,
+        self,
+        env: typing.Dict[str, str],
+        timeout: typing.Optional[int],
+        verbose: bool,
+        preserve: bool,
+        scratch_dir: str,
+        test_dir: str,
+        set_exact_output: bool,
     ) -> None:
         self.env = env
         self.timeout = timeout
@@ -230,7 +230,6 @@ class TestCase:
 
     All other methods, prefixed with _, are private helper functions.
     """
-
     def __init__(self, test_filename: str, options: Options) -> None:
         """
         Initialize the :TestCase: for the test located in :test_filename:
@@ -378,7 +377,7 @@ class TestCase:
             # Save the output to the scratch directory
             actual_name = os.path.join(self._scratch_dir, f"{out_name}")
             with open(actual_name, "wb") as f:
-                f.write(self._output[out_name])
+                    f.write(self._output[out_name])
 
         exact_name = f"{self._test_file}.{out_name}.exact"
         glob_name = f"{self._test_file}.{out_name}.glob"
@@ -452,7 +451,6 @@ class TestSuite:
 
     TODO: Make setup/teardown failure emit messages, not throw exceptions.
     """
-
     def __init__(self, test_directory: str, options: Options) -> None:
         self._opts = options
         self._test_dir = os.path.abspath(test_directory)
@@ -541,9 +539,7 @@ class TestSuite:
             print(f"stdout:\n{e.stdout}")
             raise
 
-
 TestSuites = typing.Dict[str, typing.List[str]]
-
 
 def get_all_tests(options: Options) -> TestSuites:
     """
@@ -562,7 +558,7 @@ def get_all_tests(options: Options) -> TestSuites:
 
 
 def resolve_listed_tests(
-        tests: typing.List[str], options: Options
+    tests: typing.List[str], options: Options
 ) -> TestSuites:
     """
     Resolve the list of tests passed on the command line into their
@@ -583,7 +579,6 @@ def resolve_listed_tests(
         test_suites.setdefault(test_suite, []).append(test_case)
 
     return test_suites
-
 
 def run_tests(test_suites: TestSuites, options: Options) -> bool:
     """
@@ -622,7 +617,6 @@ def setup_zstd_symlink_dir(zstd_symlink_dir: str, zstd: str) -> None:
             os.remove(path)
         os.symlink(zstd, path)
 
-
 if __name__ == "__main__":
     CLI_TEST_DIR = os.path.dirname(sys.argv[0])
     REPO_DIR = os.path.join(CLI_TEST_DIR, "..", "..")
@@ -646,8 +640,7 @@ if __name__ == "__main__":
         help="Preserve the scratch directory TEST_DIR/scratch/ for debugging purposes."
     )
     parser.add_argument("--verbose", action="store_true", help="Verbose test output.")
-    parser.add_argument("--timeout", default=200, type=int,
-                        help="Test case timeout in seconds. Set to 0 to disable timeouts.")
+    parser.add_argument("--timeout", default=200, type=int, help="Test case timeout in seconds. Set to 0 to disable timeouts.")
     parser.add_argument(
         "--exec-prefix",
         default=None,

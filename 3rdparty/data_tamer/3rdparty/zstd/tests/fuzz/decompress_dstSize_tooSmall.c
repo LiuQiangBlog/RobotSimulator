@@ -37,19 +37,16 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     size_t rBufSize = FUZZ_dataProducer_uint32Range(producer, 0, size);
     size = FUZZ_dataProducer_remainingBytes(producer);
     /* Ensure the round-trip buffer is too small. */
-    if (rBufSize >= size)
-    {
+    if (rBufSize >= size) {
         rBufSize = size > 0 ? size - 1 : 0;
     }
     size_t const cBufSize = ZSTD_compressBound(size);
 
-    if (!cctx)
-    {
+    if (!cctx) {
         cctx = ZSTD_createCCtx();
         FUZZ_ASSERT(cctx);
     }
-    if (!dctx)
-    {
+    if (!dctx) {
         dctx = ZSTD_createDCtx();
         FUZZ_ASSERT(dctx);
     }
@@ -59,12 +56,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     size_t const cSize = ZSTD_compressCCtx(cctx, cBuf, cBufSize, src, size, 1);
     FUZZ_ZASSERT(cSize);
     size_t const rSize = ZSTD_decompressDCtx(dctx, rBuf, rBufSize, cBuf, cSize);
-    if (size == 0)
-    {
+    if (size == 0) {
         FUZZ_ASSERT(rSize == 0);
-    }
-    else
-    {
+    } else {
         FUZZ_ASSERT(ZSTD_isError(rSize));
         FUZZ_ASSERT(ZSTD_getErrorCode(rSize) == ZSTD_error_dstSize_tooSmall);
     }
@@ -72,10 +66,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     free(rBuf);
     FUZZ_dataProducer_free(producer);
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeCCtx(cctx);
-    cctx = NULL;
-    ZSTD_freeDCtx(dctx);
-    dctx = NULL;
+    ZSTD_freeCCtx(cctx); cctx = NULL;
+    ZSTD_freeDCtx(dctx); dctx = NULL;
 #endif
     FUZZ_SEQ_PROD_TEARDOWN();
     return 0;

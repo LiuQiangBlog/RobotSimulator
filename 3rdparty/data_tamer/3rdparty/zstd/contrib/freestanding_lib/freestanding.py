@@ -17,6 +17,7 @@ import shutil
 import sys
 from typing import Optional
 
+
 INCLUDED_SUBDIRS = ["common", "compress", "decompress"]
 
 SKIPPED_FILES = [
@@ -57,14 +58,13 @@ class PartialPreprocessor(object):
     parens.
     Does not handle multi-line macros (only looks in first line).
     """
-
     def __init__(self, defs: [(str, Optional[str])], replaces: [(str, str)], undefs: [str]):
         MACRO_GROUP = r"(?P<macro>[a-zA-Z_][a-zA-Z_0-9]*)"
         ELIF_GROUP = r"(?P<elif>el)?"
         OP_GROUP = r"(?P<op>&&|\|\|)?"
 
-        self._defs = {macro: value for macro, value in defs}
-        self._replaces = {macro: value for macro, value in replaces}
+        self._defs = {macro:value for macro, value in defs}
+        self._replaces = {macro:value for macro, value in replaces}
         self._defs.update(self._replaces)
         self._undefs = set(undefs)
 
@@ -118,6 +118,7 @@ class PartialPreprocessor(object):
         if len(replace) == 1 and self._define.match(replace[0]) is None:
             # If there is only one line, only replace defines
             return replace
+
 
         all_pound = True
         for line in replace:
@@ -661,6 +662,8 @@ class Freestanding(object):
                 raise RuntimeError(f"Unexpected file extension: {file.filename}")
             file.write()
 
+
+
     def go(self):
         self._copy_source_lib()
         self._copy_zstd_deps()
@@ -697,32 +700,23 @@ def parse_pair(rewritten_includes: [str]) -> [(str, str)]:
     return output
 
 
+
 def main(name, args):
     parser = argparse.ArgumentParser(prog=name)
     parser.add_argument("--zstd-deps", default="zstd_deps.h", help="Zstd dependencies file")
     parser.add_argument("--mem", default="mem.h", help="Memory module")
     parser.add_argument("--source-lib", default="../../lib", help="Location of the zstd library")
-    parser.add_argument("--output-lib", default="./freestanding_lib",
-                        help="Where to output the freestanding zstd library")
-    parser.add_argument("--xxhash", default=None,
-                        help="Alternate external xxhash include e.g. --xxhash='<xxhash.h>'. If set xxhash is not included.")
-    parser.add_argument("--xxh64-state", default=None,
-                        help="Alternate XXH64 state type (excluding _) e.g. --xxh64-state='struct xxh64_state'")
-    parser.add_argument("--xxh64-prefix", default=None,
-                        help="Alternate XXH64 function prefix (excluding _) e.g. --xxh64-prefix=xxh64")
-    parser.add_argument("--rewrite-include", default=[], dest="rewritten_includes", action="append",
-                        help="Rewrite an include REGEX=NEW (e.g. '<stddef\\.h>=<linux/types.h>')")
-    parser.add_argument("--sed", default=[], dest="seds", action="append",
-                        help="Apply a sed replacement. Format: `s/REGEX/FORMAT/[g]`. REGEX is a Python regex. FORMAT is a Python format string formatted by the regex dict.")
+    parser.add_argument("--output-lib", default="./freestanding_lib", help="Where to output the freestanding zstd library")
+    parser.add_argument("--xxhash", default=None, help="Alternate external xxhash include e.g. --xxhash='<xxhash.h>'. If set xxhash is not included.")
+    parser.add_argument("--xxh64-state", default=None, help="Alternate XXH64 state type (excluding _) e.g. --xxh64-state='struct xxh64_state'")
+    parser.add_argument("--xxh64-prefix", default=None, help="Alternate XXH64 function prefix (excluding _) e.g. --xxh64-prefix=xxh64")
+    parser.add_argument("--rewrite-include", default=[], dest="rewritten_includes", action="append", help="Rewrite an include REGEX=NEW (e.g. '<stddef\\.h>=<linux/types.h>')")
+    parser.add_argument("--sed", default=[], dest="seds", action="append", help="Apply a sed replacement. Format: `s/REGEX/FORMAT/[g]`. REGEX is a Python regex. FORMAT is a Python format string formatted by the regex dict.")
     parser.add_argument("--spdx", action="store_true", help="Add SPDX License Identifiers")
-    parser.add_argument("-D", "--define", default=[], dest="defs", action="append",
-                        help="Pre-define this macro (can be passed multiple times)")
-    parser.add_argument("-U", "--undefine", default=[], dest="undefs", action="append",
-                        help="Pre-undefine this macro (can be passed multiple times)")
-    parser.add_argument("-R", "--replace", default=[], dest="replaces", action="append",
-                        help="Pre-define this macro and replace the first ifndef block with its definition")
-    parser.add_argument("-E", "--exclude", default=[], dest="excludes", action="append",
-                        help="Exclude all lines between 'BEGIN <EXCLUDE>' and 'END <EXCLUDE>'")
+    parser.add_argument("-D", "--define", default=[], dest="defs", action="append", help="Pre-define this macro (can be passed multiple times)")
+    parser.add_argument("-U", "--undefine", default=[], dest="undefs", action="append", help="Pre-undefine this macro (can be passed multiple times)")
+    parser.add_argument("-R", "--replace", default=[], dest="replaces", action="append", help="Pre-define this macro and replace the first ifndef block with its definition")
+    parser.add_argument("-E", "--exclude", default=[], dest="excludes", action="append", help="Exclude all lines between 'BEGIN <EXCLUDE>' and 'END <EXCLUDE>'")
     args = parser.parse_args(args)
 
     # Always remove threading
@@ -775,7 +769,6 @@ def main(name, args):
         args.seds,
         args.spdx,
     ).go()
-
 
 if __name__ == "__main__":
     main(sys.argv[0], sys.argv[1:])

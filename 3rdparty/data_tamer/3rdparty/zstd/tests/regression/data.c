@@ -14,7 +14,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h> /* free() */
+#include <stdlib.h>   /* free() */
 
 #include <sys/stat.h>
 
@@ -29,7 +29,8 @@
  * Data objects
  */
 
-#define REGRESSION_RELEASE(x) "https://github.com/facebook/zstd/releases/download/regression-data/" x
+#define REGRESSION_RELEASE(x) \
+    "https://github.com/facebook/zstd/releases/download/regression-data/" x
 
 data_t silesia = {
     .name = "silesia",
@@ -83,18 +84,21 @@ data_t github_tar = {
         },
 };
 
-static data_t *g_data[] = {
-    &silesia, &silesia_tar, &github, &github_tar, NULL,
+static data_t* g_data[] = {
+    &silesia,
+    &silesia_tar,
+    &github,
+    &github_tar,
+    NULL,
 };
 
-data_t const *const *data = (data_t const *const *)g_data;
+data_t const* const* data = (data_t const* const*)g_data;
 
 /**
  * data helpers.
  */
 
-int data_has_dict(data_t const *data)
-{
+int data_has_dict(data_t const* data) {
     return data->dict.url != NULL;
 }
 
@@ -102,46 +106,40 @@ int data_has_dict(data_t const *data)
  * data buffer helper functions (documented in header).
  */
 
-data_buffer_t data_buffer_create(size_t const capacity)
-{
+data_buffer_t data_buffer_create(size_t const capacity) {
     data_buffer_t buffer = {};
 
-    buffer.data = (uint8_t *)malloc(capacity);
+    buffer.data = (uint8_t*)malloc(capacity);
     if (buffer.data == NULL)
         return buffer;
     buffer.capacity = capacity;
     return buffer;
 }
 
-data_buffer_t data_buffer_read(char const *filename)
-{
+data_buffer_t data_buffer_read(char const* filename) {
     data_buffer_t buffer = {};
 
     uint64_t const size = UTIL_getFileSize(filename);
-    if (size == UTIL_FILESIZE_UNKNOWN)
-    {
+    if (size == UTIL_FILESIZE_UNKNOWN) {
         fprintf(stderr, "unknown size for %s\n", filename);
         return buffer;
     }
 
-    buffer.data = (uint8_t *)malloc(size);
-    if (buffer.data == NULL)
-    {
+    buffer.data = (uint8_t*)malloc(size);
+    if (buffer.data == NULL) {
         fprintf(stderr, "malloc failed\n");
         return buffer;
     }
     buffer.capacity = size;
 
-    FILE *file = fopen(filename, "rb");
-    if (file == NULL)
-    {
+    FILE* file = fopen(filename, "rb");
+    if (file == NULL) {
         fprintf(stderr, "file null\n");
         goto err;
     }
     buffer.size = fread(buffer.data, 1, buffer.capacity, file);
     fclose(file);
-    if (buffer.size != buffer.capacity)
-    {
+    if (buffer.size != buffer.capacity) {
         fprintf(stderr, "read %zu != %zu\n", buffer.size, buffer.capacity);
         goto err;
     }
@@ -153,8 +151,7 @@ err:
     return buffer;
 }
 
-data_buffer_t data_buffer_get_data(data_t const *data)
-{
+data_buffer_t data_buffer_get_data(data_t const* data) {
     data_buffer_t const kEmptyBuffer = {};
 
     if (data->type != data_type_file)
@@ -163,8 +160,7 @@ data_buffer_t data_buffer_get_data(data_t const *data)
     return data_buffer_read(data->data.path);
 }
 
-data_buffer_t data_buffer_get_dict(data_t const *data)
-{
+data_buffer_t data_buffer_get_dict(data_t const* data) {
     data_buffer_t const kEmptyBuffer = {};
 
     if (!data_has_dict(data))
@@ -173,9 +169,9 @@ data_buffer_t data_buffer_get_dict(data_t const *data)
     return data_buffer_read(data->dict.path);
 }
 
-int data_buffer_compare(data_buffer_t buffer1, data_buffer_t buffer2)
-{
-    size_t const size = buffer1.size < buffer2.size ? buffer1.size : buffer2.size;
+int data_buffer_compare(data_buffer_t buffer1, data_buffer_t buffer2) {
+    size_t const size =
+        buffer1.size < buffer2.size ? buffer1.size : buffer2.size;
     int const cmp = memcmp(buffer1.data, buffer2.data, size);
     if (cmp != 0)
         return cmp;
@@ -187,8 +183,7 @@ int data_buffer_compare(data_buffer_t buffer1, data_buffer_t buffer2)
     return 1;
 }
 
-void data_buffer_free(data_buffer_t buffer)
-{
+void data_buffer_free(data_buffer_t buffer) {
     free(buffer.data);
 }
 
@@ -196,42 +191,37 @@ void data_buffer_free(data_buffer_t buffer)
  * data filenames helpers.
  */
 
-FileNamesTable *data_filenames_get(data_t const *data)
+FileNamesTable* data_filenames_get(data_t const* data)
 {
-    char const *const path = data->data.path;
-    return UTIL_createExpandedFNT(&path, 1, 0 /* followLinks */);
+    char const* const path = data->data.path;
+    return UTIL_createExpandedFNT(&path, 1, 0 /* followLinks */ );
 }
 
 /**
  * data buffers helpers.
  */
 
-data_buffers_t data_buffers_get(data_t const *data)
-{
+data_buffers_t data_buffers_get(data_t const* data) {
     data_buffers_t buffers = {.size = 0};
-    FileNamesTable *const filenames = data_filenames_get(data);
-    if (filenames == NULL)
-        return buffers;
-    if (filenames->tableSize == 0)
-    {
+    FileNamesTable* const filenames = data_filenames_get(data);
+    if (filenames == NULL) return buffers;
+    if (filenames->tableSize == 0) {
         UTIL_freeFileNamesTable(filenames);
         return buffers;
     }
 
-    data_buffer_t *buffersPtr = (data_buffer_t *)malloc(filenames->tableSize * sizeof(*buffersPtr));
-    if (buffersPtr == NULL)
-    {
+    data_buffer_t* buffersPtr =
+        (data_buffer_t*)malloc(filenames->tableSize * sizeof(*buffersPtr));
+    if (buffersPtr == NULL) {
         UTIL_freeFileNamesTable(filenames);
         return buffers;
     }
-    buffers.buffers = (data_buffer_t const *)buffersPtr;
+    buffers.buffers = (data_buffer_t const*)buffersPtr;
     buffers.size = filenames->tableSize;
 
-    for (size_t i = 0; i < filenames->tableSize; ++i)
-    {
+    for (size_t i = 0; i < filenames->tableSize; ++i) {
         buffersPtr[i] = data_buffer_read(filenames->fileNames[i]);
-        if (buffersPtr[i].data == NULL)
-        {
+        if (buffersPtr[i].data == NULL) {
             data_buffers_t const kEmptyBuffer = {};
             data_buffers_free(buffers);
             UTIL_freeFileNamesTable(filenames);
@@ -246,30 +236,26 @@ data_buffers_t data_buffers_get(data_t const *data)
 /**
  * Frees the data buffers.
  */
-void data_buffers_free(data_buffers_t buffers)
-{
-    free((data_buffer_t *)buffers.buffers);
+void data_buffers_free(data_buffers_t buffers) {
+    free((data_buffer_t*)buffers.buffers);
 }
 
 /**
  * Initialization and download functions.
  */
 
-static char *g_data_dir = NULL;
+static char* g_data_dir = NULL;
 
 /* mkdir -p */
-static int ensure_directory_exists(char const *indir)
-{
-    char *const dir = strdup(indir);
-    char *end = dir;
+static int ensure_directory_exists(char const* indir) {
+    char* const dir = strdup(indir);
+    char* end = dir;
     int ret = 0;
-    if (dir == NULL)
-    {
+    if (dir == NULL) {
         ret = EINVAL;
         goto out;
     }
-    do
-    {
+    do {
         /* Find the next directory level. */
         for (++end; *end != '\0' && *end != '/'; ++end)
             ;
@@ -294,13 +280,12 @@ out:
 }
 
 /** Concatenate 3 strings into a new buffer. */
-static char *cat3(char const *str1, char const *str2, char const *str3)
-{
+static char* cat3(char const* str1, char const* str2, char const* str3) {
     size_t const size1 = strlen(str1);
     size_t const size2 = strlen(str2);
     size_t const size3 = str3 == NULL ? 0 : strlen(str3);
     size_t const size = size1 + size2 + size3 + 1;
-    char *const dst = (char *)malloc(size);
+    char* const dst = (char*)malloc(size);
     if (dst == NULL)
         return NULL;
     strcpy(dst, str1);
@@ -311,8 +296,7 @@ static char *cat3(char const *str1, char const *str2, char const *str3)
     return dst;
 }
 
-static char *cat2(char const *str1, char const *str2)
-{
+static char* cat2(char const* str1, char const* str2) {
     return cat3(str1, str2, NULL);
 }
 
@@ -320,48 +304,42 @@ static char *cat2(char const *str1, char const *str2)
  * State needed by the curl callback.
  * It takes data from curl, hashes it, and writes it to the file.
  */
-typedef struct
-{
-    FILE *file;
+typedef struct {
+    FILE* file;
     XXH64_state_t xxhash64;
     int error;
 } curl_data_t;
 
 /** Create the curl state. */
-static curl_data_t curl_data_create(data_resource_t const *resource, data_type_t type)
-{
+static curl_data_t curl_data_create(
+    data_resource_t const* resource,
+    data_type_t type) {
     curl_data_t cdata = {};
 
     XXH64_reset(&cdata.xxhash64, 0);
 
     assert(UTIL_isDirectory(g_data_dir));
 
-    if (type == data_type_file)
-    {
+    if (type == data_type_file) {
         /* Decompress the resource and store to the path. */
-        char *cmd = cat3("zstd -dqfo '", resource->path, "'");
-        if (cmd == NULL)
-        {
+        char* cmd = cat3("zstd -dqfo '", resource->path, "'");
+        if (cmd == NULL) {
             cdata.error = ENOMEM;
             return cdata;
         }
         cdata.file = popen(cmd, "w");
         free(cmd);
-    }
-    else
-    {
+    } else {
         /* Decompress and extract the resource to the cache directory. */
-        char *cmd = cat3("zstd -dc | tar -x -C '", g_data_dir, "'");
-        if (cmd == NULL)
-        {
+        char* cmd = cat3("zstd -dc | tar -x -C '", g_data_dir, "'");
+        if (cmd == NULL) {
             cdata.error = ENOMEM;
             return cdata;
         }
         cdata.file = popen(cmd, "w");
         free(cmd);
     }
-    if (cdata.file == NULL)
-    {
+    if (cdata.file == NULL) {
         cdata.error = errno;
     }
 
@@ -369,22 +347,22 @@ static curl_data_t curl_data_create(data_resource_t const *resource, data_type_t
 }
 
 /** Free the curl state. */
-static int curl_data_free(curl_data_t cdata)
-{
+static int curl_data_free(curl_data_t cdata) {
     return pclose(cdata.file);
 }
 
 /** curl callback. Updates the hash, and writes to the file. */
-static size_t curl_write(void *data, size_t size, size_t count, void *ptr)
-{
-    curl_data_t *cdata = (curl_data_t *)ptr;
+static size_t curl_write(void* data, size_t size, size_t count, void* ptr) {
+    curl_data_t* cdata = (curl_data_t*)ptr;
     size_t const written = fwrite(data, size, count, cdata->file);
     XXH64_update(&cdata->xxhash64, data, written * size);
     return written;
 }
 
-static int curl_download_resource(CURL *curl, data_resource_t const *resource, data_type_t type)
-{
+static int curl_download_resource(
+    CURL* curl,
+    data_resource_t const* resource,
+    data_type_t type) {
     curl_data_t cdata;
     /* Download the data. */
     if (curl_easy_setopt(curl, CURLOPT_URL, resource->url) != 0)
@@ -396,32 +374,35 @@ static int curl_download_resource(CURL *curl, data_resource_t const *resource, d
         return cdata.error;
     int const curl_err = curl_easy_perform(curl);
     int const close_err = curl_data_free(cdata);
-    if (curl_err)
-    {
-        fprintf(stderr, "downloading '%s' for '%s' failed\n", resource->url, resource->path);
+    if (curl_err) {
+        fprintf(
+            stderr,
+            "downloading '%s' for '%s' failed\n",
+            resource->url,
+            resource->path);
         return EIO;
     }
-    if (close_err)
-    {
+    if (close_err) {
         fprintf(stderr, "writing data to '%s' failed\n", resource->path);
         return EIO;
     }
     /* check that the file exists. */
-    if (type == data_type_file && !UTIL_isRegularFile(resource->path))
-    {
+    if (type == data_type_file && !UTIL_isRegularFile(resource->path)) {
         fprintf(stderr, "output file '%s' does not exist\n", resource->path);
         return EIO;
     }
-    if (type == data_type_dir && !UTIL_isDirectory(resource->path))
-    {
-        fprintf(stderr, "output directory '%s' does not exist\n", resource->path);
+    if (type == data_type_dir && !UTIL_isDirectory(resource->path)) {
+        fprintf(
+            stderr, "output directory '%s' does not exist\n", resource->path);
         return EIO;
     }
     /* Check that the hash matches. */
-    if (XXH64_digest(&cdata.xxhash64) != resource->xxhash64)
-    {
-        fprintf(stderr, "checksum does not match: 0x%llxLL != 0x%llxLL\n",
-                (unsigned long long)XXH64_digest(&cdata.xxhash64), (unsigned long long)resource->xxhash64);
+    if (XXH64_digest(&cdata.xxhash64) != resource->xxhash64) {
+        fprintf(
+            stderr,
+            "checksum does not match: 0x%llxLL != 0x%llxLL\n",
+            (unsigned long long)XXH64_digest(&cdata.xxhash64),
+            (unsigned long long)resource->xxhash64);
         return EINVAL;
     }
 
@@ -429,14 +410,12 @@ static int curl_download_resource(CURL *curl, data_resource_t const *resource, d
 }
 
 /** Download a single data object. */
-static int curl_download_datum(CURL *curl, data_t const *data)
-{
+static int curl_download_datum(CURL* curl, data_t const* data) {
     int ret;
     ret = curl_download_resource(curl, &data->data, data->type);
     if (ret != 0)
         return ret;
-    if (data_has_dict(data))
-    {
+    if (data_has_dict(data)) {
         ret = curl_download_resource(curl, &data->dict, data_type_file);
         if (ret != 0)
             return ret;
@@ -445,13 +424,12 @@ static int curl_download_datum(CURL *curl, data_t const *data)
 }
 
 /** Download all the data. */
-static int curl_download_data(data_t const *const *data)
-{
+static int curl_download_data(data_t const* const* data) {
     if (curl_global_init(CURL_GLOBAL_ALL) != 0)
         return EFAULT;
 
     curl_data_t cdata = {};
-    CURL *curl = curl_easy_init();
+    CURL* curl = curl_easy_init();
     int err = EFAULT;
 
     if (curl == NULL)
@@ -465,8 +443,7 @@ static int curl_download_data(data_t const *const *data)
         goto out;
 
     assert(data != NULL);
-    for (; *data != NULL; ++data)
-    {
+    for (; *data != NULL; ++data) {
         if (curl_download_datum(curl, *data) != 0)
             goto out;
     }
@@ -479,18 +456,15 @@ out:
 }
 
 /** Fill the path member variable of the data objects. */
-static int data_create_paths(data_t *const *data, char const *dir)
-{
+static int data_create_paths(data_t* const* data, char const* dir) {
     size_t const dirlen = strlen(dir);
     assert(data != NULL);
-    for (; *data != NULL; ++data)
-    {
-        data_t *const datum = *data;
+    for (; *data != NULL; ++data) {
+        data_t* const datum = *data;
         datum->data.path = cat3(dir, "/", datum->name);
         if (datum->data.path == NULL)
             return ENOMEM;
-        if (data_has_dict(datum))
-        {
+        if (data_has_dict(datum)) {
             datum->dict.path = cat2(datum->data.path, ".dict");
             if (datum->dict.path == NULL)
                 return ENOMEM;
@@ -500,14 +474,12 @@ static int data_create_paths(data_t *const *data, char const *dir)
 }
 
 /** Free the path member variable of the data objects. */
-static void data_free_paths(data_t *const *data)
-{
+static void data_free_paths(data_t* const* data) {
     assert(data != NULL);
-    for (; *data != NULL; ++data)
-    {
-        data_t *datum = *data;
-        free((void *)datum->data.path);
-        free((void *)datum->dict.path);
+    for (; *data != NULL; ++data) {
+        data_t* datum = *data;
+        free((void*)datum->data.path);
+        free((void*)datum->dict.path);
         datum->data.path = NULL;
         datum->dict.path = NULL;
     }
@@ -515,23 +487,20 @@ static void data_free_paths(data_t *const *data)
 
 static char const kStampName[] = "STAMP";
 
-static void xxh_update_le(XXH64_state_t *state, uint64_t data)
-{
+static void xxh_update_le(XXH64_state_t* state, uint64_t data) {
     if (!MEM_isLittleEndian())
         data = MEM_swap64(data);
     XXH64_update(state, &data, sizeof(data));
 }
 
 /** Hash the data to create the stamp. */
-static uint64_t stamp_hash(data_t const *const *data)
-{
+static uint64_t stamp_hash(data_t const* const* data) {
     XXH64_state_t state;
 
     XXH64_reset(&state, 0);
     assert(data != NULL);
-    for (; *data != NULL; ++data)
-    {
-        data_t const *datum = *data;
+    for (; *data != NULL; ++data) {
+        data_t const* datum = *data;
         /* We don't care about the URL that we fetch from. */
         /* The path is derived from the name. */
         XXH64_update(&state, datum->name, strlen(datum->name));
@@ -543,32 +512,28 @@ static uint64_t stamp_hash(data_t const *const *data)
 }
 
 /** Check if the stamp matches the stamp in the cache directory. */
-static int stamp_check(char const *dir, data_t const *const *data)
-{
-    char *stamp = cat3(dir, "/", kStampName);
+static int stamp_check(char const* dir, data_t const* const* data) {
+    char* stamp = cat3(dir, "/", kStampName);
     uint64_t const expected = stamp_hash(data);
     XXH64_canonical_t actual;
-    FILE *stampfile = NULL;
+    FILE* stampfile = NULL;
     int matches = 0;
 
     if (stamp == NULL)
         goto out;
-    if (!UTIL_isRegularFile(stamp))
-    {
+    if (!UTIL_isRegularFile(stamp)) {
         fprintf(stderr, "stamp does not exist: recreating the data cache\n");
         goto out;
     }
 
     stampfile = fopen(stamp, "rb");
-    if (stampfile == NULL)
-    {
+    if (stampfile == NULL) {
         fprintf(stderr, "could not open stamp: recreating the data cache\n");
         goto out;
     }
 
     size_t b;
-    if ((b = fread(&actual, sizeof(actual), 1, stampfile)) != 1)
-    {
+    if ((b = fread(&actual, sizeof(actual), 1, stampfile)) != 1) {
         fprintf(stderr, "invalid stamp: recreating the data cache\n");
         goto out;
     }
@@ -587,17 +552,16 @@ out:
 }
 
 /** On success write a new stamp, on failure delete the old stamp. */
-static int stamp_write(char const *dir, data_t const *const *data, int const data_err)
-{
-    char *stamp = cat3(dir, "/", kStampName);
-    FILE *stampfile = NULL;
+static int
+stamp_write(char const* dir, data_t const* const* data, int const data_err) {
+    char* stamp = cat3(dir, "/", kStampName);
+    FILE* stampfile = NULL;
     int err = EIO;
 
     if (stamp == NULL)
         return ENOMEM;
 
-    if (data_err != 0)
-    {
+    if (data_err != 0) {
         err = data_err;
         goto out;
     }
@@ -622,8 +586,7 @@ out:
     return err;
 }
 
-int data_init(char const *dir)
-{
+int data_init(char const* dir) {
     int err;
 
     if (dir == NULL)
@@ -661,8 +624,7 @@ out:
     return err;
 }
 
-void data_finish(void)
-{
+void data_finish(void) {
     data_free_paths(g_data);
     free(g_data_dir);
     g_data_dir = NULL;

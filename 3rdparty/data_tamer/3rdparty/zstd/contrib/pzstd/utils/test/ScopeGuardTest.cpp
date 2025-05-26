@@ -12,27 +12,17 @@
 
 using namespace pzstd;
 
-TEST(ScopeGuard, Dismiss)
-{
-    {
-        auto guard = makeScopeGuard(
-            [&]
-            {
-                EXPECT_TRUE(false);
-            });
-        guard.dismiss();
-    }
+TEST(ScopeGuard, Dismiss) {
+  {
+    auto guard = makeScopeGuard([&] { EXPECT_TRUE(false); });
+    guard.dismiss();
+  }
 }
 
-TEST(ScopeGuard, Executes)
-{
-    bool executed = false;
-    {
-        auto guard = makeScopeGuard(
-            [&]
-            {
-                executed = true;
-            });
-    }
-    EXPECT_TRUE(executed);
+TEST(ScopeGuard, Executes) {
+  bool executed = false;
+  {
+    auto guard = makeScopeGuard([&] { executed = true; });
+  }
+  EXPECT_TRUE(executed);
 }

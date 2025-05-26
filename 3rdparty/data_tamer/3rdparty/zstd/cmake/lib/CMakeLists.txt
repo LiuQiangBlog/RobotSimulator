@@ -29,9 +29,9 @@ set_property(CACHE ZDICTLIB_VISIBLE PROPERTY STRINGS "" "hidden" "default" "prot
 set_property(CACHE ZSTDLIB_STATIC_API PROPERTY STRINGS "" "hidden" "default" "protected" "internal")
 set_property(CACHE ZDICTLIB_STATIC_API PROPERTY STRINGS "" "hidden" "default" "protected" "internal")
 
-if (NOT ZSTD_BUILD_SHARED AND NOT ZSTD_BUILD_STATIC)
+if(NOT ZSTD_BUILD_SHARED AND NOT ZSTD_BUILD_STATIC)
     message(SEND_ERROR "You need to build at least one flavor of libzstd")
-endif ()
+endif()
 
 file(GLOB CommonSources ${LIBRARY_DIR}/common/*.c)
 file(GLOB CompressSources ${LIBRARY_DIR}/compress/*.c)
@@ -39,11 +39,11 @@ file(GLOB DecompressSources ${LIBRARY_DIR}/decompress/*.c)
 if (MSVC)
     add_compile_options(-DZSTD_DISABLE_ASM)
 else ()
-    if (CMAKE_SYSTEM_PROCESSOR MATCHES "amd64.*|AMD64.*|x86_64.*|X86_64.*" AND ${ZSTD_HAS_NOEXECSTACK})
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64.*|AMD64.*|x86_64.*|X86_64.*" AND ${ZSTD_HAS_NOEXECSTACK})
         set(DecompressSources ${DecompressSources} ${LIBRARY_DIR}/decompress/huf_decompress_amd64.S)
-    else ()
+    else()
         add_compile_options(-DZSTD_DISABLE_ASM)
-    endif ()
+    endif()
 endif ()
 file(GLOB DictBuilderSources ${LIBRARY_DIR}/dictBuilder/*.c)
 file(GLOB DeprecatedSources ${LIBRARY_DIR}/deprecated/*.c)
@@ -60,19 +60,19 @@ set(Headers ${PublicHeaders} ${CommonHeaders})
 if (ZSTD_BUILD_COMPRESSION)
     set(Sources ${Sources} ${CompressSources})
     set(Headers ${Headers} ${CompressHeaders})
-endif ()
+endif()
 if (ZSTD_BUILD_DECOMPRESSION)
     set(Sources ${Sources} ${DecompressSources})
     set(Headers ${Headers} ${DecompressHeaders})
-endif ()
+endif()
 if (ZSTD_BUILD_DICTBUILDER)
     set(Sources ${Sources} ${DictBuilderSources})
     set(Headers ${Headers} ${DictBuilderHeaders})
-endif ()
+endif()
 if (ZSTD_BUILD_DEPRECATED)
     set(Sources ${Sources} ${DeprecatedSources})
     set(Headers ${Headers} ${DeprecatedHeaders})
-endif ()
+endif()
 
 if (ZSTD_LEGACY_SUPPORT)
     set(LIBRARY_LEGACY_DIR ${LIBRARY_DIR}/legacy)
@@ -106,15 +106,15 @@ endif ()
 # Our assembly expects to be compiled by a C compiler, and is only enabled for
 # __GNUC__ compatible compilers. Otherwise all the ASM code is disabled by
 # macros.
-if (NOT CMAKE_ASM_COMPILER STREQUAL CMAKE_C_COMPILER)
+if(NOT CMAKE_ASM_COMPILER STREQUAL CMAKE_C_COMPILER)
     set_source_files_properties(${Sources} PROPERTIES LANGUAGE C)
-endif ()
+endif()
 
-macro(add_definition target var)
+macro (add_definition target var)
     if (NOT ("${${var}}" STREQUAL ""))
         set_property(TARGET ${target} APPEND PROPERTY COMPILE_DEFINITIONS "${var}=__attribute__((visibility(\"${${var}}\")))")
     endif ()
-endmacro()
+endmacro ()
 
 # Define directories containing the library's public headers
 set(PUBLIC_INCLUDE_DIRS ${LIBRARY_DIR})
@@ -207,7 +207,7 @@ if (ZSTD_BUILD_SHARED)
             OUTPUT_NAME zstd
             VERSION ${ZSTD_FULL_VERSION}
             SOVERSION ${zstd_VERSION_MAJOR})
-
+            
     if (ZSTD_FRAMEWORK)
         set_target_properties(
                 libzstd_shared
@@ -273,15 +273,15 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/libzstd.pc" DESTINATION "${CMAKE_INST
 install(FILES ${PublicHeaders} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 install(TARGETS ${library_targets}
-        EXPORT zstdExports
-        INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-        BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}"
-        FRAMEWORK DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT runtime OPTIONAL
-        PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-)
+    EXPORT zstdExports
+    INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    BUNDLE DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    FRAMEWORK DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT runtime OPTIONAL
+    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    )
 
 # uninstall target
 if (NOT TARGET uninstall)
