@@ -243,7 +243,7 @@ public:
 //                {
 //                    buffer_data[key].pop_front();
 //                }
-                data.name = key + uuid.str(); // make sure data channel is unique
+                data.name = key + "_" + uuid.str(); // make sure data channel is unique
                 data.timestamp = pair.first;
                 data.value = pair.second;
                 all_value.channels.push_back(data);
