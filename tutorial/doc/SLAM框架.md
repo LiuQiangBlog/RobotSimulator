@@ -4,3 +4,5 @@ https://github.com/vectr-ucla/direct_lidar_inertial_odometry
 https://github.com/vioshyvo/mrpt
 
 
+https://github.com/artivis/laser_odometry
+
