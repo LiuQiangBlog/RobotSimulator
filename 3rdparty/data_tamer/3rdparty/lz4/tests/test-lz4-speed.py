@@ -160,7 +160,7 @@ def benchmark_and_compare(branch, commit, last_commit, args, executableName, md5
     linesExpected = args.lastCLevel + 1
     if len(result) != linesExpected:
         raise RuntimeError("ERROR: number of result lines=%d is different that expected %d\n%s" % (
-        len(result), linesExpected, '\n'.join(result)))
+            len(result), linesExpected, '\n'.join(result)))
     with open(resultsFileName, "a") as myfile:
         myfile.write('%s %s %s md5=%s\n' % (branch, commit, compilerVersion, md5sum))
         myfile.write('\n'.join(result) + '\n')
@@ -173,20 +173,21 @@ def benchmark_and_compare(branch, commit, last_commit, args, executableName, md5
         for i in range(0, min(len(cspeed), len(last_cspeed))):
             print(
                 "%s:%s -%d cSpeed=%6.2f cLast=%6.2f cDiff=%1.4f dSpeed=%6.2f dLast=%6.2f dDiff=%1.4f ratioDiff=%1.4f %s" % (
-                branch, commit, i + 1, cspeed[i], last_cspeed[i], cspeed[i] / last_cspeed[i], dspeed[i], last_dspeed[i],
-                dspeed[i] / last_dspeed[i], float(last_csize[i]) / csize[i], fileName))
+                    branch, commit, i + 1, cspeed[i], last_cspeed[i], cspeed[i] / last_cspeed[i], dspeed[i],
+                    last_dspeed[i],
+                    dspeed[i] / last_dspeed[i], float(last_csize[i]) / csize[i], fileName))
             if (cspeed[i] / last_cspeed[i] < args.lowerLimit):
                 text += "WARNING: %s -%d cSpeed=%.2f cLast=%.2f cDiff=%.4f %s\n" % (
-                executableName, i + 1, cspeed[i], last_cspeed[i], cspeed[i] / last_cspeed[i], fileName)
+                    executableName, i + 1, cspeed[i], last_cspeed[i], cspeed[i] / last_cspeed[i], fileName)
             if (dspeed[i] / last_dspeed[i] < args.lowerLimit):
                 text += "WARNING: %s -%d dSpeed=%.2f dLast=%.2f dDiff=%.4f %s\n" % (
-                executableName, i + 1, dspeed[i], last_dspeed[i], dspeed[i] / last_dspeed[i], fileName)
+                    executableName, i + 1, dspeed[i], last_dspeed[i], dspeed[i] / last_dspeed[i], fileName)
             if (float(last_csize[i]) / csize[i] < args.ratioLimit):
                 text += "WARNING: %s -%d cSize=%d last_cSize=%d diff=%.4f %s\n" % (
-                executableName, i + 1, csize[i], last_csize[i], float(last_csize[i]) / csize[i], fileName)
+                    executableName, i + 1, csize[i], last_csize[i], float(last_csize[i]) / csize[i], fileName)
         if text:
             text = args.message + ("\nmaxLoadAvg=%s  load average at start=%s end=%s\n%s  last_commit=%s  md5=%s\n" % (
-            args.maxLoadAvg, start_load, end_load, compilerVersion, last_commit, md5sum)) + text
+                args.maxLoadAvg, start_load, end_load, compilerVersion, last_commit, md5sum)) + text
         return text
 
 

@@ -86,7 +86,8 @@ public:
                     },
                     number);
                 auto start_tp = std::chrono::system_clock::time_point(std::chrono::nanoseconds(start_time));
-                auto snapshot_tp = std::chrono::system_clock::time_point(std::chrono::nanoseconds(snapshot_view.timestamp));
+                auto te = std::chrono::nanoseconds(snapshot_view.timestamp);
+                auto snapshot_tp = std::chrono::system_clock::time_point(te);
                 auto sec = std::chrono::duration<double>(snapshot_tp - start_tp).count();
                 parsed_values[field_name] = {sec, value}; // timestamp unit is s
             };

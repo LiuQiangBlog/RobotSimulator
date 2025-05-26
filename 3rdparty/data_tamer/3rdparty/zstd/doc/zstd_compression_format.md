@@ -585,7 +585,9 @@ or from a dictionary.
 
 This section is only present when `Literals_Block_Type` type is `Compressed_Literals_Block` (`2`).
 The tree describes the weights of all literals symbols that can be present in the literals block, at least 2 and up to
+
 256.
+
 The format of the Huffman tree description can be found at [Huffman Tree description](#huffman-tree-description).
 The size of `Huffman_Tree_Description` is determined during decoding process,
 it must be used to determine where streams begin.
@@ -1124,7 +1126,7 @@ It depends on :
   This is achieved through this scheme :
 
   | 8-bit field read | Value decoded | Nb of bits consumed |
-    | ---------------- | ------------- | ------------------- |
+      | ---------------- | ------------- | ------------------- |
   |         0 -  97  |   0 -  97     |  7                  |
   |        98 - 127  |  98 - 127     |  8                  |
   |       128 - 225  |   0 -  97     |  7                  |
