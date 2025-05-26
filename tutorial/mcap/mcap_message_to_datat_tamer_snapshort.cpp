@@ -7,17 +7,24 @@
 #include <data_tamer/sinks/dummy_sink.hpp>
 #include <data_tamer_parser/data_tamer_parser.hpp>
 #include <memory>
-
 #include <sstream>
 #include <unordered_map>
+#include <Logging.h>
+
+void problem(const mcap::Status &status)
+{
+    if (!status.ok())
+    {
+        CLOG_ERROR << "mcap error: " << status.message;
+    }
+}
 
 class DataTamerMCAPParser
 {
 public:
-    explicit DataTamerMCAPParser(const std::string &filepath)
-        : reader_(), message_view_(std::make_unique<mcap::LinearMessageView>(reader_, [](const mcap::Status &) {})),
-          iter_(message_view_->begin()), // 显式初始化迭代器
-          end_(message_view_->end())
+    explicit DataTamerMCAPParser(const std::string &filepath) : reader_(),
+          message_view_(std::make_unique<mcap::LinearMessageView>(reader_, problem)),
+          iter_(message_view_->begin()), end_(message_view_->end())
     {
         auto status = reader_.open(filepath);
         if (!status.ok())
@@ -102,3 +109,5 @@ private:
         }
     }
 };
+
+int main() {}
