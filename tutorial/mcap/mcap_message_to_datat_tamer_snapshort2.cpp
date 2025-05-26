@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <Logging.h>
 #include <deque>
+#include <thread>
 
 void problem(const mcap::Status &status)
 {
@@ -23,6 +24,9 @@ void problem(const mcap::Status &status)
 class McapFileParser
 {
 public:
+    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
+    std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
+
     explicit McapFileParser() : reader() {}
 
     bool open(const std::string &filepath)
@@ -47,7 +51,7 @@ public:
         return true;
     }
 
-    void publish()
+    void parse()
     {
         auto&& messages = reader.readMessages();
         DataTamerParser::SnapshotView snapshot;
@@ -122,21 +126,19 @@ public:
                     catch (const std::exception &e)
                     {
                         CLOG_ERROR << "Failed to deserialize snapshot: " << e.what();
-                        return;
+                        ++it;
+                        continue;
                     }
                 }
                 catch (const std::exception &e)
                 {
                     CLOG_ERROR << "Failed to parse schema: " << e.what();
-                    return;
+                    ++it;
+                    continue;
                 }
                 ++it;
             }
         }
-    }
-
-    void close()
-    {
         reader.close();
     }
 
@@ -145,8 +147,6 @@ private:
     std::unordered_map<mcap::SchemaId, mcap::SchemaPtr> mcap_schemas;
     std::unordered_map<mcap::ChannelId, mcap::ChannelPtr> mcap_channels;
     std::optional<std::chrono::system_clock::time_point> ts;
-    std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> channel_data;
-    std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> channel_plot_data;
     Mutex schema_mutex;
 };
 
@@ -154,13 +154,17 @@ int main()
 {
     std::string filepath("/home/liuqiang/ClionProjects/RobotSimulator/cmake-build-debug/bin/test_sample.mcap");
     McapFileParser parser;
-    if (parser.open(filepath))
+    if (!parser.open(filepath))
     {
-        for (auto &schema : parser.schemas)
-        {
-            CLOG_INFO << schema.channel_name;
-        }
+        return -1;
     }
-    parser.close();
+    //std::thread th(&McapFileParser::parse, &parser);
+    parser.parse();
+    for (auto &[key, val] : parser.channel_plot_data)
+    {
+        std::cout << key << ": " << std::endl;
+        std::cout << "timestamp size: " << val.first.size() << std::endl;
+        std::cout << "value size: " << val.second.size() << std::endl;
+    }
     return 0;
 }
