@@ -22,9 +22,10 @@
 int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 {
     ZSTD_FrameHeader zfh;
-    if (size == 0) {
+    if (size == 0)
+    {
         src = NULL;
-   }
+    }
     /* You can fuzz any helper functions here that are fast, and take zstd
      * compressed data as input. E.g. don't expect the input to be a dictionary,
      * so don't fuzz ZSTD_getDictID_fromDict().

@@ -3,7 +3,6 @@ LZ4 Block Format Description
 Last revised: 2022-07-31 .
 Author : Yann Collet
 
-
 This specification is intended for developers willing to
 produce or read LZ4 compressed data blocks
 using any programming language of their choice.
@@ -32,7 +31,6 @@ Each sequence starts with a `token`.
 The `token` is a one byte value, separated into two 4-bits fields.
 Therefore each field ranges from 0 to 15.
 
-
 The first field uses the 4 high-bits of the token.
 It provides the length of literals to follow.
 
@@ -53,24 +51,23 @@ Note : this format explains why a non-compressible input block is expanded by 0.
 
 Example 1 : A literal length of 48 will be represented as :
 
-  - 15 : value for the 4-bits High field
-  - 33 : (=48-15) remaining length to reach 48
+- 15 : value for the 4-bits High field
+- 33 : (=48-15) remaining length to reach 48
 
 Example 2 : A literal length of 280 will be represented as :
 
-  - 15  : value for the 4-bits High field
-  - 255 : following byte is maxed, since 280-15 >= 255
-  - 10  : (=280 - 15 - 255) remaining length to reach 280
+- 15  : value for the 4-bits High field
+- 255 : following byte is maxed, since 280-15 >= 255
+- 10  : (=280 - 15 - 255) remaining length to reach 280
 
 Example 3 : A literal length of 15 will be represented as :
 
-  - 15 : value for the 4-bits High field
-  - 0  : (=15-15) yes, the zero must be output
+- 15 : value for the 4-bits High field
+- 0  : (=15-15) yes, the zero must be output
 
 Following `token` and optional length bytes, are the literals themselves.
 They are exactly as numerous as just decoded (length of literals).
 Reminder: it's possible that there are zero literals.
-
 
 Following the literals is the match copy operation.
 
@@ -99,7 +96,8 @@ They are added to total to provide the final match length.
 A 255 value means there is another byte to read and add.
 There is no limit to the number of optional `255` bytes that can be present,
 and therefore no limit to representable match length,
-though real-life implementations are likely going to enforce limits for practical reasons (see more details in "Implementation Notes" section below).
+though real-life implementations are likely going to enforce limits for practical reasons (see more details in "
+Implementation Notes" section below).
 
 Note: this format has a maximum achievable compression ratio of about ~250.
 
@@ -115,18 +113,18 @@ There are specific restrictions required to terminate an LZ4 block.
    The block ends right after the literals (no `offset` field).
 2. The last 5 bytes of input are always literals.
    Therefore, the last sequence contains at least 5 bytes.
-   - Special : if input is smaller than 5 bytes,
-     there is only one sequence, it contains the whole input as literals.
-     Even empty input can be represented, using a zero byte,
-     interpreted as a final token without literal and without a match.
+    - Special : if input is smaller than 5 bytes,
+      there is only one sequence, it contains the whole input as literals.
+      Even empty input can be represented, using a zero byte,
+      interpreted as a final token without literal and without a match.
 3. The last match must start at least 12 bytes before the end of block.
    The last match is part of the _penultimate_ sequence.
    It is followed by the last sequence, which contains _only_ literals.
-   - Note that, as a consequence,
-     blocks < 12 bytes cannot be compressed.
-     And as an extension, _independent_ blocks < 13 bytes cannot be compressed,
-     because they must start by at least one literal,
-     that the match can then copy afterwards.
+    - Note that, as a consequence,
+      blocks < 12 bytes cannot be compressed.
+      And as an extension, _independent_ blocks < 13 bytes cannot be compressed,
+      because they must start by at least one literal,
+      that the match can then copy afterwards.
 
 When a block does not respect these end conditions,
 a conformant decoder is allowed to reject the block as incorrect.

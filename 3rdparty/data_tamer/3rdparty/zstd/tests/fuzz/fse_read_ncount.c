@@ -42,19 +42,24 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     memset(ncount, 0, sizeof(ncount));
     {
         unsigned s;
-        for (s = 0; s < maxSymbolValue && remainingWeight > 0; ++s) {
+        for (s = 0; s < maxSymbolValue && remainingWeight > 0; ++s)
+        {
             short n = (short)FUZZ_dataProducer_int32Range(producer, -1, remainingWeight);
             ncount[s] = n;
-            if (n < 0) {
+            if (n < 0)
+            {
                 remainingWeight -= 1;
-            } else {
+            }
+            else
+            {
                 assert((unsigned)n <= remainingWeight);
                 remainingWeight -= n;
             }
         }
         /* Ensure ncount[maxSymbolValue] != 0 and the sum is (1<<tableLog) */
         ncount[maxSymbolValue] = remainingWeight + 1;
-        if (ncount[maxSymbolValue] == 1 && FUZZ_dataProducer_uint32Range(producer, 0, 1) == 1) {
+        if (ncount[maxSymbolValue] == 1 && FUZZ_dataProducer_uint32Range(producer, 0, 1) == 1)
+        {
             ncount[maxSymbolValue] = -1;
         }
     }
@@ -71,12 +76,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
         unsigned rtTableLog;
         /* Copy into a buffer with a random amount of random data at the end */
         size_t const buffSize = (size_t)FUZZ_dataProducer_uint32Range(producer, dataSize, sizeof(data));
-        BYTE* const buff = FUZZ_malloc(buffSize);
+        BYTE *const buff = FUZZ_malloc(buffSize);
         size_t rtDataSize;
-        memcpy(buff, data, dataSize); 
+        memcpy(buff, data, dataSize);
         {
             size_t b;
-            for (b = dataSize; b < buffSize; ++b) {
+            for (b = dataSize; b < buffSize; ++b)
+            {
                 buff[b] = (BYTE)FUZZ_dataProducer_uint32Range(producer, 0, 255);
             }
         }
@@ -88,7 +94,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
         FUZZ_ASSERT(rtTableLog == tableLog);
         {
             unsigned s;
-            for (s = 0; s <= maxSymbolValue; ++s) {
+            for (s = 0; s <= maxSymbolValue; ++s)
+            {
                 FUZZ_ASSERT(ncount[s] == rtNcount[s]);
             }
         }

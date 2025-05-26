@@ -14,28 +14,27 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <stdlib.h>    // malloc, free, exit
-#include <stdio.h>     // fprintf, perror, fopen, etc.
-#include <string.h>    // strerror
-#include <errno.h>     // errno
-#include <sys/stat.h>  // stat
+#include <stdlib.h>   // malloc, free, exit
+#include <stdio.h>    // fprintf, perror, fopen, etc.
+#include <string.h>   // strerror
+#include <errno.h>    // errno
+#include <sys/stat.h> // stat
 #include <zstd.h>
-
 
 /* UNUSED_ATTR tells the compiler it is okay if the function is unused. */
 #if defined(__GNUC__)
-#  define UNUSED_ATTR __attribute__((unused))
+#define UNUSED_ATTR __attribute__((unused))
 #else
-#  define UNUSED_ATTR
+#define UNUSED_ATTR
 #endif
 
 #define HEADER_FUNCTION static UNUSED_ATTR
 
-
 /*
  * Define the returned error code from utility functions.
  */
-typedef enum {
+typedef enum
+{
     ERROR_fsize = 1,
     ERROR_fopen = 2,
     ERROR_fclose = 3,
@@ -50,18 +49,16 @@ typedef enum {
 /*! CHECK
  * Check that the condition holds. If it doesn't print a message and die.
  */
-#define CHECK(cond, ...)                        \
-    do {                                        \
-        if (!(cond)) {                          \
-            fprintf(stderr,                     \
-                    "%s:%d CHECK(%s) failed: ", \
-                    __FILE__,                   \
-                    __LINE__,                   \
-                    #cond);                     \
-            fprintf(stderr, "" __VA_ARGS__);    \
-            fprintf(stderr, "\n");              \
-            exit(1);                            \
-        }                                       \
+#define CHECK(cond, ...)                                                            \
+    do                                                                              \
+    {                                                                               \
+        if (!(cond))                                                                \
+        {                                                                           \
+            fprintf(stderr, "%s:%d CHECK(%s) failed: ", __FILE__, __LINE__, #cond); \
+            fprintf(stderr, "" __VA_ARGS__);                                        \
+            fprintf(stderr, "\n");                                                  \
+            exit(1);                                                                \
+        }                                                                           \
     } while (0)
 
 /*! CHECK_ZSTD
@@ -69,7 +66,8 @@ typedef enum {
  * message.
  */
 #define CHECK_ZSTD(fn)                                           \
-    do {                                                         \
+    do                                                           \
+    {                                                            \
         size_t const err = (fn);                                 \
         CHECK(!ZSTD_isError(err), "%s", ZSTD_getErrorName(err)); \
     } while (0)
@@ -82,7 +80,8 @@ typedef enum {
 HEADER_FUNCTION size_t fsize_orDie(const char *filename)
 {
     struct stat st;
-    if (stat(filename, &st) != 0) {
+    if (stat(filename, &st) != 0)
+    {
         /* error */
         perror(filename);
         exit(ERROR_fsize);
@@ -94,7 +93,8 @@ HEADER_FUNCTION size_t fsize_orDie(const char *filename)
      * 2. if off_t -> size_t type conversion results in discrepancy,
      *    the file size is too large for type size_t.
      */
-    if ((fileSize < 0) || (fileSize != (off_t)size)) {
+    if ((fileSize < 0) || (fileSize != (off_t)size))
+    {
         fprintf(stderr, "%s : filesize too large \n", filename);
         exit(ERROR_largeFile);
     }
@@ -107,10 +107,11 @@ HEADER_FUNCTION size_t fsize_orDie(const char *filename)
  * @return If successful this function will return a FILE pointer to an
  * opened file otherwise it sends an error to stderr and exits.
  */
-HEADER_FUNCTION FILE* fopen_orDie(const char *filename, const char *instruction)
+HEADER_FUNCTION FILE *fopen_orDie(const char *filename, const char *instruction)
 {
-    FILE* const inFile = fopen(filename, instruction);
-    if (inFile) return inFile;
+    FILE *const inFile = fopen(filename, instruction);
+    if (inFile)
+        return inFile;
     /* error */
     perror(filename);
     exit(ERROR_fopen);
@@ -119,9 +120,12 @@ HEADER_FUNCTION FILE* fopen_orDie(const char *filename, const char *instruction)
 /*! fclose_orDie() :
  * Close an opened file using given FILE pointer.
  */
-HEADER_FUNCTION void fclose_orDie(FILE* file)
+HEADER_FUNCTION void fclose_orDie(FILE *file)
 {
-    if (!fclose(file)) { return; };
+    if (!fclose(file))
+    {
+        return;
+    };
     /* error */
     perror("fclose");
     exit(ERROR_fclose);
@@ -134,11 +138,13 @@ HEADER_FUNCTION void fclose_orDie(FILE* file)
  *
  * @return The number of bytes read.
  */
-HEADER_FUNCTION size_t fread_orDie(void* buffer, size_t sizeToRead, FILE* file)
+HEADER_FUNCTION size_t fread_orDie(void *buffer, size_t sizeToRead, FILE *file)
 {
     size_t const readSize = fread(buffer, 1, sizeToRead, file);
-    if (readSize == sizeToRead) return readSize;   /* good */
-    if (feof(file)) return readSize;   /* good, reached end of file */
+    if (readSize == sizeToRead)
+        return readSize; /* good */
+    if (feof(file))
+        return readSize; /* good, reached end of file */
     /* error */
     perror("fread");
     exit(ERROR_fread);
@@ -154,10 +160,11 @@ HEADER_FUNCTION size_t fread_orDie(void* buffer, size_t sizeToRead, FILE* file)
  *
  * @return The number of bytes written.
  */
-HEADER_FUNCTION size_t fwrite_orDie(const void* buffer, size_t sizeToWrite, FILE* file)
+HEADER_FUNCTION size_t fwrite_orDie(const void *buffer, size_t sizeToWrite, FILE *file)
 {
     size_t const writtenSize = fwrite(buffer, 1, sizeToWrite, file);
-    if (writtenSize == sizeToWrite) return sizeToWrite;   /* good */
+    if (writtenSize == sizeToWrite)
+        return sizeToWrite; /* good */
     /* error */
     perror("fwrite");
     exit(ERROR_fwrite);
@@ -170,10 +177,11 @@ HEADER_FUNCTION size_t fwrite_orDie(const void* buffer, size_t sizeToWrite, FILE
  * cated memory.  If there is an error, this function will send that
  * error to stderr and exit.
  */
-HEADER_FUNCTION void* malloc_orDie(size_t size)
+HEADER_FUNCTION void *malloc_orDie(size_t size)
 {
-    void* const buff = malloc(size);
-    if (buff) return buff;
+    void *const buff = malloc(size);
+    if (buff)
+        return buff;
     /* error */
     perror("malloc");
     exit(ERROR_malloc);
@@ -188,18 +196,19 @@ HEADER_FUNCTION void* malloc_orDie(size_t size)
  * @return If successful this function will load file into buffer and
  * return file size, otherwise it will printout an error to stderr and exit.
  */
-HEADER_FUNCTION size_t loadFile_orDie(const char* fileName, void* buffer, size_t bufferSize)
+HEADER_FUNCTION size_t loadFile_orDie(const char *fileName, void *buffer, size_t bufferSize)
 {
     size_t const fileSize = fsize_orDie(fileName);
     CHECK(fileSize <= bufferSize, "File too large!");
 
-    FILE* const inFile = fopen_orDie(fileName, "rb");
+    FILE *const inFile = fopen_orDie(fileName, "rb");
     size_t const readSize = fread(buffer, 1, fileSize, inFile);
-    if (readSize != (size_t)fileSize) {
+    if (readSize != (size_t)fileSize)
+    {
         fprintf(stderr, "fread: %s : %s \n", fileName, strerror(errno));
         exit(ERROR_fread);
     }
-    fclose(inFile);  /* can't fail, read only */
+    fclose(inFile); /* can't fail, read only */
     return fileSize;
 }
 
@@ -212,11 +221,11 @@ HEADER_FUNCTION size_t loadFile_orDie(const char* fileName, void* buffer, size_t
  * @return If successful this function will return buffer and bufferSize(=fileSize),
  * otherwise it will printout an error to stderr and exit.
  */
-HEADER_FUNCTION void* mallocAndLoadFile_orDie(const char* fileName, size_t* bufferSize)
+HEADER_FUNCTION void *mallocAndLoadFile_orDie(const char *fileName, size_t *bufferSize)
 {
     size_t const fileSize = fsize_orDie(fileName);
     *bufferSize = fileSize;
-    void* const buffer = malloc_orDie(*bufferSize);
+    void *const buffer = malloc_orDie(*bufferSize);
     loadFile_orDie(fileName, buffer, *bufferSize);
     return buffer;
 }
@@ -229,15 +238,17 @@ HEADER_FUNCTION void* mallocAndLoadFile_orDie(const char* fileName, size_t* buff
  * Note: This function will send an error to stderr and exit if it
  * cannot write to a given file.
  */
-HEADER_FUNCTION void saveFile_orDie(const char* fileName, const void* buff, size_t buffSize)
+HEADER_FUNCTION void saveFile_orDie(const char *fileName, const void *buff, size_t buffSize)
 {
-    FILE* const oFile = fopen_orDie(fileName, "wb");
+    FILE *const oFile = fopen_orDie(fileName, "wb");
     size_t const wSize = fwrite(buff, 1, buffSize, oFile);
-    if (wSize != (size_t)buffSize) {
+    if (wSize != (size_t)buffSize)
+    {
         fprintf(stderr, "fwrite: %s : %s \n", fileName, strerror(errno));
         exit(ERROR_fwrite);
     }
-    if (fclose(oFile)) {
+    if (fclose(oFile))
+    {
         perror(fileName);
         exit(ERROR_fclose);
     }

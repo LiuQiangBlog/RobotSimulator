@@ -1,21 +1,20 @@
 ﻿# LZ4 Streaming API Example : Double Buffer
+
 by *Takayuki Matsuoka*
 
 `blockStreaming_doubleBuffer.c` is LZ4 Streaming API example which implements double buffer (de)compression.
 
 Please note :
 
- - Firstly, read "LZ4 Streaming API Basics".
- - This is relatively advanced application example.
- - Output file is not compatible with lz4frame and platform dependent.
-
+- Firstly, read "LZ4 Streaming API Basics".
+- This is relatively advanced application example.
+- Output file is not compatible with lz4frame and platform dependent.
 
 ## What's the point of this example ?
 
- - Handle huge file in small amount of memory
- - Always better compression ratio than Block API
- - Uniform block size
-
+- Handle huge file in small amount of memory
+- Always better compression ratio than Block API
+- Uniform block size
 
 ## How the compression works
 
@@ -85,16 +84,15 @@ This dependency is called "External Dictonaly mode".
 
 Continue these procedure to the end of the file.
 
-
 ## How the decompression works
 
 Decompression will do reverse order.
 
- - Read first compressed block.
- - Decompress it to the first page and write that page to the file.
- - Read second compressed block.
- - Decompress it to the second page and write that page to the file.
- - Read third compressed block.
- - Decompress it to the *first* page and write that page to the file.
+- Read first compressed block.
+- Decompress it to the first page and write that page to the file.
+- Read second compressed block.
+- Decompress it to the second page and write that page to the file.
+- Read third compressed block.
+- Decompress it to the *first* page and write that page to the file.
 
 Continue these procedure to the end of the compressed file.

@@ -59,7 +59,7 @@ target_link_libraries(datagen libzstd_static)
 add_executable(fullbench ${PROGRAMS_DIR}/datagen.c ${PROGRAMS_DIR}/lorem.c ${PROGRAMS_DIR}/util.c ${PROGRAMS_DIR}/timefn.c ${PROGRAMS_DIR}/benchfn.c ${PROGRAMS_DIR}/benchzstd.c ${TESTS_DIR}/fullbench.c)
 if (NOT MSVC)
     target_compile_options(fullbench PRIVATE "-Wno-deprecated-declarations")
-endif()
+endif ()
 target_link_libraries(fullbench libzstd_static)
 add_test(NAME fullbench COMMAND "$<TARGET_FILE:fullbench>" ${ZSTD_FULLBENCH_FLAGS})
 
@@ -69,10 +69,10 @@ add_test(NAME fullbench COMMAND "$<TARGET_FILE:fullbench>" ${ZSTD_FULLBENCH_FLAG
 add_executable(fuzzer ${PROGRAMS_DIR}/datagen.c ${PROGRAMS_DIR}/util.c ${PROGRAMS_DIR}/timefn.c ${TESTS_DIR}/fuzzer.c)
 if (NOT MSVC)
     target_compile_options(fuzzer PRIVATE "-Wno-deprecated-declarations")
-endif()
+endif ()
 target_link_libraries(fuzzer libzstd_static)
 AddTestFlagsOption(ZSTD_FUZZER_FLAGS "$ENV{FUZZERTEST} $ENV{FUZZER_FLAGS}"
-    "Semicolon-separated list of flags to pass to the fuzzer test (see `fuzzer -h` for usage)")
+        "Semicolon-separated list of flags to pass to the fuzzer test (see `fuzzer -h` for usage)")
 add_test(NAME fuzzer COMMAND "$<TARGET_FILE:fuzzer>" ${ZSTD_FUZZER_FLAGS})
 # Disable the timeout since the run time is too long for the default timeout of
 # 1500 seconds and varies considerably between low-end and high-end CPUs.
@@ -84,28 +84,28 @@ add_test(NAME fuzzer COMMAND "$<TARGET_FILE:fuzzer>" ${ZSTD_FUZZER_FLAGS})
 add_executable(zstreamtest ${PROGRAMS_DIR}/datagen.c ${PROGRAMS_DIR}/util.c ${PROGRAMS_DIR}/timefn.c ${TESTS_DIR}/seqgen.c ${TESTS_DIR}/zstreamtest.c ${TESTS_DIR}/external_matchfinder.c)
 if (NOT MSVC)
     target_compile_options(zstreamtest PRIVATE "-Wno-deprecated-declarations")
-endif()
+endif ()
 target_link_libraries(zstreamtest libzstd_static)
 AddTestFlagsOption(ZSTD_ZSTREAM_FLAGS "$ENV{ZSTREAM_TESTTIME} $ENV{FUZZER_FLAGS}"
-    "Semicolon-separated list of flags to pass to the zstreamtest test (see `zstreamtest -h` for usage)")
+        "Semicolon-separated list of flags to pass to the zstreamtest test (see `zstreamtest -h` for usage)")
 add_test(NAME zstreamtest COMMAND "$<TARGET_FILE:zstreamtest>" ${ZSTD_ZSTREAM_FLAGS})
 
 #
 # playTests.sh
 #
 AddTestFlagsOption(ZSTD_PLAYTESTS_FLAGS "$ENV{PLAYTESTS_FLAGS}"
-    "Semicolon-separated list of flags to pass to the playTests.sh test")
+        "Semicolon-separated list of flags to pass to the playTests.sh test")
 add_test(NAME playTests COMMAND sh -c "\"${TESTS_DIR}/playTests.sh\" ${ZSTD_PLAYTESTS_FLAGS}")
 find_program(UNAME uname) # Run script only in unix shell environments
 if (ZSTD_BUILD_PROGRAMS AND UNAME)
     set_property(TEST playTests APPEND PROPERTY ENVIRONMENT
-        "ZSTD_BIN=$<TARGET_FILE:zstd>"
-        "DATAGEN_BIN=$<TARGET_FILE:datagen>"
-        )
-else()
+            "ZSTD_BIN=$<TARGET_FILE:zstd>"
+            "DATAGEN_BIN=$<TARGET_FILE:datagen>"
+    )
+else ()
     message(STATUS "Disabling playTests.sh test because requirements not met")
     set_tests_properties(playTests PROPERTIES DISABLED YES)
-endif()
+endif ()
 
 # Label the "Medium" set of tests (see TESTING.md)
 set_property(TEST fuzzer zstreamtest playTests APPEND PROPERTY LABELS Medium)
@@ -113,6 +113,6 @@ set_property(TEST fuzzer zstreamtest playTests APPEND PROPERTY LABELS Medium)
 add_executable(paramgrill ${PROGRAMS_DIR}/benchfn.c ${PROGRAMS_DIR}/benchzstd.c ${PROGRAMS_DIR}/datagen.c ${PROGRAMS_DIR}/lorem.c ${PROGRAMS_DIR}/util.c ${PROGRAMS_DIR}/timefn.c ${TESTS_DIR}/paramgrill.c)
 if (UNIX)
     target_link_libraries(paramgrill libzstd_static m) #m is math library
-else()
+else ()
     target_link_libraries(paramgrill libzstd_static)
 endif ()

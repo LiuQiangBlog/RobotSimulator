@@ -29,9 +29,9 @@
 #include <linux/limits.h>
 #include <linux/stddef.h>
 
-#define ZSTD_memcpy(d,s,n) __builtin_memcpy((d),(s),(n))
-#define ZSTD_memmove(d,s,n) __builtin_memmove((d),(s),(n))
-#define ZSTD_memset(d,s,n) __builtin_memset((d),(s),(n))
+#define ZSTD_memcpy(d, s, n) __builtin_memcpy((d), (s), (n))
+#define ZSTD_memmove(d, s, n) __builtin_memmove((d), (s), (n))
+#define ZSTD_memset(d, s, n) __builtin_memset((d), (s), (n))
 
 #endif /* ZSTD_DEPS_COMMON */
 
@@ -47,9 +47,18 @@
 #ifndef ZSTD_DEPS_MALLOC
 #define ZSTD_DEPS_MALLOC
 
-#define ZSTD_malloc(s) ({ (void)(s); NULL; })
+#define ZSTD_malloc(s) \
+    ({                 \
+        (void)(s);     \
+        NULL;          \
+    })
 #define ZSTD_free(p) ((void)(p))
-#define ZSTD_calloc(n,s) ({ (void)(n); (void)(s); NULL; })
+#define ZSTD_calloc(n, s) \
+    ({                    \
+        (void)(n);        \
+        (void)(s);        \
+        NULL;             \
+    })
 
 #endif /* ZSTD_DEPS_MALLOC */
 #endif /* ZSTD_DEPS_NEED_MALLOC */
@@ -65,8 +74,9 @@
 
 #include <linux/math64.h>
 
-static uint64_t ZSTD_div64(uint64_t dividend, uint32_t divisor) {
-  return div_u64(dividend, divisor);
+static uint64_t ZSTD_div64(uint64_t dividend, uint32_t divisor)
+{
+    return div_u64(dividend, divisor);
 }
 
 #endif /* ZSTD_DEPS_MATH64 */

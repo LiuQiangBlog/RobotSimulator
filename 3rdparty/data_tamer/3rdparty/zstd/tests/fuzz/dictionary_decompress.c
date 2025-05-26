@@ -34,34 +34,39 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     size = FUZZ_dataProducer_reserveDataPrefix(producer);
 
     FUZZ_dict_t dict;
-    ZSTD_DDict* ddict = NULL;
+    ZSTD_DDict *ddict = NULL;
 
-    if (!dctx) {
+    if (!dctx)
+    {
         dctx = ZSTD_createDCtx();
         FUZZ_ASSERT(dctx);
     }
     dict = FUZZ_train(src, size, producer);
-    if (FUZZ_dataProducer_uint32Range(producer, 0, 1) == 0) {
+    if (FUZZ_dataProducer_uint32Range(producer, 0, 1) == 0)
+    {
         ddict = ZSTD_createDDict(dict.buff, dict.size);
         FUZZ_ASSERT(ddict);
-    } else {
+    }
+    else
+    {
         if (FUZZ_dataProducer_uint32Range(producer, 0, 1) == 0)
             FUZZ_ZASSERT(ZSTD_DCtx_loadDictionary_advanced(
-                dctx, dict.buff, dict.size,
-                (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
+                dctx, dict.buff, dict.size, (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
                 (ZSTD_dictContentType_e)FUZZ_dataProducer_uint32Range(producer, 0, 2)));
         else
             FUZZ_ZASSERT(ZSTD_DCtx_refPrefix_advanced(
-                dctx, dict.buff, dict.size,
-                (ZSTD_dictContentType_e)FUZZ_dataProducer_uint32Range(producer, 0, 2)));
+                dctx, dict.buff, dict.size, (ZSTD_dictContentType_e)FUZZ_dataProducer_uint32Range(producer, 0, 2)));
     }
 
     {
         size_t const bufSize = FUZZ_dataProducer_uint32Range(producer, 0, 10 * size);
-        void* rBuf = FUZZ_malloc(bufSize);
-        if (ddict) {
+        void *rBuf = FUZZ_malloc(bufSize);
+        if (ddict)
+        {
             ZSTD_decompress_usingDDict(dctx, rBuf, bufSize, src, size, ddict);
-        } else {
+        }
+        else
+        {
             ZSTD_decompressDCtx(dctx, rBuf, bufSize, src, size);
         }
         free(rBuf);
@@ -70,7 +75,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_dataProducer_free(producer);
     ZSTD_freeDDict(ddict);
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeDCtx(dctx); dctx = NULL;
+    ZSTD_freeDCtx(dctx);
+    dctx = NULL;
 #endif
     FUZZ_SEQ_PROD_TEARDOWN();
     return 0;

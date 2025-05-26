@@ -18,26 +18,29 @@
 
 #include "data.h"
 
-typedef struct {
+typedef struct
+{
     ZSTD_cParameter param;
     int value;
 } param_value_t;
 
-typedef struct {
+typedef struct
+{
     size_t size;
-    param_value_t const* data;
+    param_value_t const *data;
 } param_values_t;
 
 /**
  * The config tells the compression method what options to use.
  */
-typedef struct {
-    const char* name;  /**< Identifies the config in the results table */
+typedef struct
+{
+    const char *name; /**< Identifies the config in the results table */
     /**
      * Optional arguments to pass to the CLI. If not set, CLI-based methods
      * will skip this config.
      */
-    char const* cli_args;
+    char const *cli_args;
     /**
      * Parameters to pass to the advanced API. If the advanced API isn't used,
      * the parameters will be derived from these.
@@ -65,7 +68,7 @@ typedef struct {
  * For instance, if the config requires a dictionary but the data doesn't have
  * one.
  */
-int config_skip_data(config_t const* config, data_t const* data);
+int config_skip_data(config_t const *config, data_t const *data);
 
 #define CONFIG_NO_LEVEL (-ZSTD_TARGETLENGTH_MAX - 1)
 /**
@@ -73,19 +76,16 @@ int config_skip_data(config_t const* config, data_t const* data);
  * no level is specified. Note that 0 is a valid compression level, meaning
  * default.
  */
-int config_get_level(config_t const* config);
+int config_get_level(config_t const *config);
 
 /**
  * Returns the compression parameters specified by the config.
  */
-ZSTD_parameters config_get_zstd_params(
-    config_t const* config,
-    uint64_t srcSize,
-    size_t dictSize);
+ZSTD_parameters config_get_zstd_params(config_t const *config, uint64_t srcSize, size_t dictSize);
 
 /**
  * The NULL-terminated list of configs.
  */
-extern config_t const* const* configs;
+extern config_t const *const *configs;
 
 #endif

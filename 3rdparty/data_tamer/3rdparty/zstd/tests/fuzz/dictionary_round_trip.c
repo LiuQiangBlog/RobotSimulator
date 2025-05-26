@@ -23,40 +23,40 @@
 #include "fuzz_data_producer.h"
 #include "fuzz_third_party_seq_prod.h"
 
-static ZSTD_CCtx* cctx = NULL;
-static ZSTD_DCtx* dctx = NULL;
+static ZSTD_CCtx *cctx = NULL;
+static ZSTD_DCtx *dctx = NULL;
 
-static size_t roundTripTest(void* result, size_t resultCapacity,
-                            void* compressed, size_t compressedCapacity,
-                            const void* src, size_t srcSize,
-                            FUZZ_dataProducer_t* producer)
+static size_t roundTripTest(void *result,
+                            size_t resultCapacity,
+                            void *compressed,
+                            size_t compressedCapacity,
+                            const void *src,
+                            size_t srcSize,
+                            FUZZ_dataProducer_t *producer)
 {
     ZSTD_dictContentType_e dictContentType = ZSTD_dct_auto;
     FUZZ_dict_t dict = FUZZ_train(src, srcSize, producer);
     int const refPrefix = FUZZ_dataProducer_uint32Range(producer, 0, 1) != 0;
     size_t cSize;
-    if (FUZZ_dataProducer_uint32Range(producer, 0, 15) == 0) {
+    if (FUZZ_dataProducer_uint32Range(producer, 0, 15) == 0)
+    {
         int const cLevel = FUZZ_dataProducer_int32Range(producer, kMinClevel, kMaxClevel);
 
-        cSize = ZSTD_compress_usingDict(cctx,
-                compressed, compressedCapacity,
-                src, srcSize,
-                dict.buff, dict.size,
-                cLevel);
+        cSize =
+            ZSTD_compress_usingDict(cctx, compressed, compressedCapacity, src, srcSize, dict.buff, dict.size, cLevel);
         FUZZ_ZASSERT(cSize);
         // Compress a second time and check for determinism
         {
             size_t const cSize0 = cSize;
             XXH64_hash_t const hash0 = XXH64(compressed, cSize, 0);
-            cSize = ZSTD_compress_usingDict(cctx,
-                    compressed, compressedCapacity,
-                    src, srcSize,
-                    dict.buff, dict.size,
-                    cLevel);
+            cSize = ZSTD_compress_usingDict(cctx, compressed, compressedCapacity, src, srcSize, dict.buff, dict.size,
+                                            cLevel);
             FUZZ_ASSERT(cSize == cSize0);
             FUZZ_ASSERT(XXH64(compressed, cSize, 0) == hash0);
         }
-    } else {
+    }
+    else
+    {
         size_t remainingBytes;
         dictContentType = FUZZ_dataProducer_uint32Range(producer, 0, 2);
         remainingBytes = FUZZ_dataProducer_remainingBytes(producer);
@@ -64,13 +64,10 @@ static size_t roundTripTest(void* result, size_t resultCapacity,
         /* Disable checksum so we can use sizes smaller than compress bound. */
         FUZZ_ZASSERT(ZSTD_CCtx_setParameter(cctx, ZSTD_c_checksumFlag, 0));
         if (refPrefix)
-            FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(
-                cctx, dict.buff, dict.size,
-                dictContentType));
+            FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(cctx, dict.buff, dict.size, dictContentType));
         else
             FUZZ_ZASSERT(ZSTD_CCtx_loadDictionary_advanced(
-                cctx, dict.buff, dict.size,
-                (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
+                cctx, dict.buff, dict.size, (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
                 dictContentType));
         cSize = ZSTD_compress2(cctx, compressed, compressedCapacity, src, srcSize);
         FUZZ_ZASSERT(cSize);
@@ -82,26 +79,20 @@ static size_t roundTripTest(void* result, size_t resultCapacity,
             FUZZ_setRandomParameters(cctx, srcSize, producer);
             FUZZ_ZASSERT(ZSTD_CCtx_setParameter(cctx, ZSTD_c_checksumFlag, 0));
             if (refPrefix)
-                FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(
-                    cctx, dict.buff, dict.size,
-                    dictContentType));
+                FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(cctx, dict.buff, dict.size, dictContentType));
             cSize = ZSTD_compress2(cctx, compressed, compressedCapacity, src, srcSize);
             FUZZ_ASSERT(cSize == cSize0);
             FUZZ_ASSERT(XXH64(compressed, cSize, 0) == hash0);
         }
     }
     if (refPrefix)
-        FUZZ_ZASSERT(ZSTD_DCtx_refPrefix_advanced(
-            dctx, dict.buff, dict.size,
-            dictContentType));
+        FUZZ_ZASSERT(ZSTD_DCtx_refPrefix_advanced(dctx, dict.buff, dict.size, dictContentType));
     else
         FUZZ_ZASSERT(ZSTD_DCtx_loadDictionary_advanced(
-            dctx, dict.buff, dict.size,
-            (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
+            dctx, dict.buff, dict.size, (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
             dictContentType));
     {
-        size_t const ret = ZSTD_decompressDCtx(
-                dctx, result, resultCapacity, compressed, cSize);
+        size_t const ret = ZSTD_decompressDCtx(dctx, result, resultCapacity, compressed, cSize);
         free(dict.buff);
         return ret;
     }
@@ -117,7 +108,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     size = FUZZ_dataProducer_reserveDataPrefix(producer);
 
     size_t const rBufSize = size;
-    void* rBuf = FUZZ_malloc(rBufSize);
+    void *rBuf = FUZZ_malloc(rBufSize);
     size_t cBufSize = ZSTD_compressBound(size);
     void *cBuf;
     /* Half of the time fuzz with a 1 byte smaller output size.
@@ -127,18 +118,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     cBufSize -= FUZZ_dataProducer_uint32Range(producer, 0, 1);
     cBuf = FUZZ_malloc(cBufSize);
 
-    if (!cctx) {
+    if (!cctx)
+    {
         cctx = ZSTD_createCCtx();
         FUZZ_ASSERT(cctx);
     }
-    if (!dctx) {
+    if (!dctx)
+    {
         dctx = ZSTD_createDCtx();
         FUZZ_ASSERT(dctx);
     }
 
     {
-        size_t const result =
-            roundTripTest(rBuf, rBufSize, cBuf, cBufSize, src, size, producer);
+        size_t const result = roundTripTest(rBuf, rBufSize, cBuf, cBufSize, src, size, producer);
         FUZZ_ZASSERT(result);
         FUZZ_ASSERT_MSG(result == size, "Incorrect regenerated size");
         FUZZ_ASSERT_MSG(!FUZZ_memcmp(src, rBuf, size), "Corruption!");
@@ -147,8 +139,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     free(cBuf);
     FUZZ_dataProducer_free(producer);
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeCCtx(cctx); cctx = NULL;
-    ZSTD_freeDCtx(dctx); dctx = NULL;
+    ZSTD_freeCCtx(cctx);
+    cctx = NULL;
+    ZSTD_freeDCtx(dctx);
+    dctx = NULL;
 #endif
     FUZZ_SEQ_PROD_TEARDOWN();
     return 0;

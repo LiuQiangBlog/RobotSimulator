@@ -13,12 +13,12 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 # Set and use the newest cmake policies that are validated to work
 set(ZSTD_MAX_VALIDATED_CMAKE_MAJOR_VERSION "3")
 set(ZSTD_MAX_VALIDATED_CMAKE_MINOR_VERSION "13") #Policies never changed at PATCH level
-if("${ZSTD_MAX_VALIDATED_CMAKE_MAJOR_VERSION}" EQUAL "${CMAKE_MAJOR_VERSION}" AND
-       "${ZSTD_MAX_VALIDATED_CMAKE_MINOR_VERSION}" GREATER "${CMAKE_MINOR_VERSION}")
+if ("${ZSTD_MAX_VALIDATED_CMAKE_MAJOR_VERSION}" EQUAL "${CMAKE_MAJOR_VERSION}" AND
+        "${ZSTD_MAX_VALIDATED_CMAKE_MINOR_VERSION}" GREATER "${CMAKE_MINOR_VERSION}")
     set(ZSTD_CMAKE_POLICY_VERSION "${CMAKE_VERSION}")
-else()
+else ()
     set(ZSTD_CMAKE_POLICY_VERSION "${ZSTD_MAX_VALIDATED_CMAKE_MAJOR_VERSION}.${ZSTD_MAX_VALIDATED_CMAKE_MINOR_VERSION}.0")
-endif()
+endif ()
 cmake_policy(VERSION ${ZSTD_CMAKE_POLICY_VERSION})
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH on)
@@ -34,23 +34,23 @@ set(ZSTD_SHORT_VERSION "${zstd_VERSION_MAJOR}.${zstd_VERSION_MINOR}")
 set(ZSTD_FULL_VERSION "${zstd_VERSION_MAJOR}.${zstd_VERSION_MINOR}.${zstd_VERSION_PATCH}")
 
 project(zstd
-  VERSION "${ZSTD_FULL_VERSION}"
-  LANGUAGES C   # Main library is in C
-            ASM # And ASM
-            CXX # Testing contributed code also utilizes CXX
-  )
+        VERSION "${ZSTD_FULL_VERSION}"
+        LANGUAGES C   # Main library is in C
+        ASM # And ASM
+        CXX # Testing contributed code also utilizes CXX
+)
 
 message(STATUS "ZSTD VERSION: ${zstd_VERSION}")
 set(zstd_HOMEPAGE_URL "https://facebook.github.io/zstd")
-set(zstd_DESCRIPTION  "Zstandard is a real-time compression algorithm, providing high compression ratios.")
+set(zstd_DESCRIPTION "Zstandard is a real-time compression algorithm, providing high compression ratios.")
 
 # Set a default build type if none was specified
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif()
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif ()
 
 include(GNUInstallDirs)
 
@@ -96,9 +96,9 @@ if (ANDROID)
         message(STATUS "Setting compile definitions for old Android API")
         add_compile_definitions(LIBC_NO_FSEEKO)
     endif ()
-else()
+else ()
     set(ZSTD_MULTITHREAD_SUPPORT_DEFAULT ON)
-endif()
+endif ()
 
 # Multi-threading support
 option(ZSTD_MULTITHREAD_SUPPORT "MULTITHREADING SUPPORT" ${ZSTD_MULTITHREAD_SUPPORT_DEFAULT})
@@ -115,9 +115,9 @@ option(ZSTD_BUILD_CONTRIB "BUILD CONTRIB" OFF)
 # Respect the conventional CMake option for enabling tests if it was specified on the first configure
 if (BUILD_TESTING)
     set(ZSTD_BUILD_TESTS_default ON)
-else()
+else ()
     set(ZSTD_BUILD_TESTS_default OFF)
-endif()
+endif ()
 option(ZSTD_BUILD_TESTS "BUILD TESTS" ${ZSTD_BUILD_TESTS_default})
 if (MSVC)
     option(ZSTD_USE_STATIC_RUNTIME "LINK TO STATIC RUN-TIME LIBRARIES" OFF)
@@ -135,21 +135,21 @@ function(setup_hpux_threads)
         set(CMAKE_THREAD_LIBS_INIT -lpthread PARENT_SCOPE)
         set(CMAKE_HAVE_THREADS_LIBRARY 1 PARENT_SCOPE)
         set(Threads_FOUND TRUE PARENT_SCOPE)
-    endif()
+    endif ()
 endfunction()
 
 if (ZSTD_MULTITHREAD_SUPPORT AND UNIX)
     if (CMAKE_SYSTEM_NAME MATCHES "HP-UX")
         setup_hpux_threads()
-    else()
+    else ()
         set(THREADS_PREFER_PTHREAD_FLAG ON)
         find_package(Threads REQUIRED)
-    endif()
+    endif ()
     if (CMAKE_USE_PTHREADS_INIT)
         set(THREADS_LIBS "${CMAKE_THREAD_LIBS_INIT}")
-    else()
+    else ()
         message(SEND_ERROR "ZSTD currently does not support thread libraries other than pthreads")
-    endif()
+    endif ()
 endif ()
 
 #-----------------------------------------------------------------------------
@@ -162,7 +162,7 @@ option(ZSTD_PROGRAMS_LINK_SHARED "PROGRAMS LINK SHARED" OFF)
 if (ZSTD_BUILD_PROGRAMS)
     if (NOT ZSTD_BUILD_STATIC AND NOT ZSTD_PROGRAMS_LINK_SHARED)
         message(SEND_ERROR "You need to build static library to build zstd CLI")
-    elseif(NOT ZSTD_BUILD_SHARED AND ZSTD_PROGRAMS_LINK_SHARED)
+    elseif (NOT ZSTD_BUILD_SHARED AND ZSTD_PROGRAMS_LINK_SHARED)
         message(SEND_ERROR "You need to build shared library to build zstd CLI")
     endif ()
 
@@ -186,8 +186,8 @@ endif ()
 # Add clean-all target
 #-----------------------------------------------------------------------------
 add_custom_target(clean-all
-   COMMAND ${CMAKE_BUILD_TOOL} clean
-   COMMAND rm -rf ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_BUILD_TOOL} clean
+        COMMAND rm -rf ${CMAKE_BINARY_DIR}/
 )
 
 #-----------------------------------------------------------------------------
@@ -198,31 +198,31 @@ add_custom_target(clean-all
 #-----------------------------------------------------------------------------
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
-    VERSION ${zstd_VERSION}
-    COMPATIBILITY SameMajorVersion
-    )
+        "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
+        VERSION ${zstd_VERSION}
+        COMPATIBILITY SameMajorVersion
+)
 
 # A Package Config file that works from the build directory
 export(EXPORT zstdExports
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/zstdTargets.cmake"
-    NAMESPACE zstd::
-    )
+        FILE "${CMAKE_CURRENT_BINARY_DIR}/zstdTargets.cmake"
+        NAMESPACE zstd::
+)
 
 # A Package Config file that works from the installation directory
 set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/zstd)
 install(EXPORT zstdExports
-    FILE zstdTargets.cmake
-    NAMESPACE zstd::
-    DESTINATION ${ConfigPackageLocation}
-    )
+        FILE zstdTargets.cmake
+        NAMESPACE zstd::
+        DESTINATION ${ConfigPackageLocation}
+)
 configure_package_config_file(
-    zstdConfig.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
-    INSTALL_DESTINATION ${ConfigPackageLocation}
+        zstdConfig.cmake.in
+        "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
+        INSTALL_DESTINATION ${ConfigPackageLocation}
 )
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
-    DESTINATION ${ConfigPackageLocation}
-    )
+        "${CMAKE_CURRENT_BINARY_DIR}/zstdConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/zstdConfigVersion.cmake"
+        DESTINATION ${ConfigPackageLocation}
+)

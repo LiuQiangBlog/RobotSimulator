@@ -22,28 +22,28 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     size_t const compressBound = LZ4_compressBound(size);
     size_t const dstCapacity = FUZZ_getRange_from_uint32(dstCapacitySeed, 0, compressBound);
 
-    char* const dst = (char*)malloc(dstCapacity);
-    char* const rt = (char*)malloc(size);
+    char *const dst = (char *)malloc(dstCapacity);
+    char *const rt = (char *)malloc(size);
 
     FUZZ_ASSERT(dst);
     FUZZ_ASSERT(rt);
 
     /* If compression succeeds it must round trip correctly. */
     {
-        int const dstSize = LZ4_compress_default((const char*)data, dst,
-                                                 size, dstCapacity);
-        if (dstSize > 0) {
+        int const dstSize = LZ4_compress_default((const char *)data, dst, size, dstCapacity);
+        if (dstSize > 0)
+        {
             int const rtSize = LZ4_decompress_safe(dst, rt, dstSize, size);
             FUZZ_ASSERT_MSG(rtSize == size, "Incorrect regenerated size");
             FUZZ_ASSERT_MSG(!memcmp(data, rt, size), "Corruption!");
         }
     }
 
-    if (dstCapacity > 0) {
+    if (dstCapacity > 0)
+    {
         /* Compression succeeds and must round trip correctly. */
         int compressedSize = size;
-        int const dstSize = LZ4_compress_destSize((const char*)data, dst,
-                                                  &compressedSize, dstCapacity);
+        int const dstSize = LZ4_compress_destSize((const char *)data, dst, &compressedSize, dstCapacity);
         FUZZ_ASSERT(dstSize > 0);
         int const rtSize = LZ4_decompress_safe(dst, rt, dstSize, size);
         FUZZ_ASSERT_MSG(rtSize == compressedSize, "Incorrect regenerated size");

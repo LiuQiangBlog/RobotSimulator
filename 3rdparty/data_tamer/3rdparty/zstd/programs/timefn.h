@@ -12,30 +12,36 @@
 #define TIME_FN_H_MODULE_287987
 
 /*-****************************************
-*  Types
-******************************************/
+ *  Types
+ ******************************************/
 
-#if !defined (__VMS) && (defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */) )
-# if defined(_AIX)
-#  include <inttypes.h>
-# else
-#  include <stdint.h> /* uint64_t */
-# endif
-  typedef uint64_t           PTime;  /* Precise Time */
+#if !defined(__VMS) && (defined(__cplusplus) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 \
+                                                                                                             */))
+#if defined(_AIX)
+#include <inttypes.h>
 #else
-  typedef unsigned long long PTime;  /* does not support compilers without long long support */
+#include <stdint.h> /* uint64_t */
+#endif
+typedef uint64_t PTime; /* Precise Time */
+#else
+typedef unsigned long long PTime; /* does not support compilers without long long support */
 #endif
 
 /* UTIL_time_t contains a nanosecond time counter.
  * The absolute value is not meaningful.
  * It's only valid to compute the difference between 2 measurements. */
-typedef struct { PTime t; } UTIL_time_t;
-#define UTIL_TIME_INITIALIZER { 0 }
-
+typedef struct
+{
+    PTime t;
+} UTIL_time_t;
+#define UTIL_TIME_INITIALIZER \
+    {                         \
+        0                     \
+    }
 
 /*-****************************************
-*  Time functions
-******************************************/
+ *  Time functions
+ ******************************************/
 
 UTIL_time_t UTIL_getTime(void);
 
@@ -54,6 +60,6 @@ PTime UTIL_clockSpanNano(UTIL_time_t clockStart);
 PTime UTIL_getSpanTimeMicro(UTIL_time_t clockStart, UTIL_time_t clockEnd);
 PTime UTIL_clockSpanMicro(UTIL_time_t clockStart);
 
-#define SEC_TO_MICRO ((PTime)1000000)  /* nb of microseconds in a second */
+#define SEC_TO_MICRO ((PTime)1000000) /* nb of microseconds in a second */
 
 #endif /* TIME_FN_H_MODULE_287987 */

@@ -21,45 +21,62 @@
  */
 #define ZSTD_LAZY_DDSS_BUCKET_LOG 2
 
-#define ZSTD_ROW_HASH_TAG_BITS 8        /* nb bits to use for the tag */
+#define ZSTD_ROW_HASH_TAG_BITS 8 /* nb bits to use for the tag */
 
-#if !defined(ZSTD_EXCLUDE_GREEDY_BLOCK_COMPRESSOR) \
- || !defined(ZSTD_EXCLUDE_LAZY_BLOCK_COMPRESSOR) \
- || !defined(ZSTD_EXCLUDE_LAZY2_BLOCK_COMPRESSOR) \
- || !defined(ZSTD_EXCLUDE_BTLAZY2_BLOCK_COMPRESSOR)
-U32 ZSTD_insertAndFindFirstIndex(ZSTD_MatchState_t* ms, const BYTE* ip);
-void ZSTD_row_update(ZSTD_MatchState_t* const ms, const BYTE* ip);
+#if !defined(ZSTD_EXCLUDE_GREEDY_BLOCK_COMPRESSOR) || !defined(ZSTD_EXCLUDE_LAZY_BLOCK_COMPRESSOR) || \
+    !defined(ZSTD_EXCLUDE_LAZY2_BLOCK_COMPRESSOR) || !defined(ZSTD_EXCLUDE_BTLAZY2_BLOCK_COMPRESSOR)
+U32 ZSTD_insertAndFindFirstIndex(ZSTD_MatchState_t *ms, const BYTE *ip);
+void ZSTD_row_update(ZSTD_MatchState_t *const ms, const BYTE *ip);
 
-void ZSTD_dedicatedDictSearch_lazy_loadDictionary(ZSTD_MatchState_t* ms, const BYTE* const ip);
+void ZSTD_dedicatedDictSearch_lazy_loadDictionary(ZSTD_MatchState_t *ms, const BYTE *const ip);
 
-void ZSTD_preserveUnsortedMark (U32* const table, U32 const size, U32 const reducerValue);  /*! used in ZSTD_reduceIndex(). preemptively increase value of ZSTD_DUBT_UNSORTED_MARK */
+void ZSTD_preserveUnsortedMark(
+    U32 *const table,
+    U32 const size,
+    U32 const reducerValue); /*! used in ZSTD_reduceIndex(). preemptively increase value of ZSTD_DUBT_UNSORTED_MARK */
 #endif
 
 #ifndef ZSTD_EXCLUDE_GREEDY_BLOCK_COMPRESSOR
-size_t ZSTD_compressBlock_greedy(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_greedy_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_greedy_dictMatchState(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_greedy_dictMatchState_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_greedy_dedicatedDictSearch(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_greedy_dedicatedDictSearch_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_greedy_extDict(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_greedy_extDict_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
+size_t ZSTD_compressBlock_greedy(ZSTD_MatchState_t *ms,
+                                 SeqStore_t *seqStore,
+                                 U32 rep[ZSTD_REP_NUM],
+                                 void const *src,
+                                 size_t srcSize);
+size_t ZSTD_compressBlock_greedy_row(ZSTD_MatchState_t *ms,
+                                     SeqStore_t *seqStore,
+                                     U32 rep[ZSTD_REP_NUM],
+                                     void const *src,
+                                     size_t srcSize);
+size_t ZSTD_compressBlock_greedy_dictMatchState(ZSTD_MatchState_t *ms,
+                                                SeqStore_t *seqStore,
+                                                U32 rep[ZSTD_REP_NUM],
+                                                void const *src,
+                                                size_t srcSize);
+size_t ZSTD_compressBlock_greedy_dictMatchState_row(ZSTD_MatchState_t *ms,
+                                                    SeqStore_t *seqStore,
+                                                    U32 rep[ZSTD_REP_NUM],
+                                                    void const *src,
+                                                    size_t srcSize);
+size_t ZSTD_compressBlock_greedy_dedicatedDictSearch(ZSTD_MatchState_t *ms,
+                                                     SeqStore_t *seqStore,
+                                                     U32 rep[ZSTD_REP_NUM],
+                                                     void const *src,
+                                                     size_t srcSize);
+size_t ZSTD_compressBlock_greedy_dedicatedDictSearch_row(ZSTD_MatchState_t *ms,
+                                                         SeqStore_t *seqStore,
+                                                         U32 rep[ZSTD_REP_NUM],
+                                                         void const *src,
+                                                         size_t srcSize);
+size_t ZSTD_compressBlock_greedy_extDict(ZSTD_MatchState_t *ms,
+                                         SeqStore_t *seqStore,
+                                         U32 rep[ZSTD_REP_NUM],
+                                         void const *src,
+                                         size_t srcSize);
+size_t ZSTD_compressBlock_greedy_extDict_row(ZSTD_MatchState_t *ms,
+                                             SeqStore_t *seqStore,
+                                             U32 rep[ZSTD_REP_NUM],
+                                             void const *src,
+                                             size_t srcSize);
 
 #define ZSTD_COMPRESSBLOCK_GREEDY ZSTD_compressBlock_greedy
 #define ZSTD_COMPRESSBLOCK_GREEDY_ROW ZSTD_compressBlock_greedy_row
@@ -81,30 +98,46 @@ size_t ZSTD_compressBlock_greedy_extDict_row(
 #endif
 
 #ifndef ZSTD_EXCLUDE_LAZY_BLOCK_COMPRESSOR
-size_t ZSTD_compressBlock_lazy(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy_dictMatchState(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy_dictMatchState_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy_dedicatedDictSearch(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy_dedicatedDictSearch_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy_extDict(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy_extDict_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
+size_t ZSTD_compressBlock_lazy(ZSTD_MatchState_t *ms,
+                               SeqStore_t *seqStore,
+                               U32 rep[ZSTD_REP_NUM],
+                               void const *src,
+                               size_t srcSize);
+size_t ZSTD_compressBlock_lazy_row(ZSTD_MatchState_t *ms,
+                                   SeqStore_t *seqStore,
+                                   U32 rep[ZSTD_REP_NUM],
+                                   void const *src,
+                                   size_t srcSize);
+size_t ZSTD_compressBlock_lazy_dictMatchState(ZSTD_MatchState_t *ms,
+                                              SeqStore_t *seqStore,
+                                              U32 rep[ZSTD_REP_NUM],
+                                              void const *src,
+                                              size_t srcSize);
+size_t ZSTD_compressBlock_lazy_dictMatchState_row(ZSTD_MatchState_t *ms,
+                                                  SeqStore_t *seqStore,
+                                                  U32 rep[ZSTD_REP_NUM],
+                                                  void const *src,
+                                                  size_t srcSize);
+size_t ZSTD_compressBlock_lazy_dedicatedDictSearch(ZSTD_MatchState_t *ms,
+                                                   SeqStore_t *seqStore,
+                                                   U32 rep[ZSTD_REP_NUM],
+                                                   void const *src,
+                                                   size_t srcSize);
+size_t ZSTD_compressBlock_lazy_dedicatedDictSearch_row(ZSTD_MatchState_t *ms,
+                                                       SeqStore_t *seqStore,
+                                                       U32 rep[ZSTD_REP_NUM],
+                                                       void const *src,
+                                                       size_t srcSize);
+size_t ZSTD_compressBlock_lazy_extDict(ZSTD_MatchState_t *ms,
+                                       SeqStore_t *seqStore,
+                                       U32 rep[ZSTD_REP_NUM],
+                                       void const *src,
+                                       size_t srcSize);
+size_t ZSTD_compressBlock_lazy_extDict_row(ZSTD_MatchState_t *ms,
+                                           SeqStore_t *seqStore,
+                                           U32 rep[ZSTD_REP_NUM],
+                                           void const *src,
+                                           size_t srcSize);
 
 #define ZSTD_COMPRESSBLOCK_LAZY ZSTD_compressBlock_lazy
 #define ZSTD_COMPRESSBLOCK_LAZY_ROW ZSTD_compressBlock_lazy_row
@@ -126,30 +159,46 @@ size_t ZSTD_compressBlock_lazy_extDict_row(
 #endif
 
 #ifndef ZSTD_EXCLUDE_LAZY2_BLOCK_COMPRESSOR
-size_t ZSTD_compressBlock_lazy2(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy2_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy2_dictMatchState(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy2_dictMatchState_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy2_dedicatedDictSearch(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy2_dedicatedDictSearch_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy2_extDict(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_lazy2_extDict_row(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
+size_t ZSTD_compressBlock_lazy2(ZSTD_MatchState_t *ms,
+                                SeqStore_t *seqStore,
+                                U32 rep[ZSTD_REP_NUM],
+                                void const *src,
+                                size_t srcSize);
+size_t ZSTD_compressBlock_lazy2_row(ZSTD_MatchState_t *ms,
+                                    SeqStore_t *seqStore,
+                                    U32 rep[ZSTD_REP_NUM],
+                                    void const *src,
+                                    size_t srcSize);
+size_t ZSTD_compressBlock_lazy2_dictMatchState(ZSTD_MatchState_t *ms,
+                                               SeqStore_t *seqStore,
+                                               U32 rep[ZSTD_REP_NUM],
+                                               void const *src,
+                                               size_t srcSize);
+size_t ZSTD_compressBlock_lazy2_dictMatchState_row(ZSTD_MatchState_t *ms,
+                                                   SeqStore_t *seqStore,
+                                                   U32 rep[ZSTD_REP_NUM],
+                                                   void const *src,
+                                                   size_t srcSize);
+size_t ZSTD_compressBlock_lazy2_dedicatedDictSearch(ZSTD_MatchState_t *ms,
+                                                    SeqStore_t *seqStore,
+                                                    U32 rep[ZSTD_REP_NUM],
+                                                    void const *src,
+                                                    size_t srcSize);
+size_t ZSTD_compressBlock_lazy2_dedicatedDictSearch_row(ZSTD_MatchState_t *ms,
+                                                        SeqStore_t *seqStore,
+                                                        U32 rep[ZSTD_REP_NUM],
+                                                        void const *src,
+                                                        size_t srcSize);
+size_t ZSTD_compressBlock_lazy2_extDict(ZSTD_MatchState_t *ms,
+                                        SeqStore_t *seqStore,
+                                        U32 rep[ZSTD_REP_NUM],
+                                        void const *src,
+                                        size_t srcSize);
+size_t ZSTD_compressBlock_lazy2_extDict_row(ZSTD_MatchState_t *ms,
+                                            SeqStore_t *seqStore,
+                                            U32 rep[ZSTD_REP_NUM],
+                                            void const *src,
+                                            size_t srcSize);
 
 #define ZSTD_COMPRESSBLOCK_LAZY2 ZSTD_compressBlock_lazy2
 #define ZSTD_COMPRESSBLOCK_LAZY2_ROW ZSTD_compressBlock_lazy2_row
@@ -171,15 +220,21 @@ size_t ZSTD_compressBlock_lazy2_extDict_row(
 #endif
 
 #ifndef ZSTD_EXCLUDE_BTLAZY2_BLOCK_COMPRESSOR
-size_t ZSTD_compressBlock_btlazy2(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_btlazy2_dictMatchState(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
-size_t ZSTD_compressBlock_btlazy2_extDict(
-        ZSTD_MatchState_t* ms, SeqStore_t* seqStore, U32 rep[ZSTD_REP_NUM],
-        void const* src, size_t srcSize);
+size_t ZSTD_compressBlock_btlazy2(ZSTD_MatchState_t *ms,
+                                  SeqStore_t *seqStore,
+                                  U32 rep[ZSTD_REP_NUM],
+                                  void const *src,
+                                  size_t srcSize);
+size_t ZSTD_compressBlock_btlazy2_dictMatchState(ZSTD_MatchState_t *ms,
+                                                 SeqStore_t *seqStore,
+                                                 U32 rep[ZSTD_REP_NUM],
+                                                 void const *src,
+                                                 size_t srcSize);
+size_t ZSTD_compressBlock_btlazy2_extDict(ZSTD_MatchState_t *ms,
+                                          SeqStore_t *seqStore,
+                                          U32 rep[ZSTD_REP_NUM],
+                                          void const *src,
+                                          size_t srcSize);
 
 #define ZSTD_COMPRESSBLOCK_BTLAZY2 ZSTD_compressBlock_btlazy2
 #define ZSTD_COMPRESSBLOCK_BTLAZY2_DICTMATCHSTATE ZSTD_compressBlock_btlazy2_dictMatchState

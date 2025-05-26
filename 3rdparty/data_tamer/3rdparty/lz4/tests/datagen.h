@@ -23,8 +23,7 @@
    - Public forum : https://groups.google.com/forum/#!forum/lz4c
 */
 
-
-#include <stddef.h>   /* size_t */
+#include <stddef.h> /* size_t */
 
 /* RDG_genOut():
  * Generate @size bytes of compressible data into stdout.
@@ -39,4 +38,4 @@ void RDG_genOut(unsigned long long size, double matchProba, double litProba, uns
  * RDG_genBuffer():
  * Same as RDG_genOut, but generates data into provided @buffer
  */
-void RDG_genBuffer(void* buffer, size_t size, double matchProba, double litProba, unsigned seed);
+void RDG_genBuffer(void *buffer, size_t size, double matchProba, double litProba, unsigned seed);

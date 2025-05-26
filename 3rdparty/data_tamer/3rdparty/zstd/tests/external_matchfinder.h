@@ -15,7 +15,8 @@
 #include "zstd.h"
 
 /* See external_matchfinder.c for details on each test case */
-typedef enum {
+typedef enum
+{
     EMF_ZERO_SEQS = 0,
     EMF_ONE_BIG_SEQ = 1,
     EMF_LOTS_OF_SEQS = 2,
@@ -27,13 +28,14 @@ typedef enum {
     EMF_INVALID_LAST_LITS = 8
 } EMF_testCase;
 
-size_t zstreamSequenceProducer(
-  void* sequenceProducerState,
-  ZSTD_Sequence* outSeqs, size_t outSeqsCapacity,
-  const void* src, size_t srcSize,
-  const void* dict, size_t dictSize,
-  int compressionLevel,
-  size_t windowSize
-);
+size_t zstreamSequenceProducer(void *sequenceProducerState,
+                               ZSTD_Sequence *outSeqs,
+                               size_t outSeqsCapacity,
+                               const void *src,
+                               size_t srcSize,
+                               const void *dict,
+                               size_t dictSize,
+                               int compressionLevel,
+                               size_t windowSize);
 
 #endif /* EXTERNAL_MATCHFINDER */

@@ -12,63 +12,60 @@
  */
 int main(int argc, char **argv)
 {
-  int ii;
-  for(ii = 1; ii < argc; ii++)
-  {
-    FILE *infile;
-    printf("[%s] ", argv[ii]);
-
-    /* Try and open the file. */
-    infile = fopen(argv[ii], "rb");
-    if(infile)
+    int ii;
+    for (ii = 1; ii < argc; ii++)
     {
-      uint8_t *buffer = NULL;
-      size_t buffer_len;
+        FILE *infile;
+        printf("[%s] ", argv[ii]);
 
-      printf("Opened.. ");
+        /* Try and open the file. */
+        infile = fopen(argv[ii], "rb");
+        if (infile)
+        {
+            uint8_t *buffer = NULL;
+            size_t buffer_len;
 
-      /* Get the length of the file. */
-      fseek(infile, 0L, SEEK_END);
-      buffer_len = ftell(infile);
+            printf("Opened.. ");
 
-      /* Reset the file indicator to the beginning of the file. */
-      fseek(infile, 0L, SEEK_SET);
+            /* Get the length of the file. */
+            fseek(infile, 0L, SEEK_END);
+            buffer_len = ftell(infile);
 
-      /* Allocate a buffer for the file contents. */
-      buffer = (uint8_t *)calloc(buffer_len, sizeof(uint8_t));
-      if(buffer)
-      {
-        /* Read all the text from the file into the buffer. */
-        fread(buffer, sizeof(uint8_t), buffer_len, infile);
-        printf("Read %zu bytes, fuzzing.. ", buffer_len);
+            /* Reset the file indicator to the beginning of the file. */
+            fseek(infile, 0L, SEEK_SET);
 
-        /* Call the fuzzer with the data. */
-        LLVMFuzzerTestOneInput(buffer, buffer_len);
+            /* Allocate a buffer for the file contents. */
+            buffer = (uint8_t *)calloc(buffer_len, sizeof(uint8_t));
+            if (buffer)
+            {
+                /* Read all the text from the file into the buffer. */
+                fread(buffer, sizeof(uint8_t), buffer_len, infile);
+                printf("Read %zu bytes, fuzzing.. ", buffer_len);
 
-        printf("complete !!");
+                /* Call the fuzzer with the data. */
+                LLVMFuzzerTestOneInput(buffer, buffer_len);
 
-        /* Free the buffer as it's no longer needed. */
-        free(buffer);
-        buffer = NULL;
-      }
-      else
-      {
-        fprintf(stderr,
-                "[%s] Failed to allocate %zu bytes \n",
-                argv[ii],
-                buffer_len);
-      }
+                printf("complete !!");
 
-      /* Close the file as it's no longer needed. */
-      fclose(infile);
-      infile = NULL;
+                /* Free the buffer as it's no longer needed. */
+                free(buffer);
+                buffer = NULL;
+            }
+            else
+            {
+                fprintf(stderr, "[%s] Failed to allocate %zu bytes \n", argv[ii], buffer_len);
+            }
+
+            /* Close the file as it's no longer needed. */
+            fclose(infile);
+            infile = NULL;
+        }
+        else
+        {
+            /* Failed to open the file. Maybe wrong name or wrong permissions? */
+            fprintf(stderr, "[%s] Open failed. \n", argv[ii]);
+        }
+
+        printf("\n");
     }
-    else
-    {
-      /* Failed to open the file. Maybe wrong name or wrong permissions? */
-      fprintf(stderr, "[%s] Open failed. \n", argv[ii]);
-    }
-
-    printf("\n");
-  }
 }

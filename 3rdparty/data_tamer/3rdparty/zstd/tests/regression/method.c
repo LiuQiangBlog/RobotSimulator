@@ -18,9 +18,10 @@
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
-static char const* g_zstdcli = NULL;
+static char const *g_zstdcli = NULL;
 
-void method_set_zstdcli(char const* zstdcli) {
+void method_set_zstdcli(char const *zstdcli)
+{
     g_zstdcli = zstdcli;
 }
 
@@ -31,29 +32,32 @@ void method_set_zstdcli(char const* zstdcli) {
  *     method_state_t* base = ...;
  *     buffer_state_t* state = container_of(base, buffer_state_t, base);
  */
-#define container_of(ptr, type, member) \
-    ((type*)(ptr == NULL ? NULL : (char*)(ptr)-offsetof(type, member)))
+#define container_of(ptr, type, member) ((type *)(ptr == NULL ? NULL : (char *)(ptr)-offsetof(type, member)))
 
 /** State to reuse the same buffers between compression calls. */
-typedef struct {
+typedef struct
+{
     method_state_t base;
-    data_buffers_t inputs; /**< The input buffer for each file. */
-    data_buffer_t dictionary; /**< The dictionary. */
-    data_buffer_t compressed; /**< The compressed data buffer. */
+    data_buffers_t inputs;      /**< The input buffer for each file. */
+    data_buffer_t dictionary;   /**< The dictionary. */
+    data_buffer_t compressed;   /**< The compressed data buffer. */
     data_buffer_t decompressed; /**< The decompressed data buffer. */
 } buffer_state_t;
 
-static size_t buffers_max_size(data_buffers_t buffers) {
+static size_t buffers_max_size(data_buffers_t buffers)
+{
     size_t max = 0;
-    for (size_t i = 0; i < buffers.size; ++i) {
+    for (size_t i = 0; i < buffers.size; ++i)
+    {
         if (buffers.buffers[i].size > max)
             max = buffers.buffers[i].size;
     }
     return max;
 }
 
-static method_state_t* buffer_state_create(data_t const* data) {
-    buffer_state_t* state = (buffer_state_t*)calloc(1, sizeof(buffer_state_t));
+static method_state_t *buffer_state_create(data_t const *data)
+{
+    buffer_state_t *state = (buffer_state_t *)calloc(1, sizeof(buffer_state_t));
     if (state == NULL)
         return NULL;
     state->base.data = data;
@@ -65,34 +69,37 @@ static method_state_t* buffer_state_create(data_t const* data) {
     return &state->base;
 }
 
-static void buffer_state_destroy(method_state_t* base) {
+static void buffer_state_destroy(method_state_t *base)
+{
     if (base == NULL)
         return;
-    buffer_state_t* state = container_of(base, buffer_state_t, base);
+    buffer_state_t *state = container_of(base, buffer_state_t, base);
     free(state);
 }
 
-static int buffer_state_bad(
-    buffer_state_t const* state,
-    config_t const* config) {
-    if (state == NULL) {
+static int buffer_state_bad(buffer_state_t const *state, config_t const *config)
+{
+    if (state == NULL)
+    {
         fprintf(stderr, "buffer_state_t is NULL\n");
         return 1;
     }
-    if (state->inputs.size == 0 || state->compressed.data == NULL ||
-        state->decompressed.data == NULL) {
+    if (state->inputs.size == 0 || state->compressed.data == NULL || state->decompressed.data == NULL)
+    {
         fprintf(stderr, "buffer state allocation failure\n");
         return 1;
     }
-    if (config->use_dictionary && state->dictionary.data == NULL) {
+    if (config->use_dictionary && state->dictionary.data == NULL)
+    {
         fprintf(stderr, "dictionary loading failed\n");
         return 1;
     }
     return 0;
 }
 
-static result_t simple_compress(method_state_t* base, config_t const* config) {
-    buffer_state_t* state = container_of(base, buffer_state_t, base);
+static result_t simple_compress(method_state_t *base, config_t const *config)
+{
+    buffer_state_t *state = container_of(base, buffer_state_t, base);
 
     if (buffer_state_bad(state, config))
         return result_error(result_error_system_error);
@@ -102,7 +109,7 @@ static result_t simple_compress(method_state_t* base, config_t const* config) {
      */
     if (base->data->type != data_type_file)
         return result_error(result_error_skip);
-    
+
     if (config->advanced_api_only)
         return result_error(result_error_skip);
 
@@ -117,20 +124,13 @@ static result_t simple_compress(method_state_t* base, config_t const* config) {
     data_buffer_t const input = state->inputs.buffers[0];
 
     /* Compress, decompress, and check the result. */
-    state->compressed.size = ZSTD_compress(
-        state->compressed.data,
-        state->compressed.capacity,
-        input.data,
-        input.size,
-        level);
+    state->compressed.size =
+        ZSTD_compress(state->compressed.data, state->compressed.capacity, input.data, input.size, level);
     if (ZSTD_isError(state->compressed.size))
         return result_error(result_error_compression_error);
 
-    state->decompressed.size = ZSTD_decompress(
-        state->decompressed.data,
-        state->decompressed.capacity,
-        state->compressed.data,
-        state->compressed.size);
+    state->decompressed.size = ZSTD_decompress(state->decompressed.data, state->decompressed.capacity,
+                                               state->compressed.data, state->compressed.size);
     if (ZSTD_isError(state->decompressed.size))
         return result_error(result_error_decompression_error);
     if (data_buffer_compare(input, state->decompressed))
@@ -141,10 +141,9 @@ static result_t simple_compress(method_state_t* base, config_t const* config) {
     return result_data(data);
 }
 
-static result_t compress_cctx_compress(
-    method_state_t* base,
-    config_t const* config) {
-    buffer_state_t* state = container_of(base, buffer_state_t, base);
+static result_t compress_cctx_compress(method_state_t *base, config_t const *config)
+{
+    buffer_state_t *state = container_of(base, buffer_state_t, base);
 
     if (buffer_state_bad(state, config))
         return result_error(result_error_system_error);
@@ -154,81 +153,60 @@ static result_t compress_cctx_compress(
 
     if (base->data->type != data_type_dir)
         return result_error(result_error_skip);
-    
+
     if (config->advanced_api_only)
         return result_error(result_error_skip);
 
     int const level = config_get_level(config);
 
-    ZSTD_CCtx* cctx = ZSTD_createCCtx();
-    ZSTD_DCtx* dctx = ZSTD_createDCtx();
-    if (cctx == NULL || dctx == NULL) {
+    ZSTD_CCtx *cctx = ZSTD_createCCtx();
+    ZSTD_DCtx *dctx = ZSTD_createDCtx();
+    if (cctx == NULL || dctx == NULL)
+    {
         fprintf(stderr, "context creation failed\n");
         return result_error(result_error_system_error);
     }
 
     result_t result;
     result_data_t data = {.total_size = 0};
-    for (size_t i = 0; i < state->inputs.size; ++i) {
+    for (size_t i = 0; i < state->inputs.size; ++i)
+    {
         data_buffer_t const input = state->inputs.buffers[i];
-        ZSTD_parameters const params =
-            config_get_zstd_params(config, input.size, state->dictionary.size);
+        ZSTD_parameters const params = config_get_zstd_params(config, input.size, state->dictionary.size);
 
         if (level == CONFIG_NO_LEVEL)
-            state->compressed.size = ZSTD_compress_advanced(
-                cctx,
-                state->compressed.data,
-                state->compressed.capacity,
-                input.data,
-                input.size,
-                config->use_dictionary ? state->dictionary.data : NULL,
-                config->use_dictionary ? state->dictionary.size : 0,
-                params);
+            state->compressed.size =
+                ZSTD_compress_advanced(cctx, state->compressed.data, state->compressed.capacity, input.data, input.size,
+                                       config->use_dictionary ? state->dictionary.data : NULL,
+                                       config->use_dictionary ? state->dictionary.size : 0, params);
         else if (config->use_dictionary)
-            state->compressed.size = ZSTD_compress_usingDict(
-                cctx,
-                state->compressed.data,
-                state->compressed.capacity,
-                input.data,
-                input.size,
-                state->dictionary.data,
-                state->dictionary.size,
-                level);
+            state->compressed.size =
+                ZSTD_compress_usingDict(cctx, state->compressed.data, state->compressed.capacity, input.data,
+                                        input.size, state->dictionary.data, state->dictionary.size, level);
         else
-            state->compressed.size = ZSTD_compressCCtx(
-                cctx,
-                state->compressed.data,
-                state->compressed.capacity,
-                input.data,
-                input.size,
-                level);
+            state->compressed.size = ZSTD_compressCCtx(cctx, state->compressed.data, state->compressed.capacity,
+                                                       input.data, input.size, level);
 
-        if (ZSTD_isError(state->compressed.size)) {
+        if (ZSTD_isError(state->compressed.size))
+        {
             result = result_error(result_error_compression_error);
             goto out;
         }
 
         if (config->use_dictionary)
             state->decompressed.size = ZSTD_decompress_usingDict(
-                dctx,
-                state->decompressed.data,
-                state->decompressed.capacity,
-                state->compressed.data,
-                state->compressed.size,
-                state->dictionary.data,
-                state->dictionary.size);
+                dctx, state->decompressed.data, state->decompressed.capacity, state->compressed.data,
+                state->compressed.size, state->dictionary.data, state->dictionary.size);
         else
-            state->decompressed.size = ZSTD_decompressDCtx(
-                dctx,
-                state->decompressed.data,
-                state->decompressed.capacity,
-                state->compressed.data,
-                state->compressed.size);
-        if (ZSTD_isError(state->decompressed.size)) {
+            state->decompressed.size = ZSTD_decompressDCtx(dctx, state->decompressed.data, state->decompressed.capacity,
+                                                           state->compressed.data, state->compressed.size);
+        if (ZSTD_isError(state->decompressed.size))
+        {
             result = result_error(result_error_decompression_error);
             goto out;
         }
-        if (data_buffer_compare(input, state->decompressed)) {
+        if (data_buffer_compare(input, state->decompressed))
+        {
             result = result_error(result_error_round_trip_error);
             goto out;
         }
@@ -244,19 +222,22 @@ out:
 }
 
 /** Generic state creation function. */
-static method_state_t* method_state_create(data_t const* data) {
-    method_state_t* state = (method_state_t*)malloc(sizeof(method_state_t));
+static method_state_t *method_state_create(data_t const *data)
+{
+    method_state_t *state = (method_state_t *)malloc(sizeof(method_state_t));
     if (state == NULL)
         return NULL;
     state->data = data;
     return state;
 }
 
-static void method_state_destroy(method_state_t* state) {
+static void method_state_destroy(method_state_t *state)
+{
     free(state);
 }
 
-static result_t cli_compress(method_state_t* state, config_t const* config) {
+static result_t cli_compress(method_state_t *state, config_t const *config)
+{
     if (config->cli_args == NULL)
         return result_error(result_error_skip);
 
@@ -272,36 +253,33 @@ static result_t cli_compress(method_state_t* state, config_t const* config) {
 
     /* '<zstd>' -cqr <args> [-D '<dict>'] '<file/dir>' */
     char cmd[1024];
-    size_t const cmd_size = snprintf(
-        cmd,
-        sizeof(cmd),
-        "'%s' -cqr %s %s%s%s %s '%s'",
-        g_zstdcli,
-        config->cli_args,
-        config->use_dictionary ? "-D '" : "",
-        config->use_dictionary ? state->data->dict.path : "",
-        config->use_dictionary ? "'" : "",
-        config->no_pledged_src_size ? "<" : "",
-        state->data->data.path);
-    if (cmd_size >= sizeof(cmd)) {
+    size_t const cmd_size =
+        snprintf(cmd, sizeof(cmd), "'%s' -cqr %s %s%s%s %s '%s'", g_zstdcli, config->cli_args,
+                 config->use_dictionary ? "-D '" : "", config->use_dictionary ? state->data->dict.path : "",
+                 config->use_dictionary ? "'" : "", config->no_pledged_src_size ? "<" : "", state->data->data.path);
+    if (cmd_size >= sizeof(cmd))
+    {
         fprintf(stderr, "command too large: %s\n", cmd);
         return result_error(result_error_system_error);
     }
-    FILE* zstd = popen(cmd, "r");
-    if (zstd == NULL) {
+    FILE *zstd = popen(cmd, "r");
+    if (zstd == NULL)
+    {
         fprintf(stderr, "failed to popen command: %s\n", cmd);
         return result_error(result_error_system_error);
     }
 
     char out[4096];
     size_t total_size = 0;
-    while (1) {
+    while (1)
+    {
         size_t const size = fread(out, 1, sizeof(out), zstd);
         total_size += size;
         if (size != sizeof(out))
             break;
     }
-    if (ferror(zstd) || pclose(zstd) != 0) {
+    if (ferror(zstd) || pclose(zstd) != 0)
+    {
         fprintf(stderr, "zstd failed with command: %s\n", cmd);
         return result_error(result_error_compression_error);
     }
@@ -310,60 +288,61 @@ static result_t cli_compress(method_state_t* state, config_t const* config) {
     return result_data(data);
 }
 
-static int advanced_config(
-    ZSTD_CCtx* cctx,
-    buffer_state_t* state,
-    config_t const* config) {
+static int advanced_config(ZSTD_CCtx *cctx, buffer_state_t *state, config_t const *config)
+{
     ZSTD_CCtx_reset(cctx, ZSTD_reset_session_and_parameters);
-    for (size_t p = 0; p < config->param_values.size; ++p) {
+    for (size_t p = 0; p < config->param_values.size; ++p)
+    {
         param_value_t const pv = config->param_values.data[p];
-        if (ZSTD_isError(ZSTD_CCtx_setParameter(cctx, pv.param, pv.value))) {
+        if (ZSTD_isError(ZSTD_CCtx_setParameter(cctx, pv.param, pv.value)))
+        {
             return 1;
         }
     }
-    if (config->use_dictionary) {
-        if (ZSTD_isError(ZSTD_CCtx_loadDictionary(
-                cctx, state->dictionary.data, state->dictionary.size))) {
+    if (config->use_dictionary)
+    {
+        if (ZSTD_isError(ZSTD_CCtx_loadDictionary(cctx, state->dictionary.data, state->dictionary.size)))
+        {
             return 1;
         }
     }
     return 0;
 }
 
-static result_t advanced_one_pass_compress_output_adjustment(
-    method_state_t* base,
-    config_t const* config,
-    size_t const subtract) {
-    buffer_state_t* state = container_of(base, buffer_state_t, base);
+static result_t
+advanced_one_pass_compress_output_adjustment(method_state_t *base, config_t const *config, size_t const subtract)
+{
+    buffer_state_t *state = container_of(base, buffer_state_t, base);
 
     if (buffer_state_bad(state, config))
         return result_error(result_error_system_error);
 
-    ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    ZSTD_CCtx *cctx = ZSTD_createCCtx();
     result_t result;
 
-    if (!cctx || advanced_config(cctx, state, config)) {
+    if (!cctx || advanced_config(cctx, state, config))
+    {
         result = result_error(result_error_compression_error);
         goto out;
     }
 
     result_data_t data = {.total_size = 0};
-    for (size_t i = 0; i < state->inputs.size; ++i) {
+    for (size_t i = 0; i < state->inputs.size; ++i)
+    {
         data_buffer_t const input = state->inputs.buffers[i];
 
-        if (!config->no_pledged_src_size) {
-            if (ZSTD_isError(ZSTD_CCtx_setPledgedSrcSize(cctx, input.size))) {
+        if (!config->no_pledged_src_size)
+        {
+            if (ZSTD_isError(ZSTD_CCtx_setPledgedSrcSize(cctx, input.size)))
+            {
                 result = result_error(result_error_compression_error);
                 goto out;
             }
         }
-        size_t const size = ZSTD_compress2(
-            cctx,
-            state->compressed.data,
-            ZSTD_compressBound(input.size) - subtract,
-            input.data,
-            input.size);
-        if (ZSTD_isError(size)) {
+        size_t const size = ZSTD_compress2(cctx, state->compressed.data, ZSTD_compressBound(input.size) - subtract,
+                                           input.data, input.size);
+        if (ZSTD_isError(size))
+        {
             result = result_error(result_error_compression_error);
             goto out;
         }
@@ -376,57 +355,59 @@ out:
     return result;
 }
 
-static result_t advanced_one_pass_compress(
-    method_state_t* base,
-    config_t const* config) {
-  return advanced_one_pass_compress_output_adjustment(base, config, 0);
+static result_t advanced_one_pass_compress(method_state_t *base, config_t const *config)
+{
+    return advanced_one_pass_compress_output_adjustment(base, config, 0);
 }
 
-static result_t advanced_one_pass_compress_small_output(
-    method_state_t* base,
-    config_t const* config) {
-  return advanced_one_pass_compress_output_adjustment(base, config, 1);
+static result_t advanced_one_pass_compress_small_output(method_state_t *base, config_t const *config)
+{
+    return advanced_one_pass_compress_output_adjustment(base, config, 1);
 }
 
-static result_t advanced_streaming_compress(
-    method_state_t* base,
-    config_t const* config) {
-    buffer_state_t* state = container_of(base, buffer_state_t, base);
+static result_t advanced_streaming_compress(method_state_t *base, config_t const *config)
+{
+    buffer_state_t *state = container_of(base, buffer_state_t, base);
 
     if (buffer_state_bad(state, config))
         return result_error(result_error_system_error);
 
-    ZSTD_CCtx* cctx = ZSTD_createCCtx();
+    ZSTD_CCtx *cctx = ZSTD_createCCtx();
     result_t result;
 
-    if (!cctx || advanced_config(cctx, state, config)) {
+    if (!cctx || advanced_config(cctx, state, config))
+    {
         result = result_error(result_error_compression_error);
         goto out;
     }
 
     result_data_t data = {.total_size = 0};
-    for (size_t i = 0; i < state->inputs.size; ++i) {
+    for (size_t i = 0; i < state->inputs.size; ++i)
+    {
         data_buffer_t input = state->inputs.buffers[i];
 
-        if (!config->no_pledged_src_size) {
-            if (ZSTD_isError(ZSTD_CCtx_setPledgedSrcSize(cctx, input.size))) {
+        if (!config->no_pledged_src_size)
+        {
+            if (ZSTD_isError(ZSTD_CCtx_setPledgedSrcSize(cctx, input.size)))
+            {
                 result = result_error(result_error_compression_error);
                 goto out;
             }
         }
 
-        while (input.size > 0) {
+        while (input.size > 0)
+        {
             ZSTD_inBuffer in = {input.data, MIN(input.size, 4096)};
             input.data += in.size;
             input.size -= in.size;
-            ZSTD_EndDirective const op =
-                input.size > 0 ? ZSTD_e_continue : ZSTD_e_end;
+            ZSTD_EndDirective const op = input.size > 0 ? ZSTD_e_continue : ZSTD_e_end;
             size_t ret = 0;
-            while (in.pos < in.size || (op == ZSTD_e_end && ret != 0)) {
-                ZSTD_outBuffer out = {state->compressed.data,
-                                      MIN(state->compressed.capacity, 1024)};
+            while (in.pos < in.size || (op == ZSTD_e_end && ret != 0))
+            {
+                ZSTD_outBuffer out = {state->compressed.data, MIN(state->compressed.capacity, 1024)};
                 ret = ZSTD_compressStream2(cctx, &out, &in, op);
-                if (ZSTD_isError(ret)) {
+                if (ZSTD_isError(ret))
+                {
                     result = result_error(result_error_compression_error);
                     goto out;
                 }
@@ -441,177 +422,162 @@ out:
     return result;
 }
 
-static int init_cstream(
-    buffer_state_t* state,
-    ZSTD_CStream* zcs,
-    config_t const* config,
-    int const advanced,
-    ZSTD_CDict** cdict)
+static int
+init_cstream(buffer_state_t *state, ZSTD_CStream *zcs, config_t const *config, int const advanced, ZSTD_CDict **cdict)
 {
     size_t zret;
-    if (advanced) {
+    if (advanced)
+    {
         ZSTD_parameters const params = config_get_zstd_params(config, 0, 0);
-        ZSTD_CDict* dict = NULL;
-        if (cdict) {
+        ZSTD_CDict *dict = NULL;
+        if (cdict)
+        {
             if (!config->use_dictionary)
-              return 1;
-            *cdict = ZSTD_createCDict_advanced(
-                state->dictionary.data,
-                state->dictionary.size,
-                ZSTD_dlm_byRef,
-                ZSTD_dct_auto,
-                params.cParams,
-                ZSTD_defaultCMem);
-            if (!*cdict) {
+                return 1;
+            *cdict = ZSTD_createCDict_advanced(state->dictionary.data, state->dictionary.size, ZSTD_dlm_byRef,
+                                               ZSTD_dct_auto, params.cParams, ZSTD_defaultCMem);
+            if (!*cdict)
+            {
                 return 1;
             }
-            zret = ZSTD_initCStream_usingCDict_advanced(
-                zcs, *cdict, params.fParams, ZSTD_CONTENTSIZE_UNKNOWN);
-        } else {
-            zret = ZSTD_initCStream_advanced(
-                zcs,
-                config->use_dictionary ? state->dictionary.data : NULL,
-                config->use_dictionary ? state->dictionary.size : 0,
-                params,
-                ZSTD_CONTENTSIZE_UNKNOWN);
+            zret = ZSTD_initCStream_usingCDict_advanced(zcs, *cdict, params.fParams, ZSTD_CONTENTSIZE_UNKNOWN);
         }
-    } else {
+        else
+        {
+            zret = ZSTD_initCStream_advanced(zcs, config->use_dictionary ? state->dictionary.data : NULL,
+                                             config->use_dictionary ? state->dictionary.size : 0, params,
+                                             ZSTD_CONTENTSIZE_UNKNOWN);
+        }
+    }
+    else
+    {
         int const level = config_get_level(config);
         if (level == CONFIG_NO_LEVEL)
             return 1;
-        if (cdict) {
+        if (cdict)
+        {
             if (!config->use_dictionary)
-              return 1;
-            *cdict = ZSTD_createCDict(
-                state->dictionary.data,
-                state->dictionary.size,
-                level);
-            if (!*cdict) {
+                return 1;
+            *cdict = ZSTD_createCDict(state->dictionary.data, state->dictionary.size, level);
+            if (!*cdict)
+            {
                 return 1;
             }
             zret = ZSTD_initCStream_usingCDict(zcs, *cdict);
-        } else if (config->use_dictionary) {
-            zret = ZSTD_initCStream_usingDict(
-                zcs,
-                state->dictionary.data,
-                state->dictionary.size,
-                level);
-        } else {
+        }
+        else if (config->use_dictionary)
+        {
+            zret = ZSTD_initCStream_usingDict(zcs, state->dictionary.data, state->dictionary.size, level);
+        }
+        else
+        {
             zret = ZSTD_initCStream(zcs, level);
         }
     }
-    if (ZSTD_isError(zret)) {
+    if (ZSTD_isError(zret))
+    {
         return 1;
     }
     return 0;
 }
 
-static result_t old_streaming_compress_internal(
-    method_state_t* base,
-    config_t const* config,
-    int const advanced,
-    int const cdict) {
-  buffer_state_t* state = container_of(base, buffer_state_t, base);
+static result_t
+old_streaming_compress_internal(method_state_t *base, config_t const *config, int const advanced, int const cdict)
+{
+    buffer_state_t *state = container_of(base, buffer_state_t, base);
 
-  if (buffer_state_bad(state, config))
-    return result_error(result_error_system_error);
+    if (buffer_state_bad(state, config))
+        return result_error(result_error_system_error);
 
-
-  ZSTD_CStream* zcs = ZSTD_createCStream();
-  ZSTD_CDict* cd = NULL;
-  result_t result;
-  if (zcs == NULL) {
-    result = result_error(result_error_compression_error);
-    goto out;
-  }
-  if (!advanced && config_get_level(config) == CONFIG_NO_LEVEL) {
-    result = result_error(result_error_skip);
-    goto out;
-  }
-  if (cdict && !config->use_dictionary) {
-    result = result_error(result_error_skip);
-    goto out;
-  }
-  if (config->advanced_api_only) {
-    result = result_error(result_error_skip);
-    goto out;
-  }
-  if (init_cstream(state, zcs, config, advanced, cdict ? &cd : NULL)) {
-    result = result_error(result_error_compression_error);
-    goto out;
-  }
-
-  result_data_t data = {.total_size = 0};
-  for (size_t i = 0; i < state->inputs.size; ++i) {
-    data_buffer_t input = state->inputs.buffers[i];
-    size_t zret = ZSTD_resetCStream(
-        zcs,
-        config->no_pledged_src_size ? ZSTD_CONTENTSIZE_UNKNOWN : input.size);
-    if (ZSTD_isError(zret)) {
-      result = result_error(result_error_compression_error);
-      goto out;
+    ZSTD_CStream *zcs = ZSTD_createCStream();
+    ZSTD_CDict *cd = NULL;
+    result_t result;
+    if (zcs == NULL)
+    {
+        result = result_error(result_error_compression_error);
+        goto out;
+    }
+    if (!advanced && config_get_level(config) == CONFIG_NO_LEVEL)
+    {
+        result = result_error(result_error_skip);
+        goto out;
+    }
+    if (cdict && !config->use_dictionary)
+    {
+        result = result_error(result_error_skip);
+        goto out;
+    }
+    if (config->advanced_api_only)
+    {
+        result = result_error(result_error_skip);
+        goto out;
+    }
+    if (init_cstream(state, zcs, config, advanced, cdict ? &cd : NULL))
+    {
+        result = result_error(result_error_compression_error);
+        goto out;
     }
 
-    while (input.size > 0) {
-      ZSTD_inBuffer in = {input.data, MIN(input.size, 4096)};
-      input.data += in.size;
-      input.size -= in.size;
-      ZSTD_EndDirective const op =
-          input.size > 0 ? ZSTD_e_continue : ZSTD_e_end;
-      zret = 0;
-      while (in.pos < in.size || (op == ZSTD_e_end && zret != 0)) {
-        ZSTD_outBuffer out = {state->compressed.data,
-                              MIN(state->compressed.capacity, 1024)};
-        if (op == ZSTD_e_continue || in.pos < in.size)
-          zret = ZSTD_compressStream(zcs, &out, &in);
-        else
-          zret = ZSTD_endStream(zcs, &out);
-        if (ZSTD_isError(zret)) {
-          result = result_error(result_error_compression_error);
-          goto out;
+    result_data_t data = {.total_size = 0};
+    for (size_t i = 0; i < state->inputs.size; ++i)
+    {
+        data_buffer_t input = state->inputs.buffers[i];
+        size_t zret = ZSTD_resetCStream(zcs, config->no_pledged_src_size ? ZSTD_CONTENTSIZE_UNKNOWN : input.size);
+        if (ZSTD_isError(zret))
+        {
+            result = result_error(result_error_compression_error);
+            goto out;
         }
-        data.total_size += out.pos;
-      }
-    }
-  }
 
-  result = result_data(data);
+        while (input.size > 0)
+        {
+            ZSTD_inBuffer in = {input.data, MIN(input.size, 4096)};
+            input.data += in.size;
+            input.size -= in.size;
+            ZSTD_EndDirective const op = input.size > 0 ? ZSTD_e_continue : ZSTD_e_end;
+            zret = 0;
+            while (in.pos < in.size || (op == ZSTD_e_end && zret != 0))
+            {
+                ZSTD_outBuffer out = {state->compressed.data, MIN(state->compressed.capacity, 1024)};
+                if (op == ZSTD_e_continue || in.pos < in.size)
+                    zret = ZSTD_compressStream(zcs, &out, &in);
+                else
+                    zret = ZSTD_endStream(zcs, &out);
+                if (ZSTD_isError(zret))
+                {
+                    result = result_error(result_error_compression_error);
+                    goto out;
+                }
+                data.total_size += out.pos;
+            }
+        }
+    }
+
+    result = result_data(data);
 out:
     ZSTD_freeCStream(zcs);
     ZSTD_freeCDict(cd);
     return result;
 }
 
-static result_t old_streaming_compress(
-    method_state_t* base,
-    config_t const* config)
+static result_t old_streaming_compress(method_state_t *base, config_t const *config)
 {
-    return old_streaming_compress_internal(
-        base, config, /* advanced */ 0, /* cdict */ 0);
+    return old_streaming_compress_internal(base, config, /* advanced */ 0, /* cdict */ 0);
 }
 
-static result_t old_streaming_compress_advanced(
-    method_state_t* base,
-    config_t const* config)
+static result_t old_streaming_compress_advanced(method_state_t *base, config_t const *config)
 {
-    return old_streaming_compress_internal(
-        base, config, /* advanced */ 1, /* cdict */ 0);
+    return old_streaming_compress_internal(base, config, /* advanced */ 1, /* cdict */ 0);
 }
 
-static result_t old_streaming_compress_cdict(
-    method_state_t* base,
-    config_t const* config)
+static result_t old_streaming_compress_cdict(method_state_t *base, config_t const *config)
 {
-    return old_streaming_compress_internal(
-        base, config, /* advanced */ 0, /* cdict */ 1);
+    return old_streaming_compress_internal(base, config, /* advanced */ 0, /* cdict */ 1);
 }
 
-static result_t old_streaming_compress_cdict_advanced(
-    method_state_t* base,
-    config_t const* config)
+static result_t old_streaming_compress_cdict_advanced(method_state_t *base, config_t const *config)
 {
-    return old_streaming_compress_internal(
-        base, config, /* advanced */ 1, /* cdict */ 1);
+    return old_streaming_compress_internal(base, config, /* advanced */ 1, /* cdict */ 1);
 }
 
 method_t const simple = {
@@ -684,7 +650,7 @@ method_t const cli = {
     .destroy = method_state_destroy,
 };
 
-static method_t const* g_methods[] = {
+static method_t const *g_methods[] = {
     &simple,
     &compress_cctx,
     &cli,
@@ -698,4 +664,4 @@ static method_t const* g_methods[] = {
     NULL,
 };
 
-method_t const* const* methods = g_methods;
+method_t const *const *methods = g_methods;

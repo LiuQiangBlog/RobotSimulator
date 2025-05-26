@@ -23,7 +23,6 @@
    - Public forum : https://groups.google.com/forum/#!forum/lz4c
 */
 
-
 /* LOREM_genOut():
  * Generate @size bytes of compressible data using lorem ipsum generator into stdout.
  */

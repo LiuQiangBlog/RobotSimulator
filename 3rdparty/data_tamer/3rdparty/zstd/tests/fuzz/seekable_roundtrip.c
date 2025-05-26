@@ -24,8 +24,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_dataProducer_t *producer = FUZZ_dataProducer_create(src, size);
     size = FUZZ_dataProducer_reserveDataPrefix(producer);
     size_t const compressedBufferSize = ZSTD_compressBound(size) + kSeekableOverheadSize;
-    uint8_t* compressedBuffer = (uint8_t*)malloc(compressedBufferSize);
-    uint8_t* decompressedBuffer = (uint8_t*)malloc(size);
+    uint8_t *compressedBuffer = (uint8_t *)malloc(compressedBufferSize);
+    uint8_t *decompressedBuffer = (uint8_t *)malloc(size);
 
     int const cLevel = FUZZ_dataProducer_int32Range(producer, ZSTD_minCLevel(), ZSTD_maxCLevel());
     unsigned const checksumFlag = FUZZ_dataProducer_int32Range(producer, 0, 1);
@@ -33,23 +33,26 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     size_t const offset = FUZZ_dataProducer_uint32Range(producer, 0, size - uncompressedSize);
     size_t seekSize;
 
-    if (!zscs) {
+    if (!zscs)
+    {
         zscs = ZSTD_seekable_createCStream();
         FUZZ_ASSERT(zscs);
     }
-    if (!stream) {
+    if (!stream)
+    {
         stream = ZSTD_seekable_create();
         FUZZ_ASSERT(stream);
     }
 
-    {   /* Perform a compression */
+    { /* Perform a compression */
         size_t const initStatus = ZSTD_seekable_initCStream(zscs, cLevel, checksumFlag, size);
         size_t endStatus;
-        ZSTD_outBuffer out = { .dst=compressedBuffer, .pos=0, .size=compressedBufferSize };
-        ZSTD_inBuffer  in  = { .src=src, .pos=0, .size=size };
+        ZSTD_outBuffer out = {.dst = compressedBuffer, .pos = 0, .size = compressedBufferSize};
+        ZSTD_inBuffer in = {.src = src, .pos = 0, .size = size};
         FUZZ_ASSERT(!ZSTD_isError(initStatus));
 
-        do {
+        do
+        {
             size_t cSize = ZSTD_seekable_compressStream(zscs, &out, &in);
             FUZZ_ASSERT(!ZSTD_isError(cSize));
         } while (in.pos != in.size);
@@ -60,13 +63,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
         seekSize = out.pos;
     }
 
-    {   /* Decompress at an offset */
+    { /* Decompress at an offset */
         size_t const initStatus = ZSTD_seekable_initBuff(stream, compressedBuffer, seekSize);
         size_t decompressedBytesTotal = 0;
         size_t dSize;
 
         FUZZ_ZASSERT(initStatus);
-        do {
+        do
+        {
             dSize = ZSTD_seekable_decompress(stream, decompressedBuffer, uncompressedSize, offset);
             FUZZ_ASSERT(!ZSTD_isError(dSize));
             decompressedBytesTotal += dSize;
@@ -74,15 +78,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
         FUZZ_ASSERT(decompressedBytesTotal == uncompressedSize);
     }
 
-    FUZZ_ASSERT_MSG(!FUZZ_memcmp(src+offset, decompressedBuffer, uncompressedSize), "Corruption!");
+    FUZZ_ASSERT_MSG(!FUZZ_memcmp(src + offset, decompressedBuffer, uncompressedSize), "Corruption!");
 
     free(decompressedBuffer);
     free(compressedBuffer);
     FUZZ_dataProducer_free(producer);
 
 #ifndef STATEFUL_FUZZING
-    ZSTD_seekable_free(stream); stream = NULL;
-    ZSTD_seekable_freeCStream(zscs); zscs = NULL;
+    ZSTD_seekable_free(stream);
+    stream = NULL;
+    ZSTD_seekable_freeCStream(zscs);
+    zscs = NULL;
 #endif
     return 0;
 }

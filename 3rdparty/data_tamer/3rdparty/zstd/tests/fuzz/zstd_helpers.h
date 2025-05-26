@@ -22,31 +22,33 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-extern const int kMinClevel;
-extern const int kMaxClevel;
+    extern const int kMinClevel;
+    extern const int kMaxClevel;
 
-void FUZZ_setRandomParameters(ZSTD_CCtx *cctx, size_t srcSize, FUZZ_dataProducer_t *producer);
+    void FUZZ_setRandomParameters(ZSTD_CCtx *cctx, size_t srcSize, FUZZ_dataProducer_t *producer);
 
-ZSTD_compressionParameters FUZZ_randomCParams(size_t srcSize, FUZZ_dataProducer_t *producer);
-ZSTD_frameParameters FUZZ_randomFParams(FUZZ_dataProducer_t *producer);
-ZSTD_parameters FUZZ_randomParams(size_t srcSize, FUZZ_dataProducer_t *producer);
+    ZSTD_compressionParameters FUZZ_randomCParams(size_t srcSize, FUZZ_dataProducer_t *producer);
+    ZSTD_frameParameters FUZZ_randomFParams(FUZZ_dataProducer_t *producer);
+    ZSTD_parameters FUZZ_randomParams(size_t srcSize, FUZZ_dataProducer_t *producer);
 
-typedef struct {
-  void* buff;
-  size_t size;
-} FUZZ_dict_t;
+    typedef struct
+    {
+        void *buff;
+        size_t size;
+    } FUZZ_dict_t;
 
-/* Quickly train a dictionary from a source for fuzzing.
- * NOTE: Don't use this to train production dictionaries, it is only optimized
- * for speed, and doesn't care about dictionary quality.
- */
-FUZZ_dict_t FUZZ_train(void const* src, size_t srcSize, FUZZ_dataProducer_t *producer);
+    /* Quickly train a dictionary from a source for fuzzing.
+     * NOTE: Don't use this to train production dictionaries, it is only optimized
+     * for speed, and doesn't care about dictionary quality.
+     */
+    FUZZ_dict_t FUZZ_train(void const *src, size_t srcSize, FUZZ_dataProducer_t *producer);
 
 #ifdef FUZZ_THIRD_PARTY_SEQ_PROD
-extern void* FUZZ_seqProdState;
+    extern void *FUZZ_seqProdState;
 #endif
 
 #ifdef __cplusplus

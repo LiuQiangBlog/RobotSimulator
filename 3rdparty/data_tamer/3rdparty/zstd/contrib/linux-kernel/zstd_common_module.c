@@ -17,7 +17,7 @@
 
 // Export symbols shared by compress and decompress into a common module
 
-#undef ZSTD_isError   /* defined within zstd_internal.h */
+#undef ZSTD_isError /* defined within zstd_internal.h */
 EXPORT_SYMBOL_GPL(FSE_readNCount);
 EXPORT_SYMBOL_GPL(HUF_readStats);
 EXPORT_SYMBOL_GPL(HUF_readStats_wksp);

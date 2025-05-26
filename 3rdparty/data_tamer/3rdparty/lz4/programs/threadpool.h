@@ -25,43 +25,42 @@
 #ifndef THREADPOOL_H
 #define THREADPOOL_H
 
-#if defined (__cplusplus)
-extern "C" {
+#if defined(__cplusplus)
+extern "C"
+{
 #endif
 
-typedef struct TPool_s TPool;
+    typedef struct TPool_s TPool;
 
-/*! TPool_create() :
- *  Create a thread pool with at most @nbThreads.
- * @nbThreads must be at least 1.
- * @queueSize is the maximum number of pending jobs before blocking.
- * @return : TPool* pointer on success, else NULL.
-*/
-TPool* TPool_create(int nbThreads, int queueSize);
+    /*! TPool_create() :
+     *  Create a thread pool with at most @nbThreads.
+     * @nbThreads must be at least 1.
+     * @queueSize is the maximum number of pending jobs before blocking.
+     * @return : TPool* pointer on success, else NULL.
+     */
+    TPool *TPool_create(int nbThreads, int queueSize);
 
-/*! TPool_free() :
- *  Free a thread pool returned by TPool_create().
- *  Waits for the completion of running jobs before freeing resources.
- */
-void TPool_free(TPool* ctx);
+    /*! TPool_free() :
+     *  Free a thread pool returned by TPool_create().
+     *  Waits for the completion of running jobs before freeing resources.
+     */
+    void TPool_free(TPool *ctx);
 
-/*! TPool_submitJob() :
- *  Add @job_function(arg) to the thread pool.
- * @ctx must be valid.
- *  Invocation can block if queue is full.
- *  Note: Ensure @arg's lifetime extends until @job_function completes.
- *  Alternatively, @arg's lifetime must be managed by @job_function.
- */
-void TPool_submitJob(TPool* ctx, void (*job_function)(void*), void* arg);
+    /*! TPool_submitJob() :
+     *  Add @job_function(arg) to the thread pool.
+     * @ctx must be valid.
+     *  Invocation can block if queue is full.
+     *  Note: Ensure @arg's lifetime extends until @job_function completes.
+     *  Alternatively, @arg's lifetime must be managed by @job_function.
+     */
+    void TPool_submitJob(TPool *ctx, void (*job_function)(void *), void *arg);
 
-/*! TPool_jobsCompleted() :
- *  Blocks until all queued jobs are completed.
- */
-void TPool_jobsCompleted(TPool* ctx);
+    /*! TPool_jobsCompleted() :
+     *  Blocks until all queued jobs are completed.
+     */
+    void TPool_jobsCompleted(TPool *ctx);
 
-
-
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif
 

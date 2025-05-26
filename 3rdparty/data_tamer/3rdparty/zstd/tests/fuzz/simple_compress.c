@@ -40,20 +40,23 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 
     int const cLevel = FUZZ_dataProducer_int32Range(producer, kMinClevel, kMaxClevel);
 
-    if (!cctx) {
+    if (!cctx)
+    {
         cctx = ZSTD_createCCtx();
         FUZZ_ASSERT(cctx);
     }
 
     void *rBuf = FUZZ_malloc(bufSize);
     size_t const ret = ZSTD_compressCCtx(cctx, rBuf, bufSize, src, size, cLevel);
-    if (ZSTD_isError(ret)) {
+    if (ZSTD_isError(ret))
+    {
         FUZZ_ASSERT(ZSTD_getErrorCode(ret) == ZSTD_error_dstSize_tooSmall);
     }
     free(rBuf);
     FUZZ_dataProducer_free(producer);
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeCCtx(cctx); cctx = NULL;
+    ZSTD_freeCCtx(cctx);
+    cctx = NULL;
 #endif
     FUZZ_SEQ_PROD_TEARDOWN();
     return 0;

@@ -26,10 +26,14 @@
 static ZSTD_CCtx *cctx = NULL;
 static ZSTD_DCtx *dctx = NULL;
 
-static size_t roundTripTest(void *result, size_t resultCapacity,
-                            void *compressed, size_t compressedCapacity,
-                            const void *src, size_t srcSize,
-                            const void *dict, size_t dictSize,
+static size_t roundTripTest(void *result,
+                            size_t resultCapacity,
+                            void *compressed,
+                            size_t compressedCapacity,
+                            const void *src,
+                            size_t srcSize,
+                            const void *dict,
+                            size_t dictSize,
                             FUZZ_dataProducer_t *producer)
 {
     ZSTD_dictContentType_e const dictContentType = ZSTD_dct_rawContent;
@@ -40,29 +44,22 @@ static size_t roundTripTest(void *result, size_t resultCapacity,
     /* Disable checksum so we can use sizes smaller than compress bound. */
     FUZZ_ZASSERT(ZSTD_CCtx_setParameter(cctx, ZSTD_c_checksumFlag, 0));
     if (refPrefix)
-        FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(
-            cctx, dict, dictSize,
-            ZSTD_dct_rawContent));
+        FUZZ_ZASSERT(ZSTD_CCtx_refPrefix_advanced(cctx, dict, dictSize, ZSTD_dct_rawContent));
     else
         FUZZ_ZASSERT(ZSTD_CCtx_loadDictionary_advanced(
-            cctx, dict, dictSize,
-            (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
+            cctx, dict, dictSize, (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
             ZSTD_dct_rawContent));
     cSize = ZSTD_compress2(cctx, compressed, compressedCapacity, src, srcSize);
     FUZZ_ZASSERT(cSize);
 
     if (refPrefix)
-        FUZZ_ZASSERT(ZSTD_DCtx_refPrefix_advanced(
-            dctx, dict, dictSize,
-            dictContentType));
+        FUZZ_ZASSERT(ZSTD_DCtx_refPrefix_advanced(dctx, dict, dictSize, dictContentType));
     else
         FUZZ_ZASSERT(ZSTD_DCtx_loadDictionary_advanced(
-            dctx, dict, dictSize,
-            (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
+            dctx, dict, dictSize, (ZSTD_dictLoadMethod_e)FUZZ_dataProducer_uint32Range(producer, 0, 1),
             dictContentType));
     {
-        size_t const ret = ZSTD_decompressDCtx(
-                dctx, result, resultCapacity, compressed, cSize);
+        size_t const ret = ZSTD_decompressDCtx(dctx, result, resultCapacity, compressed, cSize);
         return ret;
     }
 }
@@ -76,14 +73,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_dataProducer_t *producer = FUZZ_dataProducer_create(src, size);
     size = FUZZ_dataProducer_reserveDataPrefix(producer);
 
-    uint8_t const* const srcBuf = src;
+    uint8_t const *const srcBuf = src;
     size_t const srcSize = FUZZ_dataProducer_uint32Range(producer, 0, size);
-    uint8_t const* const dictBuf = srcBuf + srcSize;
+    uint8_t const *const dictBuf = srcBuf + srcSize;
     size_t const dictSize = size - srcSize;
     size_t const decompSize = srcSize;
-    void* const decompBuf = FUZZ_malloc(decompSize);
+    void *const decompBuf = FUZZ_malloc(decompSize);
     size_t compSize = ZSTD_compressBound(srcSize);
-    void* compBuf;
+    void *compBuf;
     /* Half of the time fuzz with a 1 byte smaller output size.
      * This will still succeed because we force the checksum to be disabled,
      * giving us 4 bytes of overhead.
@@ -91,11 +88,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     compSize -= FUZZ_dataProducer_uint32Range(producer, 0, 1);
     compBuf = FUZZ_malloc(compSize);
 
-    if (!cctx) {
+    if (!cctx)
+    {
         cctx = ZSTD_createCCtx();
         FUZZ_ASSERT(cctx);
     }
-    if (!dctx) {
+    if (!dctx)
+    {
         dctx = ZSTD_createDCtx();
         FUZZ_ASSERT(dctx);
     }
@@ -111,8 +110,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     free(compBuf);
     FUZZ_dataProducer_free(producer);
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeCCtx(cctx); cctx = NULL;
-    ZSTD_freeDCtx(dctx); dctx = NULL;
+    ZSTD_freeCCtx(cctx);
+    cctx = NULL;
+    ZSTD_freeDCtx(dctx);
+    dctx = NULL;
 #endif
     FUZZ_SEQ_PROD_TEARDOWN();
     return 0;

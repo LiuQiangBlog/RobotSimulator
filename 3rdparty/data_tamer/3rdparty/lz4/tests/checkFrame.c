@@ -23,102 +23,108 @@
     - LZ4 source repository : https://github.com/lz4/lz4
 */
 
-
 /*-************************************
-*  Compiler options
-**************************************/
-#ifdef _MSC_VER    /* Visual Studio */
-#  pragma warning(disable : 4127)    /* disable: C4127: conditional expression is constant */
+ *  Compiler options
+ **************************************/
+#ifdef _MSC_VER                 /* Visual Studio */
+#pragma warning(disable : 4127) /* disable: C4127: conditional expression is constant */
 #endif
 
-
 /*-************************************
-*  Includes
-**************************************/
-#include "util.h"       /* U32 */
-#include <stdlib.h>     /* malloc, free */
-#include <stdio.h>      /* fprintf */
-#include <string.h>     /* strcmp */
-#include <time.h>       /* clock_t, clock(), CLOCKS_PER_SEC */
+ *  Includes
+ **************************************/
+#include "util.h"   /* U32 */
+#include <stdlib.h> /* malloc, free */
+#include <stdio.h>  /* fprintf */
+#include <string.h> /* strcmp */
+#include <time.h>   /* clock_t, clock(), CLOCKS_PER_SEC */
 #include <assert.h>
-#include "lz4frame.h"   /* include multiple times to test correctness/safety */
+#include "lz4frame.h" /* include multiple times to test correctness/safety */
 #include "lz4frame.h"
 #define LZ4F_STATIC_LINKING_ONLY
 #include "lz4frame.h"
 #include "lz4frame.h"
-#include "lz4.h"        /* LZ4_VERSION_STRING */
+#include "lz4.h" /* LZ4_VERSION_STRING */
 #define XXH_STATIC_LINKING_ONLY
-#include "xxhash.h"     /* XXH64 */
-
-
-/*-************************************
-*  Constants
-**************************************/
-#define KB *(1U<<10)
-#define MB *(1U<<20)
-#define GB *(1U<<30)
-
+#include "xxhash.h" /* XXH64 */
 
 /*-************************************
-*  Macros
-**************************************/
-#define DISPLAY(...)          fprintf(stderr, __VA_ARGS__)
-#define DISPLAYLEVEL(l, ...)  if (displayLevel>=l) { DISPLAY(__VA_ARGS__); }
+ *  Constants
+ **************************************/
+#define KB *(1U << 10)
+#define MB *(1U << 20)
+#define GB *(1U << 30)
+
+/*-************************************
+ *  Macros
+ **************************************/
+#define DISPLAY(...) fprintf(stderr, __VA_ARGS__)
+#define DISPLAYLEVEL(l, ...)  \
+    if (displayLevel >= l)    \
+    {                         \
+        DISPLAY(__VA_ARGS__); \
+    }
 
 /**************************************
-*  Exceptions
-***************************************/
+ *  Exceptions
+ ***************************************/
 #ifndef DEBUG
-#  define DEBUG 0
+#define DEBUG 0
 #endif
-#define DEBUGOUTPUT(...) do { if (DEBUG) DISPLAY(__VA_ARGS__); } while (0)
-#define EXM_THROW(error, ...)                                           \
-do {                                                                      \
-    DEBUGOUTPUT("Error defined at %s, line %i : \n", __FILE__, __LINE__); \
-    DISPLAYLEVEL(1, "Error %i : ", error);                                \
-    DISPLAYLEVEL(1, __VA_ARGS__);                                         \
-    DISPLAYLEVEL(1, " \n");                                               \
-    return(error);                                                        \
-} while (0)
-
-
+#define DEBUGOUTPUT(...)          \
+    do                            \
+    {                             \
+        if (DEBUG)                \
+            DISPLAY(__VA_ARGS__); \
+    } while (0)
+#define EXM_THROW(error, ...)                                                 \
+    do                                                                        \
+    {                                                                         \
+        DEBUGOUTPUT("Error defined at %s, line %i : \n", __FILE__, __LINE__); \
+        DISPLAYLEVEL(1, "Error %i : ", error);                                \
+        DISPLAYLEVEL(1, __VA_ARGS__);                                         \
+        DISPLAYLEVEL(1, " \n");                                               \
+        return (error);                                                       \
+    } while (0)
 
 /*-***************************************
-*  Local Parameters
-*****************************************/
+ *  Local Parameters
+ *****************************************/
 static U32 no_prompt = 0;
 static U32 displayLevel = 2;
 static U32 use_pause = 0;
 
-
 /*-*******************************************************
-*  Fuzzer functions
-*********************************************************/
-#define MIN(a,b)  ( (a) < (b) ? (a) : (b) )
-#define MAX(a,b)  ( (a) > (b) ? (a) : (b) )
+ *  Fuzzer functions
+ *********************************************************/
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-typedef struct {
-    void*  srcBuffer;
+typedef struct
+{
+    void *srcBuffer;
     size_t srcBufferSize;
-    void*  dstBuffer;
+    void *dstBuffer;
     size_t dstBufferSize;
     LZ4F_decompressionContext_t ctx;
 } cRess_t;
 
-static int createCResources(cRess_t* ress)
+static int createCResources(cRess_t *ress)
 {
     ress->srcBufferSize = 4 MB;
     ress->srcBuffer = malloc(ress->srcBufferSize);
     ress->dstBufferSize = 4 MB;
     ress->dstBuffer = malloc(ress->dstBufferSize);
 
-    if (!ress->srcBuffer || !ress->dstBuffer) {
+    if (!ress->srcBuffer || !ress->dstBuffer)
+    {
         free(ress->srcBuffer);
         free(ress->dstBuffer);
         EXM_THROW(20, "Allocation error : not enough memory");
     }
 
-    if (LZ4F_isError( LZ4F_createDecompressionContext(&(ress->ctx), LZ4F_VERSION) )) {
+    if (LZ4F_isError(LZ4F_createDecompressionContext(&(ress->ctx), LZ4F_VERSION)))
+    {
         free(ress->srcBuffer);
         free(ress->dstBuffer);
         EXM_THROW(21, "Unable to create decompression context");
@@ -131,17 +137,18 @@ static void freeCResources(cRess_t ress)
     free(ress.srcBuffer);
     free(ress.dstBuffer);
 
-    (void) LZ4F_freeDecompressionContext(ress.ctx);
+    (void)LZ4F_freeDecompressionContext(ress.ctx);
 }
 
-int frameCheck(cRess_t ress, FILE* const srcFile, unsigned bsid, size_t blockSize)
+int frameCheck(cRess_t ress, FILE *const srcFile, unsigned bsid, size_t blockSize)
 {
     LZ4F_errorCode_t nextToLoad = 0;
     size_t curblocksize = 0;
     int partialBlock = 0;
 
     /* Main Loop */
-    for (;;) {
+    for (;;)
+    {
         size_t readSize;
         size_t pos = 0;
         size_t decodedBytes = ress.dstBufferSize;
@@ -150,102 +157,120 @@ int frameCheck(cRess_t ress, FILE* const srcFile, unsigned bsid, size_t blockSiz
 
         /* Read input */
         readSize = fread(ress.srcBuffer, 1, ress.srcBufferSize, srcFile);
-        if (!readSize) break;   /* reached end of file or stream */
+        if (!readSize)
+            break; /* reached end of file or stream */
 
-        while (pos < readSize) {  /* still to read */
+        while (pos < readSize)
+        { /* still to read */
             /* Decode Input (at least partially) */
-            if (!nextToLoad) {
+            if (!nextToLoad)
+            {
                 /* LZ4F_decompress returned 0 : starting new frame */
                 curblocksize = 0;
                 remaining = readSize - pos;
-                nextToLoad = LZ4F_getFrameInfo(ress.ctx, &frameInfo, (char*)(ress.srcBuffer)+pos, &remaining);
+                nextToLoad = LZ4F_getFrameInfo(ress.ctx, &frameInfo, (char *)(ress.srcBuffer) + pos, &remaining);
                 if (LZ4F_isError(nextToLoad))
-                    EXM_THROW(22, "Error getting frame info: %s",
-                                LZ4F_getErrorName(nextToLoad));
-                if (frameInfo.blockSizeID != (LZ4F_blockSizeID_t) bsid)
-                    EXM_THROW(23, "Block size ID %u != expected %u",
-                                frameInfo.blockSizeID, bsid);
+                    EXM_THROW(22, "Error getting frame info: %s", LZ4F_getErrorName(nextToLoad));
+                if (frameInfo.blockSizeID != (LZ4F_blockSizeID_t)bsid)
+                    EXM_THROW(23, "Block size ID %u != expected %u", frameInfo.blockSizeID, bsid);
                 pos += remaining;
                 /* nextToLoad should be block header size */
                 remaining = nextToLoad;
                 decodedBytes = ress.dstBufferSize;
-                nextToLoad = LZ4F_decompress(ress.ctx, ress.dstBuffer, &decodedBytes, (char*)(ress.srcBuffer)+pos, &remaining, NULL);
-                if (LZ4F_isError(nextToLoad)) EXM_THROW(24, "Decompression error : %s", LZ4F_getErrorName(nextToLoad));
+                nextToLoad = LZ4F_decompress(ress.ctx, ress.dstBuffer, &decodedBytes, (char *)(ress.srcBuffer) + pos,
+                                             &remaining, NULL);
+                if (LZ4F_isError(nextToLoad))
+                    EXM_THROW(24, "Decompression error : %s", LZ4F_getErrorName(nextToLoad));
                 pos += remaining;
             }
             decodedBytes = ress.dstBufferSize;
             /* nextToLoad should be just enough to cover the next block */
-            if (nextToLoad > (readSize - pos)) {
+            if (nextToLoad > (readSize - pos))
+            {
                 /* block is not fully contained in current buffer */
                 partialBlock = 1;
                 remaining = readSize - pos;
-            } else {
-                if (partialBlock) {
+            }
+            else
+            {
+                if (partialBlock)
+                {
                     partialBlock = 0;
                 }
                 remaining = nextToLoad;
             }
-            nextToLoad = LZ4F_decompress(ress.ctx, ress.dstBuffer, &decodedBytes, (char*)(ress.srcBuffer)+pos, &remaining, NULL);
-            if (LZ4F_isError(nextToLoad)) EXM_THROW(24, "Decompression error : %s", LZ4F_getErrorName(nextToLoad));
+            nextToLoad = LZ4F_decompress(ress.ctx, ress.dstBuffer, &decodedBytes, (char *)(ress.srcBuffer) + pos,
+                                         &remaining, NULL);
+            if (LZ4F_isError(nextToLoad))
+                EXM_THROW(24, "Decompression error : %s", LZ4F_getErrorName(nextToLoad));
             curblocksize += decodedBytes;
             pos += remaining;
-            if (!partialBlock) {
-                /* detect small block due to end of frame; the final 4-byte frame checksum could be left in the buffer */
-                if ((curblocksize != 0) && (nextToLoad > 4)) {
+            if (!partialBlock)
+            {
+                /* detect small block due to end of frame; the final 4-byte frame checksum could be left in the buffer
+                 */
+                if ((curblocksize != 0) && (nextToLoad > 4))
+                {
                     if (curblocksize != blockSize)
-                        EXM_THROW(25, "Block size %u != expected %u, pos %u\n",
-                                    (unsigned)curblocksize, (unsigned)blockSize, (unsigned)pos);
+                        EXM_THROW(25, "Block size %u != expected %u, pos %u\n", (unsigned)curblocksize,
+                                  (unsigned)blockSize, (unsigned)pos);
                 }
                 curblocksize = 0;
             }
         }
     }
     /* can be out because readSize == 0, which could be an fread() error */
-    if (ferror(srcFile)) EXM_THROW(26, "Read error");
+    if (ferror(srcFile))
+        EXM_THROW(26, "Read error");
 
-    if (nextToLoad!=0) EXM_THROW(27, "Unfinished stream");
+    if (nextToLoad != 0)
+        EXM_THROW(27, "Unfinished stream");
 
     return 0;
 }
 
-int FUZ_usage(const char* programName)
+int FUZ_usage(const char *programName)
 {
-    DISPLAY( "Usage :\n");
-    DISPLAY( "      %s [args] filename\n", programName);
-    DISPLAY( "\n");
-    DISPLAY( "Arguments :\n");
-    DISPLAY( " -b#    : expected blocksizeID [4-7] (required)\n");
-    DISPLAY( " -B#    : expected blocksize [32-4194304] (required)\n");
-    DISPLAY( " -v     : verbose\n");
-    DISPLAY( " -h     : display help and exit\n");
+    DISPLAY("Usage :\n");
+    DISPLAY("      %s [args] filename\n", programName);
+    DISPLAY("\n");
+    DISPLAY("Arguments :\n");
+    DISPLAY(" -b#    : expected blocksizeID [4-7] (required)\n");
+    DISPLAY(" -B#    : expected blocksize [32-4194304] (required)\n");
+    DISPLAY(" -v     : verbose\n");
+    DISPLAY(" -h     : display help and exit\n");
     return 0;
 }
 
-
-int main(int argc, const char** argv)
+int main(int argc, const char **argv)
 {
     int argNb;
-    unsigned bsid=0;
-    size_t blockSize=0;
-    const char* const programName = argv[0];
+    unsigned bsid = 0;
+    size_t blockSize = 0;
+    const char *const programName = argv[0];
 
     /* Check command line */
-    for (argNb=1; argNb<argc; argNb++) {
-        const char* argument = argv[argNb];
+    for (argNb = 1; argNb < argc; argNb++)
+    {
+        const char *argument = argv[argNb];
 
-        if(!argument) continue;   /* Protection if argument empty */
+        if (!argument)
+            continue; /* Protection if argument empty */
 
         /* Decode command (note : aggregated short commands are allowed) */
-        if (argument[0]=='-') {
-            if (!strcmp(argument, "--no-prompt")) {
-                no_prompt=1;
-                displayLevel=1;
+        if (argument[0] == '-')
+        {
+            if (!strcmp(argument, "--no-prompt"))
+            {
+                no_prompt = 1;
+                displayLevel = 1;
                 continue;
             }
             argument++;
 
-            while (*argument!=0) {
-                switch(*argument)
+            while (*argument != 0)
+            {
+                switch (*argument)
                 {
                 case 'h':
                     return FUZ_usage(programName);
@@ -264,8 +289,9 @@ int main(int argc, const char** argv)
 
                 case 'b':
                     argument++;
-                    bsid=0;
-                    while ((*argument>='0') && (*argument<='9')) {
+                    bsid = 0;
+                    while ((*argument >= '0') && (*argument <= '9'))
+                    {
                         bsid *= 10;
                         bsid += (unsigned)(*argument - '0');
                         argument++;
@@ -274,34 +300,38 @@ int main(int argc, const char** argv)
 
                 case 'B':
                     argument++;
-                    blockSize=0;
-                    while ((*argument>='0') && (*argument<='9')) {
+                    blockSize = 0;
+                    while ((*argument >= '0') && (*argument <= '9'))
+                    {
                         blockSize *= 10;
                         blockSize += (size_t)(*argument - '0');
                         argument++;
                     }
                     break;
 
-                default:
-                    ;
+                default:;
                     return FUZ_usage(programName);
                 }
             }
-        } else {
+        }
+        else
+        {
             int err;
             FILE *srcFile;
             cRess_t ress;
             if (bsid == 0 || blockSize == 0)
-              return FUZ_usage(programName);
-            DISPLAY("Starting frame checker (%i-bits, %s)\n", (int)(sizeof(size_t)*8), LZ4_VERSION_STRING);
+                return FUZ_usage(programName);
+            DISPLAY("Starting frame checker (%i-bits, %s)\n", (int)(sizeof(size_t) * 8), LZ4_VERSION_STRING);
             err = createCResources(&ress);
-            if (err) return (err);
+            if (err)
+                return (err);
             srcFile = fopen(argument, "rb");
-            if ( srcFile==NULL ) {
+            if (srcFile == NULL)
+            {
                 freeCResources(ress);
                 EXM_THROW(1, "%s: %s \n", argument, strerror(errno));
             }
-            assert (srcFile != NULL);
+            assert(srcFile != NULL);
             err = frameCheck(ress, srcFile, bsid, blockSize);
             freeCResources(ress);
             fclose(srcFile);

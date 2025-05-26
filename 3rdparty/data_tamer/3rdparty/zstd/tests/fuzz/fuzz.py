@@ -188,10 +188,10 @@ def compiler_version(cc, cxx):
     version = None
     print("{} --version:\n{}".format(cc, cc_version_bytes.decode('ascii')))
     if b'clang' in cc_version_bytes:
-        assert(b'clang' in cxx_version_bytes)
+        assert (b'clang' in cxx_version_bytes)
         compiler = 'clang'
     elif b'gcc' in cc_version_bytes or b'GCC' in cc_version_bytes:
-        assert(b'gcc' in cxx_version_bytes or b'g++' in cxx_version_bytes)
+        assert (b'gcc' in cxx_version_bytes or b'g++' in cxx_version_bytes)
         compiler = 'gcc'
     if compiler is not None:
         version_regex = b'([0-9]+)\.([0-9]+)\.([0-9]+)'
@@ -410,7 +410,7 @@ def build(args):
     common_flags = [
         '-Wno-error=declaration-after-statement',
         '-Wno-error=c++-compat',
-        '-Wno-error=deprecated' # C files are sometimes compiled with CXX
+        '-Wno-error=deprecated'  # C files are sometimes compiled with CXX
     ]
 
     cppflags += [
@@ -497,15 +497,15 @@ def build(args):
     print(' '.join(clean_cmd))
     subprocess.check_call(clean_cmd)
     build_cmd = [
-        'make',
-        '-j',
-        cc_str,
-        cxx_str,
-        cppflags_str,
-        cflags_str,
-        cxxflags_str,
-        ldflags_str,
-    ] + mflags + targets
+                    'make',
+                    '-j',
+                    cc_str,
+                    cxx_str,
+                    cppflags_str,
+                    cflags_str,
+                    cxxflags_str,
+                    ldflags_str,
+                ] + mflags + targets
     print(' '.join(build_cmd))
     subprocess.check_call(build_cmd)
     return 0

@@ -9,6 +9,7 @@ this out with a different one if desired. The sample sequence producer implement
 LZ parsing with a 1KB hashtable. Dictionary-based parsing is not currently supported.
 
 Command line :
+
 ```
 externalSequenceProducer filename
 ```

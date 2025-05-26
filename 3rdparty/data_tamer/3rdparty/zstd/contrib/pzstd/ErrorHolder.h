@@ -13,42 +13,51 @@
 #include <stdexcept>
 #include <string>
 
-namespace pzstd {
+namespace pzstd
+{
 
 // Coordinates graceful shutdown of the pzstd pipeline
-class ErrorHolder {
-  std::atomic<bool> error_;
-  std::string message_;
+class ErrorHolder
+{
+    std::atomic<bool> error_;
+    std::string message_;
 
- public:
-  ErrorHolder() : error_(false) {}
+public:
+    ErrorHolder() : error_(false) {}
 
-  bool hasError() noexcept {
-    return error_.load();
-  }
-
-  void setError(std::string message) noexcept {
-    // Given multiple possibly concurrent calls, exactly one will ever succeed.
-    bool expected = false;
-    if (error_.compare_exchange_strong(expected, true)) {
-      message_ = std::move(message);
+    bool hasError() noexcept
+    {
+        return error_.load();
     }
-  }
 
-  bool check(bool predicate, std::string message) noexcept {
-    if (!predicate) {
-      setError(std::move(message));
+    void setError(std::string message) noexcept
+    {
+        // Given multiple possibly concurrent calls, exactly one will ever succeed.
+        bool expected = false;
+        if (error_.compare_exchange_strong(expected, true))
+        {
+            message_ = std::move(message);
+        }
     }
-    return !hasError();
-  }
 
-  std::string getError() noexcept {
-    error_.store(false);
-    return std::move(message_);
-  }
+    bool check(bool predicate, std::string message) noexcept
+    {
+        if (!predicate)
+        {
+            setError(std::move(message));
+        }
+        return !hasError();
+    }
 
-  ~ErrorHolder() {
-    assert(!hasError());
-  }
+    std::string getError() noexcept
+    {
+        error_.store(false);
+        return std::move(message_);
+    }
+
+    ~ErrorHolder()
+    {
+        assert(!hasError());
+    }
 };
-}
+} // namespace pzstd

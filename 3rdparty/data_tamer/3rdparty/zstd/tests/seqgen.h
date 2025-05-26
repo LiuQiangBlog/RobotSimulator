@@ -14,9 +14,10 @@
 #define XXH_STATIC_LINKING_ONLY
 
 #include "xxhash.h"
-#include <stddef.h>   /* size_t */
+#include <stddef.h> /* size_t */
 
-typedef enum {
+typedef enum
+{
     SEQ_gen_ml = 0,
     SEQ_gen_ll,
     SEQ_gen_of,
@@ -24,7 +25,8 @@ typedef enum {
 } SEQ_gen_type;
 
 /* Internal state, do not use */
-typedef struct {
+typedef struct
+{
     XXH64_state_t xxh; /* xxh state for all the data produced so far (seed=0) */
     unsigned seed;
     int state; /* enum to control state machine (clean=0) */
@@ -34,8 +36,9 @@ typedef struct {
 
 SEQ_stream SEQ_initStream(unsigned seed);
 
-typedef struct {
-    void* dst;
+typedef struct
+{
+    void *dst;
     size_t size;
     size_t pos;
 } SEQ_outBuffer;
@@ -49,10 +52,9 @@ typedef struct {
  *
  * NOTE: Very small values don't work well (< 6).
  */
-size_t SEQ_gen(SEQ_stream* stream, SEQ_gen_type type, unsigned value,
-               SEQ_outBuffer* out);
+size_t SEQ_gen(SEQ_stream *stream, SEQ_gen_type type, unsigned value, SEQ_outBuffer *out);
 
 /* Returns the xxhash of the data produced so far */
-XXH64_hash_t SEQ_digest(SEQ_stream const* stream);
+XXH64_hash_t SEQ_digest(SEQ_stream const *stream);
 
 #endif /* SEQGEN_H */

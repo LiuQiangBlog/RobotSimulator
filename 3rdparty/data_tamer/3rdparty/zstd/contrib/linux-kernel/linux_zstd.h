@@ -133,8 +133,7 @@ typedef ZSTD_parameters zstd_parameters;
  *
  * Return:              The selected zstd_parameters.
  */
-zstd_parameters zstd_get_params(int level,
-	unsigned long long estimated_src_size);
+zstd_parameters zstd_get_params(int level, unsigned long long estimated_src_size);
 
 typedef ZSTD_CCtx zstd_cctx;
 typedef ZSTD_cParameter zstd_cparameter;
@@ -202,8 +201,12 @@ zstd_cctx *zstd_init_cctx(void *workspace, size_t workspace_size);
  * Return:        The compressed size or an error, which can be checked using
  *                zstd_is_error().
  */
-size_t zstd_compress_cctx(zstd_cctx *cctx, void *dst, size_t dst_capacity,
-	const void *src, size_t src_size, const zstd_parameters *parameters);
+size_t zstd_compress_cctx(zstd_cctx *cctx,
+                          void *dst,
+                          size_t dst_capacity,
+                          const void *src,
+                          size_t src_size,
+                          const zstd_parameters *parameters);
 
 /* ======   Single-pass Decompression   ====== */
 
@@ -242,8 +245,7 @@ zstd_dctx *zstd_init_dctx(void *workspace, size_t workspace_size);
  * Return:        The decompressed size or an error, which can be checked using
  *                zstd_is_error().
  */
-size_t zstd_decompress_dctx(zstd_dctx *dctx, void *dst, size_t dst_capacity,
-	const void *src, size_t src_size);
+size_t zstd_decompress_dctx(zstd_dctx *dctx, void *dst, size_t dst_capacity, const void *src, size_t src_size);
 
 /* ======   Streaming Buffers   ====== */
 
@@ -308,7 +310,9 @@ size_t zstd_cstream_workspace_bound_with_ext_seq_prod(const zstd_compression_par
  * Return:            The zstd streaming compression context or NULL on error.
  */
 zstd_cstream *zstd_init_cstream(const zstd_parameters *parameters,
-	unsigned long long pledged_src_size, void *workspace, size_t workspace_size);
+                                unsigned long long pledged_src_size,
+                                void *workspace,
+                                size_t workspace_size);
 
 /**
  * zstd_reset_cstream() - reset the context using parameters from creation
@@ -322,8 +326,7 @@ zstd_cstream *zstd_init_cstream(const zstd_parameters *parameters,
  * Return:            Zero or an error, which can be checked using
  *                    zstd_is_error().
  */
-size_t zstd_reset_cstream(zstd_cstream *cstream,
-	unsigned long long pledged_src_size);
+size_t zstd_reset_cstream(zstd_cstream *cstream, unsigned long long pledged_src_size);
 
 /**
  * zstd_compress_stream() - streaming compress some of input into output
@@ -342,8 +345,7 @@ size_t zstd_reset_cstream(zstd_cstream *cstream,
  *           function call or an error, which can be checked using
  *           zstd_is_error().
  */
-size_t zstd_compress_stream(zstd_cstream *cstream, zstd_out_buffer *output,
-	zstd_in_buffer *input);
+size_t zstd_compress_stream(zstd_cstream *cstream, zstd_out_buffer *output, zstd_in_buffer *input);
 
 /**
  * zstd_flush_stream() - flush internal buffers into output
@@ -398,8 +400,7 @@ size_t zstd_dstream_workspace_bound(size_t max_window_size);
  *
  * Return:           The zstd streaming decompression context.
  */
-zstd_dstream *zstd_init_dstream(size_t max_window_size, void *workspace,
-	size_t workspace_size);
+zstd_dstream *zstd_init_dstream(size_t max_window_size, void *workspace, size_t workspace_size);
 
 /**
  * zstd_reset_dstream() - reset the context using parameters from creation
@@ -433,8 +434,7 @@ size_t zstd_reset_dstream(zstd_dstream *dstream);
  *           using zstd_is_error(). The size hint will never load more than the
  *           frame.
  */
-size_t zstd_decompress_stream(zstd_dstream *dstream, zstd_out_buffer *output,
-	zstd_in_buffer *input);
+size_t zstd_decompress_stream(zstd_dstream *dstream, zstd_out_buffer *output, zstd_in_buffer *input);
 
 /* ======   Frame Inspection Functions ====== */
 
@@ -457,11 +457,9 @@ size_t zstd_find_frame_compressed_size(const void *src, size_t src_size);
  * sequence producer API. See upstream zstd.h for detailed documentation.
  */
 typedef ZSTD_sequenceProducer_F zstd_sequence_producer_f;
-void zstd_register_sequence_producer(
-  zstd_cctx *cctx,
-  void* sequence_producer_state,
-  zstd_sequence_producer_f sequence_producer
-);
+void zstd_register_sequence_producer(zstd_cctx *cctx,
+                                     void *sequence_producer_state,
+                                     zstd_sequence_producer_f sequence_producer);
 
 /**
  * struct zstd_frame_params - zstd frame parameters stored in the frame header
@@ -488,8 +486,7 @@ typedef ZSTD_FrameHeader zstd_frame_header;
  *            must be provided to make forward progress. Otherwise it returns
  *            an error, which can be checked using zstd_is_error().
  */
-size_t zstd_get_frame_header(zstd_frame_header *params, const void *src,
-	size_t src_size);
+size_t zstd_get_frame_header(zstd_frame_header *params, const void *src, size_t src_size);
 
 /**
  * struct zstd_sequence - a sequence of literals or a match
@@ -517,9 +514,14 @@ typedef ZSTD_Sequence zstd_sequence;
  * Return: The compressed size or an error, which can be checked using
  * 	   zstd_is_error().
  */
-size_t zstd_compress_sequences_and_literals(zstd_cctx *cctx, void* dst, size_t dst_capacity,
-					    const zstd_sequence *in_seqs, size_t in_seqs_size,
-					    const void* literals, size_t lit_size, size_t lit_capacity,
-					    size_t decompressed_size);
+size_t zstd_compress_sequences_and_literals(zstd_cctx *cctx,
+                                            void *dst,
+                                            size_t dst_capacity,
+                                            const zstd_sequence *in_seqs,
+                                            size_t in_seqs_size,
+                                            const void *literals,
+                                            size_t lit_size,
+                                            size_t lit_capacity,
+                                            size_t decompressed_size);
 
-#endif  /* LINUX_ZSTD_H */
+#endif /* LINUX_ZSTD_H */

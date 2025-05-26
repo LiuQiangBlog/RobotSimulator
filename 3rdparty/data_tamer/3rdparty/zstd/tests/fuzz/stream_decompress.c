@@ -25,44 +25,51 @@
 static ZSTD_DStream *dstream = NULL;
 uint32_t seed;
 
-static ZSTD_outBuffer makeOutBuffer(FUZZ_dataProducer_t *producer, void* buf, size_t bufSize)
+static ZSTD_outBuffer makeOutBuffer(FUZZ_dataProducer_t *producer, void *buf, size_t bufSize)
 {
-  ZSTD_outBuffer buffer = { buf, 0, 0 };
+    ZSTD_outBuffer buffer = {buf, 0, 0};
 
-  if (FUZZ_dataProducer_empty(producer)) {
-    buffer.size = bufSize;
-  } else {
-    buffer.size = (FUZZ_dataProducer_uint32Range(producer, 0, bufSize));
-  }
-  FUZZ_ASSERT(buffer.size <= bufSize);
+    if (FUZZ_dataProducer_empty(producer))
+    {
+        buffer.size = bufSize;
+    }
+    else
+    {
+        buffer.size = (FUZZ_dataProducer_uint32Range(producer, 0, bufSize));
+    }
+    FUZZ_ASSERT(buffer.size <= bufSize);
 
-  if (buffer.size == 0) {
-    buffer.dst = NULL;
-  }
+    if (buffer.size == 0)
+    {
+        buffer.dst = NULL;
+    }
 
-  return buffer;
+    return buffer;
 }
 
-static ZSTD_inBuffer makeInBuffer(const uint8_t **src, size_t *size,
-                                  FUZZ_dataProducer_t *producer)
+static ZSTD_inBuffer makeInBuffer(const uint8_t **src, size_t *size, FUZZ_dataProducer_t *producer)
 {
-  ZSTD_inBuffer buffer = { *src, 0, 0 };
+    ZSTD_inBuffer buffer = {*src, 0, 0};
 
-  FUZZ_ASSERT(*size > 0);
-  if (FUZZ_dataProducer_empty(producer)) {
-    buffer.size = *size;
-  } else {
-    buffer.size = (FUZZ_dataProducer_uint32Range(producer, 0, *size));
-  }
-  FUZZ_ASSERT(buffer.size <= *size);
-  *src += buffer.size;
-  *size -= buffer.size;
+    FUZZ_ASSERT(*size > 0);
+    if (FUZZ_dataProducer_empty(producer))
+    {
+        buffer.size = *size;
+    }
+    else
+    {
+        buffer.size = (FUZZ_dataProducer_uint32Range(producer, 0, *size));
+    }
+    FUZZ_ASSERT(buffer.size <= *size);
+    *src += buffer.size;
+    *size -= buffer.size;
 
-  if (buffer.size == 0) {
-    buffer.src = NULL;
-  }
+    if (buffer.size == 0)
+    {
+        buffer.src = NULL;
+    }
 
-  return buffer;
+    return buffer;
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
@@ -72,7 +79,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     FUZZ_dataProducer_t *producer = FUZZ_dataProducer_create(src, size);
     int stableOutBuffer;
     ZSTD_outBuffer out;
-    void* buf;
+    void *buf;
     size_t bufSize;
     size = FUZZ_dataProducer_reserveDataPrefix(producer);
     bufSize = MAX(10 * size, ZSTD_BLOCKSIZE_MAX);
@@ -80,30 +87,41 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
     /* Allocate all buffers and contexts if not already allocated */
     buf = FUZZ_malloc(bufSize);
 
-    if (!dstream) {
+    if (!dstream)
+    {
         dstream = ZSTD_createDStream();
         FUZZ_ASSERT(dstream);
-    } else {
+    }
+    else
+    {
         FUZZ_ZASSERT(ZSTD_DCtx_reset(dstream, ZSTD_reset_session_only));
     }
 
     stableOutBuffer = FUZZ_dataProducer_uint32Range(producer, 0, 10) == 5;
-    if (stableOutBuffer) {
-      FUZZ_ZASSERT(ZSTD_DCtx_setParameter(dstream, ZSTD_d_stableOutBuffer, 1));
-      out.dst = buf;
-      out.size = bufSize;
-      out.pos = 0;
-    } else {
-      out = makeOutBuffer(producer, buf, bufSize);
+    if (stableOutBuffer)
+    {
+        FUZZ_ZASSERT(ZSTD_DCtx_setParameter(dstream, ZSTD_d_stableOutBuffer, 1));
+        out.dst = buf;
+        out.size = bufSize;
+        out.pos = 0;
+    }
+    else
+    {
+        out = makeOutBuffer(producer, buf, bufSize);
     }
 
-    while (size > 0) {
+    while (size > 0)
+    {
         ZSTD_inBuffer in = makeInBuffer(&src, &size, producer);
-        do {
+        do
+        {
             size_t const rc = ZSTD_decompressStream(dstream, &out, &in);
-            if (ZSTD_isError(rc)) goto error;
-            if (out.pos == out.size) {
-                if (stableOutBuffer) goto error;
+            if (ZSTD_isError(rc))
+                goto error;
+            if (out.pos == out.size)
+            {
+                if (stableOutBuffer)
+                    goto error;
                 out = makeOutBuffer(producer, buf, bufSize);
             }
         } while (in.pos != in.size);
@@ -111,7 +129,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size)
 
 error:
 #ifndef STATEFUL_FUZZING
-    ZSTD_freeDStream(dstream); dstream = NULL;
+    ZSTD_freeDStream(dstream);
+    dstream = NULL;
 #endif
     FUZZ_dataProducer_free(producer);
     free(buf);

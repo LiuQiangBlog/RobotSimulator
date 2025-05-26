@@ -17,7 +17,6 @@ import pickle as pk
 import subprocess
 import urllib.request
 
-
 GITHUB_API_PR_URL = "https://api.github.com/repos/facebook/zstd/pulls?state=open"
 GITHUB_URL_TEMPLATE = "https://github.com/{}/zstd"
 RELEASE_BUILD = {"user": "facebook", "branch": "dev", "hash": None}
@@ -145,7 +144,9 @@ def benchmark(build, filenames, levels, iterations):
 def benchmark_dictionary_single(executable, filenames_directory, dictionary_filename, level, iterations):
     cspeeds, dspeeds = [], []
     for _ in range(iterations):
-        output = subprocess.run([executable, "-qb{}".format(level), "-D", dictionary_filename, "-r", filenames_directory], stdout=subprocess.PIPE).stdout.decode("utf-8").split(" ")
+        output = subprocess.run(
+            [executable, "-qb{}".format(level), "-D", dictionary_filename, "-r", filenames_directory],
+            stdout=subprocess.PIPE).stdout.decode("utf-8").split(" ")
         cspeed, dspeed = parse_benchmark_output(output)
         cspeeds.append(cspeed)
         dspeeds.append(dspeed)
@@ -166,7 +167,8 @@ def benchmark_dictionary_single(executable, filenames_directory, dictionary_file
 
 def benchmark_dictionary(build, filenames_directory, dictionary_filename, levels, iterations):
     executable = clone_and_build(build)
-    return [benchmark_dictionary_single(executable, filenames_directory, dictionary_filename, l, iterations) for l in levels]
+    return [benchmark_dictionary_single(executable, filenames_directory, dictionary_filename, l, iterations) for l in
+            levels]
 
 
 def parse_regressions_and_labels(old_cspeed, new_cspeed, old_dspeed, new_dspeed, baseline_build, test_build):
@@ -218,7 +220,9 @@ def get_regressions(baseline_build, test_build, iterations, filenames, levels):
                 )
     return regressions
 
-def get_regressions_dictionary(baseline_build, test_build, filenames_directory, dictionary_filename, levels, iterations):
+
+def get_regressions_dictionary(baseline_build, test_build, filenames_directory, dictionary_filename, levels,
+                               iterations):
     old = benchmark_dictionary(baseline_build, filenames_directory, dictionary_filename, levels, iterations)
     new = benchmark_dictionary(test_build, filenames_directory, dictionary_filename, levels, iterations)
     regressions = []
@@ -257,7 +261,8 @@ def get_regressions_dictionary(baseline_build, test_build, filenames_directory, 
         return regressions
 
 
-def main(filenames, levels, iterations, builds=None, emails=None, continuous=False, frequency=DEFAULT_MAX_API_CALL_FREQUENCY_SEC, dictionary_filename=None):
+def main(filenames, levels, iterations, builds=None, emails=None, continuous=False,
+         frequency=DEFAULT_MAX_API_CALL_FREQUENCY_SEC, dictionary_filename=None):
     if builds == None:
         builds = get_new_open_pr_builds()
     while True:
@@ -293,10 +298,17 @@ if __name__ == "__main__":
     parser.add_argument("--directory", help="directory with files to benchmark", default="golden-compression")
     parser.add_argument("--levels", help="levels to test e.g. ('1,2,3')", default="1")
     parser.add_argument("--iterations", help="number of benchmark iterations to run", default="1")
-    parser.add_argument("--emails", help="email addresses of people who will be alerted upon regression. Only for continuous mode", default=None)
-    parser.add_argument("--frequency", help="specifies the number of seconds to wait before each successive check for new PRs in continuous mode", default=DEFAULT_MAX_API_CALL_FREQUENCY_SEC)
-    parser.add_argument("--mode", help="'fastmode', 'onetime', 'current', or 'continuous' (see README.md for details)", default="current")
-    parser.add_argument("--dict", help="filename of dictionary to use (when set, this dictionary will be used to compress the files provided inside --directory)", default=None)
+    parser.add_argument("--emails",
+                        help="email addresses of people who will be alerted upon regression. Only for continuous mode",
+                        default=None)
+    parser.add_argument("--frequency",
+                        help="specifies the number of seconds to wait before each successive check for new PRs in continuous mode",
+                        default=DEFAULT_MAX_API_CALL_FREQUENCY_SEC)
+    parser.add_argument("--mode", help="'fastmode', 'onetime', 'current', or 'continuous' (see README.md for details)",
+                        default="current")
+    parser.add_argument("--dict",
+                        help="filename of dictionary to use (when set, this dictionary will be used to compress the files provided inside --directory)",
+                        default=None)
 
     args = parser.parse_args()
     filenames = args.directory
@@ -323,4 +335,5 @@ if __name__ == "__main__":
         builds = [{"user": "facebook", "branch": "release", "hash": None}]
         main(filenames, levels, iterations, builds, frequency=frequency, dictionary_filename=dictionary_filename)
     else:
-        main(filenames, levels, iterations, None, emails, True, frequency=frequency, dictionary_filename=dictionary_filename)
+        main(filenames, levels, iterations, None, emails, True, frequency=frequency,
+             dictionary_filename=dictionary_filename)

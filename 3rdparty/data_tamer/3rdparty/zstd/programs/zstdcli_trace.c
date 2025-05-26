@@ -27,39 +27,45 @@
 
 #if ZSTD_TRACE
 
-static FILE* g_traceFile = NULL;
+static FILE *g_traceFile = NULL;
 static int g_mutexInit = 0;
 static ZSTD_pthread_mutex_t g_mutex;
 static UTIL_time_t g_enableTime = UTIL_TIME_INITIALIZER;
 
-void TRACE_enable(char const* filename)
+void TRACE_enable(char const *filename)
 {
     int const writeHeader = !UTIL_isRegularFile(filename);
     if (g_traceFile)
         fclose(g_traceFile);
     g_traceFile = fopen(filename, "a");
-    if (g_traceFile && writeHeader) {
+    if (g_traceFile && writeHeader)
+    {
         /* Fields:
-        * algorithm
-        * version
-        * method
-        * streaming
-        * level
-        * workers
-        * dictionary size
-        * uncompressed size
-        * compressed size
-        * duration nanos
-        * compression ratio
-        * speed MB/s
-        */
-        fprintf(g_traceFile, "Algorithm, Version, Method, Mode, Level, Workers, Dictionary Size, Uncompressed Size, Compressed Size, Duration Nanos, Compression Ratio, Speed MB/s\n");
+         * algorithm
+         * version
+         * method
+         * streaming
+         * level
+         * workers
+         * dictionary size
+         * uncompressed size
+         * compressed size
+         * duration nanos
+         * compression ratio
+         * speed MB/s
+         */
+        fprintf(g_traceFile, "Algorithm, Version, Method, Mode, Level, Workers, Dictionary Size, Uncompressed Size, "
+                             "Compressed Size, Duration Nanos, Compression Ratio, Speed MB/s\n");
     }
     g_enableTime = UTIL_getTime();
-    if (!g_mutexInit) {
-        if (!ZSTD_pthread_mutex_init(&g_mutex, NULL)) {
+    if (!g_mutexInit)
+    {
+        if (!ZSTD_pthread_mutex_init(&g_mutex, NULL))
+        {
             g_mutexInit = 1;
-        } else {
+        }
+        else
+        {
             TRACE_finish();
         }
     }
@@ -67,23 +73,26 @@ void TRACE_enable(char const* filename)
 
 void TRACE_finish(void)
 {
-    if (g_traceFile) {
+    if (g_traceFile)
+    {
         fclose(g_traceFile);
     }
     g_traceFile = NULL;
-    if (g_mutexInit) {
+    if (g_mutexInit)
+    {
         ZSTD_pthread_mutex_destroy(&g_mutex);
         g_mutexInit = 0;
     }
 }
 
-static void TRACE_log(char const* method, PTime duration, ZSTD_Trace const* trace)
+static void TRACE_log(char const *method, PTime duration, ZSTD_Trace const *trace)
 {
     int level = 0;
     int workers = 0;
     double const ratio = (double)trace->uncompressedSize / (double)trace->compressedSize;
     double const speed = ((double)trace->uncompressedSize * 1000) / (double)duration;
-    if (trace->params) {
+    if (trace->params)
+    {
         ZSTD_CCtxParams_getParameter(trace->params, ZSTD_c_compressionLevel, &level);
         ZSTD_CCtxParams_getParameter(trace->params, ZSTD_c_nbWorkers, &workers);
     }
@@ -104,19 +113,10 @@ static void TRACE_log(char const* method, PTime duration, ZSTD_Trace const* trac
      * compression ratio
      * speed MB/s
      */
-    fprintf(g_traceFile,
-        "zstd, %u, %s, %s, %d, %d, %llu, %llu, %llu, %llu, %.2f, %.2f\n",
-        trace->version,
-        method,
-        trace->streaming ? "streaming" : "single-pass",
-        level,
-        workers,
-        (unsigned long long)trace->dictionarySize,
-        (unsigned long long)trace->uncompressedSize,
-        (unsigned long long)trace->compressedSize,
-        (unsigned long long)duration,
-        ratio,
-        speed);
+    fprintf(g_traceFile, "zstd, %u, %s, %s, %d, %d, %llu, %llu, %llu, %llu, %.2f, %.2f\n", trace->version, method,
+            trace->streaming ? "streaming" : "single-pass", level, workers, (unsigned long long)trace->dictionarySize,
+            (unsigned long long)trace->uncompressedSize, (unsigned long long)trace->compressedSize,
+            (unsigned long long)duration, ratio, speed);
     ZSTD_pthread_mutex_unlock(&g_mutex);
 }
 
@@ -124,7 +124,7 @@ static void TRACE_log(char const* method, PTime duration, ZSTD_Trace const* trac
  * These symbols override the weak symbols provided by the library.
  */
 
-ZSTD_TraceCtx ZSTD_trace_compress_begin(ZSTD_CCtx const* cctx)
+ZSTD_TraceCtx ZSTD_trace_compress_begin(ZSTD_CCtx const *cctx)
 {
     (void)cctx;
     if (g_traceFile == NULL)
@@ -132,7 +132,7 @@ ZSTD_TraceCtx ZSTD_trace_compress_begin(ZSTD_CCtx const* cctx)
     return (ZSTD_TraceCtx)UTIL_clockSpanNano(g_enableTime);
 }
 
-void ZSTD_trace_compress_end(ZSTD_TraceCtx ctx, ZSTD_Trace const* trace)
+void ZSTD_trace_compress_end(ZSTD_TraceCtx ctx, ZSTD_Trace const *trace)
 {
     PTime const beginNanos = (PTime)ctx;
     PTime const endNanos = UTIL_clockSpanNano(g_enableTime);
@@ -142,7 +142,7 @@ void ZSTD_trace_compress_end(ZSTD_TraceCtx ctx, ZSTD_Trace const* trace)
     TRACE_log("compress", durationNanos, trace);
 }
 
-ZSTD_TraceCtx ZSTD_trace_decompress_begin(ZSTD_DCtx const* dctx)
+ZSTD_TraceCtx ZSTD_trace_decompress_begin(ZSTD_DCtx const *dctx)
 {
     (void)dctx;
     if (g_traceFile == NULL)
@@ -150,7 +150,7 @@ ZSTD_TraceCtx ZSTD_trace_decompress_begin(ZSTD_DCtx const* dctx)
     return (ZSTD_TraceCtx)UTIL_clockSpanNano(g_enableTime);
 }
 
-void ZSTD_trace_decompress_end(ZSTD_TraceCtx ctx, ZSTD_Trace const* trace)
+void ZSTD_trace_decompress_end(ZSTD_TraceCtx ctx, ZSTD_Trace const *trace)
 {
     PTime const beginNanos = (PTime)ctx;
     PTime const endNanos = UTIL_clockSpanNano(g_enableTime);
@@ -162,7 +162,7 @@ void ZSTD_trace_decompress_end(ZSTD_TraceCtx ctx, ZSTD_Trace const* trace)
 
 #else /* ZSTD_TRACE */
 
-void TRACE_enable(char const* filename)
+void TRACE_enable(char const *filename)
 {
     (void)filename;
 }

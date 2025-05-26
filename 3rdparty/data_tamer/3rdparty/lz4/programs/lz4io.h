@@ -33,13 +33,12 @@
 #define LZ4IO_H_237902873
 
 /*---   Dependency   ---*/
-#include <stddef.h>   /* size_t */
-
+#include <stddef.h> /* size_t */
 
 /* ************************************************** */
 /* Special input/output values                        */
 /* ************************************************** */
-#define stdinmark  "stdin"
+#define stdinmark "stdin"
 #define stdoutmark "stdout"
 #define NULL_OUTPUT "null"
 #ifdef _WIN32
@@ -54,82 +53,92 @@
 
 typedef struct LZ4IO_prefs_s LZ4IO_prefs_t;
 
-LZ4IO_prefs_t* LZ4IO_defaultPreferences(void);
-void LZ4IO_freePreferences(LZ4IO_prefs_t* prefs);
-
+LZ4IO_prefs_t *LZ4IO_defaultPreferences(void);
+void LZ4IO_freePreferences(LZ4IO_prefs_t *prefs);
 
 /* *************************************************** */
 /* ****************** Processing ********************* */
 /* *************************************************** */
 
 /* if output_filename == stdoutmark, writes to stdout */
-int LZ4IO_compressFilename(const char* input_filename, const char* output_filename, int compressionlevel, const LZ4IO_prefs_t* prefs);
-int LZ4IO_decompressFilename(const char* input_filename, const char* output_filename, const LZ4IO_prefs_t* prefs);
+int LZ4IO_compressFilename(const char *input_filename,
+                           const char *output_filename,
+                           int compressionlevel,
+                           const LZ4IO_prefs_t *prefs);
+int LZ4IO_decompressFilename(const char *input_filename, const char *output_filename, const LZ4IO_prefs_t *prefs);
 
 /* if suffix == stdoutmark, writes to stdout */
-int LZ4IO_compressMultipleFilenames(const char** inFileNamesTable, int ifntSize, const char* suffix, int compressionlevel, const LZ4IO_prefs_t* prefs);
-int LZ4IO_decompressMultipleFilenames(const char** inFileNamesTable, int ifntSize, const char* suffix, const LZ4IO_prefs_t* prefs);
-
+int LZ4IO_compressMultipleFilenames(const char **inFileNamesTable,
+                                    int ifntSize,
+                                    const char *suffix,
+                                    int compressionlevel,
+                                    const LZ4IO_prefs_t *prefs);
+int LZ4IO_decompressMultipleFilenames(const char **inFileNamesTable,
+                                      int ifntSize,
+                                      const char *suffix,
+                                      const LZ4IO_prefs_t *prefs);
 
 /* ************************************************** */
 /* ****************** Parameters ******************** */
 /* ************************************************** */
 
-int LZ4IO_setNbWorkers(LZ4IO_prefs_t* const prefs, int nbWorkers);
+int LZ4IO_setNbWorkers(LZ4IO_prefs_t *const prefs, int nbWorkers);
 int LZ4IO_defaultNbWorkers(void);
 
-int LZ4IO_setDictionaryFilename(LZ4IO_prefs_t* const prefs, const char* dictionaryFilename);
+int LZ4IO_setDictionaryFilename(LZ4IO_prefs_t *const prefs, const char *dictionaryFilename);
 
 /* Default setting : passThrough = 0;
    return : passThrough mode (0/1) */
-int LZ4IO_setPassThrough(LZ4IO_prefs_t* const prefs, int yes);
+int LZ4IO_setPassThrough(LZ4IO_prefs_t *const prefs, int yes);
 
 /* Default setting : overwrite = 1;
    return : overwrite mode (0/1) */
-int LZ4IO_setOverwrite(LZ4IO_prefs_t* const prefs, int yes);
+int LZ4IO_setOverwrite(LZ4IO_prefs_t *const prefs, int yes);
 
 /* Default setting : testMode = 0;
    return : testMode (0/1) */
-int LZ4IO_setTestMode(LZ4IO_prefs_t* const prefs, int yes);
+int LZ4IO_setTestMode(LZ4IO_prefs_t *const prefs, int yes);
 
 /* blockSizeID : valid values : 4-5-6-7
    return : 0 if error, blockSize if OK */
-size_t LZ4IO_setBlockSizeID(LZ4IO_prefs_t* const prefs, unsigned blockSizeID);
+size_t LZ4IO_setBlockSizeID(LZ4IO_prefs_t *const prefs, unsigned blockSizeID);
 
 /* blockSize : valid values : 32 -> 4MB
    return : 0 if error, actual blocksize if OK */
-size_t LZ4IO_setBlockSize(LZ4IO_prefs_t* const prefs, size_t blockSize);
+size_t LZ4IO_setBlockSize(LZ4IO_prefs_t *const prefs, size_t blockSize);
 
 /* Default setting : independent blocks */
-typedef enum { LZ4IO_blockLinked=0, LZ4IO_blockIndependent} LZ4IO_blockMode_t;
-int LZ4IO_setBlockMode(LZ4IO_prefs_t* const prefs, LZ4IO_blockMode_t blockMode);
+typedef enum
+{
+    LZ4IO_blockLinked = 0,
+    LZ4IO_blockIndependent
+} LZ4IO_blockMode_t;
+int LZ4IO_setBlockMode(LZ4IO_prefs_t *const prefs, LZ4IO_blockMode_t blockMode);
 
 /* Default setting : no block checksum */
-int LZ4IO_setBlockChecksumMode(LZ4IO_prefs_t* const prefs, int xxhash);
+int LZ4IO_setBlockChecksumMode(LZ4IO_prefs_t *const prefs, int xxhash);
 
 /* Default setting : stream checksum enabled */
-int LZ4IO_setStreamChecksumMode(LZ4IO_prefs_t* const prefs, int xxhash);
+int LZ4IO_setStreamChecksumMode(LZ4IO_prefs_t *const prefs, int xxhash);
 
 /* Default setting : 0 (no notification) */
 int LZ4IO_setNotificationLevel(int level);
 
 /* Default setting : 0 (disabled) */
-int LZ4IO_setSparseFile(LZ4IO_prefs_t* const prefs, int enable);
+int LZ4IO_setSparseFile(LZ4IO_prefs_t *const prefs, int enable);
 
 /* Default setting : 0 == no content size present in frame header */
-int LZ4IO_setContentSize(LZ4IO_prefs_t* const prefs, int enable);
+int LZ4IO_setContentSize(LZ4IO_prefs_t *const prefs, int enable);
 
 /* Default setting : 0 == src file preserved */
-void LZ4IO_setRemoveSrcFile(LZ4IO_prefs_t* const prefs, unsigned flag);
+void LZ4IO_setRemoveSrcFile(LZ4IO_prefs_t *const prefs, unsigned flag);
 
 /* Default setting : 0 == favor compression ratio
  * Note : 1 only works for high compression levels (10+) */
-void LZ4IO_favorDecSpeed(LZ4IO_prefs_t* const prefs, int favor);
-
+void LZ4IO_favorDecSpeed(LZ4IO_prefs_t *const prefs, int favor);
 
 /* implement --list
  * @return 0 on success, 1 on error */
-int LZ4IO_displayCompressedFilesInfo(const char** inFileNames, size_t ifnIdx);
+int LZ4IO_displayCompressedFilesInfo(const char **inFileNames, size_t ifnIdx);
 
-
-#endif  /* LZ4IO_H_237902873 */
+#endif /* LZ4IO_H_237902873 */

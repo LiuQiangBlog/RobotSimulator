@@ -8,22 +8,22 @@
  * You may select, at your option, one of the above-listed licenses.
  */
 
+#include <stdio.h>  // fprintf
+#include <stdlib.h> // free
+#include <zstd.h>   // presumes zstd library is installed
+#include "common.h" // Helper functions, CHECK(), and CHECK_ZSTD()
 
-#include <stdio.h>     // fprintf
-#include <stdlib.h>    // free
-#include <zstd.h>      // presumes zstd library is installed
-#include "common.h"    // Helper functions, CHECK(), and CHECK_ZSTD()
-
-static void decompressFile_orDie(const char* fname)
+static void decompressFile_orDie(const char *fname)
 {
-    FILE* const fin  = fopen_orDie(fname, "rb");
+    FILE *const fin = fopen_orDie(fname, "rb");
     size_t const buffInSize = ZSTD_DStreamInSize();
-    void*  const buffIn  = malloc_orDie(buffInSize);
-    FILE* const fout = stdout;
-    size_t const buffOutSize = ZSTD_DStreamOutSize();  /* Guarantee to successfully flush at least one complete compressed block in all circumstances. */
-    void*  const buffOut = malloc_orDie(buffOutSize);
+    void *const buffIn = malloc_orDie(buffInSize);
+    FILE *const fout = stdout;
+    size_t const buffOutSize = ZSTD_DStreamOutSize(); /* Guarantee to successfully flush at least one complete
+                                                         compressed block in all circumstances. */
+    void *const buffOut = malloc_orDie(buffOutSize);
 
-    ZSTD_DCtx* const dctx = ZSTD_createDCtx();
+    ZSTD_DCtx *const dctx = ZSTD_createDCtx();
     CHECK(dctx != NULL, "ZSTD_createDCtx() failed!");
 
     /* This loop assumes that the input file is one or more concatenated zstd
@@ -36,16 +36,18 @@ static void decompressFile_orDie(const char* fname)
     size_t read;
     size_t lastRet = 0;
     int isEmpty = 1;
-    while ( (read = fread_orDie(buffIn, toRead, fin)) ) {
+    while ((read = fread_orDie(buffIn, toRead, fin)))
+    {
         isEmpty = 0;
-        ZSTD_inBuffer input = { buffIn, read, 0 };
+        ZSTD_inBuffer input = {buffIn, read, 0};
         /* Given a valid frame, zstd won't consume the last byte of the frame
          * until it has flushed all of the decompressed data of the frame.
          * Therefore, instead of checking if the return code is 0, we can
          * decompress just check if input.pos < input.size.
          */
-        while (input.pos < input.size) {
-            ZSTD_outBuffer output = { buffOut, buffOutSize, 0 };
+        while (input.pos < input.size)
+        {
+            ZSTD_outBuffer output = {buffOut, buffOutSize, 0};
             /* The return code is zero if the frame is complete, but there may
              * be multiple frames concatenated together. Zstd will automatically
              * reset the context when a frame is complete. Still, calling
@@ -53,19 +55,21 @@ static void decompressFile_orDie(const char* fname)
              * state, for instance if the last decompression call returned an
              * error.
              */
-            size_t const ret = ZSTD_decompressStream(dctx, &output , &input);
+            size_t const ret = ZSTD_decompressStream(dctx, &output, &input);
             CHECK_ZSTD(ret);
             fwrite_orDie(buffOut, output.pos, fout);
             lastRet = ret;
         }
     }
 
-    if (isEmpty) {
+    if (isEmpty)
+    {
         fprintf(stderr, "input is empty\n");
         exit(1);
     }
 
-    if (lastRet != 0) {
+    if (lastRet != 0)
+    {
         /* The last return value from ZSTD_decompressStream did not end on a
          * frame, but we reached the end of the file! We assume this is an
          * error, and the input was truncated.
@@ -81,19 +85,19 @@ static void decompressFile_orDie(const char* fname)
     free(buffOut);
 }
 
-
-int main(int argc, const char** argv)
+int main(int argc, const char **argv)
 {
-    const char* const exeName = argv[0];
+    const char *const exeName = argv[0];
 
-    if (argc!=2) {
+    if (argc != 2)
+    {
         fprintf(stderr, "wrong arguments\n");
         fprintf(stderr, "usage:\n");
         fprintf(stderr, "%s FILE\n", exeName);
         return 1;
     }
 
-    const char* const inFilename = argv[1];
+    const char *const inFilename = argv[1];
 
     decompressFile_orDie(inFilename);
     return 0;

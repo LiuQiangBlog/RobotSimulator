@@ -29,17 +29,18 @@
 #define FUZZ_H
 
 #ifndef FUZZ_RNG_SEED_SIZE
-#  define FUZZ_RNG_SEED_SIZE 4
+#define FUZZ_RNG_SEED_SIZE 4
 #endif
 
 #include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size);
+    int LLVMFuzzerTestOneInput(const uint8_t *src, size_t size);
 
 #ifdef __cplusplus
 }

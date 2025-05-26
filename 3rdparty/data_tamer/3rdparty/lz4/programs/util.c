@@ -17,41 +17,44 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#if defined (__cplusplus)
-extern "C" {
+#if defined(__cplusplus)
+extern "C"
+{
 #endif
 
-
 /*-****************************************
-*  Dependencies
-******************************************/
-#include "util.h"   /* note : ensure that platform.h is included first ! */
+ *  Dependencies
+ ******************************************/
+#include "util.h" /* note : ensure that platform.h is included first ! */
 
-/*-****************************************
-*  count the number of cores
-******************************************/
+    /*-****************************************
+     *  count the number of cores
+     ******************************************/
 
 #if defined(_WIN32)
 
 #include <windows.h>
 
-int UTIL_countCores(void)
-{
-    static int numCores = 0;
-    if (numCores != 0) return numCores;
+    int UTIL_countCores(void)
+    {
+        static int numCores = 0;
+        if (numCores != 0)
+            return numCores;
 
-    {   SYSTEM_INFO sysinfo;
-        GetSystemInfo(&sysinfo);
-        numCores = sysinfo.dwNumberOfProcessors;
+        {
+            SYSTEM_INFO sysinfo;
+            GetSystemInfo(&sysinfo);
+            numCores = sysinfo.dwNumberOfProcessors;
+        }
+
+        if (numCores == 0)
+        {
+            /* Unexpected result, fall back on 1 */
+            return numCores = 1;
+        }
+
+        return numCores;
     }
-
-    if (numCores == 0) {
-        /* Unexpected result, fall back on 1 */
-        return numCores = 1;
-    }
-
-    return numCores;
-}
 
 #elif defined(__APPLE__)
 
@@ -62,11 +65,14 @@ int UTIL_countCores(void)
 int UTIL_countCores(void)
 {
     static S32 numCores = 0; /* apple specifies int32_t */
-    if (numCores != 0) return (int)numCores;
+    if (numCores != 0)
+        return (int)numCores;
 
-    {   size_t size = sizeof(S32);
+    {
+        size_t size = sizeof(S32);
         int const ret = sysctlbyname("hw.logicalcpu", &numCores, &size, NULL, 0);
-        if (ret != 0) {
+        if (ret != 0)
+        {
             /* error: fall back on 1 */
             numCores = 1;
         }
@@ -80,10 +86,12 @@ int UTIL_countCores(void)
 {
     static int numCores = 0;
 
-    if (numCores != 0) return numCores;
+    if (numCores != 0)
+        return numCores;
 
     numCores = (int)sysconf(_SC_NPROCESSORS_ONLN);
-    if (numCores == -1) {
+    if (numCores == -1)
+    {
         /* value not queryable, fall back on 1 */
         return numCores = 1;
     }
@@ -93,7 +101,7 @@ int UTIL_countCores(void)
 
 #elif defined(__FreeBSD__)
 
-#include <stdio.h>  /* perror */
+#include <stdio.h> /* perror */
 #include <errno.h>
 #include <sys/param.h>
 #include <sys/sysctl.h>
@@ -103,12 +111,15 @@ int UTIL_countCores(void)
 int UTIL_countCores(void)
 {
     static int numCores = 0; /* freebsd sysctl is native int sized */
-    if (numCores != 0) return numCores;
+    if (numCores != 0)
+        return numCores;
 
 #if __FreeBSD_version >= 1300008
-    {   size_t size = sizeof(numCores);
+    {
+        size_t size = sizeof(numCores);
         int ret = sysctlbyname("kern.smp.cores", &numCores, &size, NULL, 0);
-        if (ret == 0) {
+        if (ret == 0)
+        {
             int perCore = 1;
             ret = sysctlbyname("kern.smp.threads_per_core", &perCore, &size, NULL, 0);
             /* default to physical cores if logical cannot be read */
@@ -117,7 +128,8 @@ int UTIL_countCores(void)
             numCores *= perCore;
             return numCores;
         }
-        if (errno != ENOENT) {
+        if (errno != ENOENT)
+        {
             perror("lz4: can't get number of cpus");
             exit(1);
         }
@@ -126,7 +138,8 @@ int UTIL_countCores(void)
 #endif
 
     numCores = (int)sysconf(_SC_NPROCESSORS_ONLN);
-    if (numCores == -1) {
+    if (numCores == -1)
+    {
         /* value not queryable, fall back on 1 */
         numCores = 1;
     }
@@ -140,10 +153,12 @@ int UTIL_countCores(void)
 int UTIL_countCores(void)
 {
     static int numCores = 0;
-    if (numCores != 0) return numCores;
+    if (numCores != 0)
+        return numCores;
 
     numCores = (int)sysconf(_SC_NPROCESSORS_ONLN);
-    if (numCores == -1) {
+    if (numCores == -1)
+    {
         /* value not queryable, fall back on 1 */
         numCores = 1;
     }
@@ -160,6 +175,6 @@ int UTIL_countCores(void)
 
 #endif
 
-#if defined (__cplusplus)
+#if defined(__cplusplus)
 }
 #endif

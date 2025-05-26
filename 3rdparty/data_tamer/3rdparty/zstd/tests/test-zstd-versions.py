@@ -23,7 +23,7 @@ from subprocess import Popen, PIPE
 repo_url = 'https://github.com/facebook/zstd.git'
 tmp_dir_name = 'tests/versionsTest'
 make_cmd = 'make'
-make_args = ['-j','CFLAGS=-O0']
+make_args = ['-j', 'CFLAGS=-O0']
 git_cmd = 'git'
 test_dat_src = 'README.md'
 test_dat = 'test_dat'
@@ -105,9 +105,11 @@ def create_dict(tag, dict_source_path, fallback_tag=None):
         # Ensure the dictionary builder is deterministic
         files = sorted(cFiles + hFiles)
         if tag == 'v0.5.0':
-            result = execute('./dictBuilder.' + tag + ' ' + ' '.join(files) + ' -o ' + dict_name, print_output=False, param_shell=True)
+            result = execute('./dictBuilder.' + tag + ' ' + ' '.join(files) + ' -o ' + dict_name, print_output=False,
+                             param_shell=True)
         else:
-            result = execute('./zstd.' + tag + ' -f --train ' + ' '.join(files) + ' -o ' + dict_name, print_output=False, param_shell=True)
+            result = execute('./zstd.' + tag + ' -f --train ' + ' '.join(files) + ' -o ' + dict_name,
+                             print_output=False, param_shell=True)
         if result == 0 and dict_ok(tag, dict_name, files[0]):
             print(dict_name + ' created')
         elif fallback_tag is not None:
@@ -129,7 +131,7 @@ def zstd(tag, args, input_file, output_file):
     with open(input_file, "rb") as i:
         with open(output_file, "wb") as o:
             cmd = ['./zstd.' + tag] + args
-            print("Running: '{}', input={}, output={}" .format(
+            print("Running: '{}', input={}, output={}".format(
                 ' '.join(cmd), input_file, output_file
             ))
             result = subprocess.run(cmd, stdin=i, stdout=o, stderr=subprocess.PIPE)
@@ -200,8 +202,8 @@ def decompress_dict(tag):
     dec_error = 0
     list_zst = sorted(glob.glob('*_dictio.zst'))
     for file_zst in list_zst:
-        dict_tag = file_zst[0:len(file_zst)-11]  # remove "_dictio.zst"
-        if head in dict_tag: # find vdevel
+        dict_tag = file_zst[0:len(file_zst) - 11]  # remove "_dictio.zst"
+        if head in dict_tag:  # find vdevel
             dict_tag = head
         else:
             dict_tag = dict_tag[dict_tag.rfind('v'):]
@@ -219,11 +221,11 @@ def decompress_dict(tag):
 
 if __name__ == '__main__':
     error_code = 0
-    base_dir = os.getcwd() + '/..'                  # /path/to/zstd
-    tmp_dir = base_dir + '/' + tmp_dir_name         # /path/to/zstd/tests/versionsTest
-    clone_dir = tmp_dir + '/' + 'zstd'              # /path/to/zstd/tests/versionsTest/zstd
+    base_dir = os.getcwd() + '/..'  # /path/to/zstd
+    tmp_dir = base_dir + '/' + tmp_dir_name  # /path/to/zstd/tests/versionsTest
+    clone_dir = tmp_dir + '/' + 'zstd'  # /path/to/zstd/tests/versionsTest/zstd
     dict_source_path = tmp_dir + '/' + dict_source  # /path/to/zstd/tests/versionsTest/dict_source
-    programs_dir = base_dir + '/programs'           # /path/to/zstd/programs
+    programs_dir = base_dir + '/programs'  # /path/to/zstd/programs
     os.makedirs(tmp_dir, exist_ok=True)
 
     # since Travis clones limited depth, we should clone full repository
@@ -254,7 +256,7 @@ if __name__ == '__main__':
                 git(['--work-tree=' + r_dir, 'checkout', tag, '--', '.'], False)
                 if tag == 'v0.5.0':
                     os.chdir(r_dir + '/dictBuilder')  # /path/to/zstd/tests/versionsTest/v0.5.0/dictBuilder
-                    make(['clean'], False)   # separate 'clean' target to allow parallel build
+                    make(['clean'], False)  # separate 'clean' target to allow parallel build
                     make(['dictBuilder'], False)
                     shutil.copy2('dictBuilder', '{}/dictBuilder.{}'.format(tmp_dir, tag))
                 os.chdir(r_dir + '/programs')  # /path/to/zstd/tests/versionsTest/<TAG>/programs

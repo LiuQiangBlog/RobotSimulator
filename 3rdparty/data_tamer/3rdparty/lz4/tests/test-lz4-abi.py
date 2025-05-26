@@ -18,7 +18,7 @@ import hashlib
 
 repo_url = 'https://github.com/lz4/lz4.git'
 tmp_dir_name = 'tests/abiTests'
-env_flags = ' ' # '-j CFLAGS="-g -O0 -fsanitize=address"'
+env_flags = ' '  # '-j CFLAGS="-g -O0 -fsanitize=address"'
 make_cmd = 'make'
 git_cmd = 'git'
 test_dat_src = ['README.md']
@@ -28,9 +28,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--verbose", action="store_true", help="increase output verbosity")
 args = parser.parse_args()
 
+
 def debug_message(msg):
     if args.verbose:
         print(msg)
+
 
 def proc(cmd_args, pipe=True, env=False):
     if env == False:
@@ -40,15 +42,16 @@ def proc(cmd_args, pipe=True, env=False):
         s = subprocess.Popen(cmd_args,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
-                             env = env)
+                             env=env)
     else:
-        s = subprocess.Popen(cmd_args, env = env)
+        s = subprocess.Popen(cmd_args, env=env)
     stdout_data, stderr_data = s.communicate()
     if s.poll() != 0:
         print('Error Code:', s.poll())
         print('Standard Error:', stderr_data.decode())
         sys.exit(1)
     return stdout_data, stderr_data
+
 
 def make(args, pipe=True, env=False):
     if env == False:
@@ -60,8 +63,10 @@ def make(args, pipe=True, env=False):
         env["LDFLAGS"] += " -fsanitize=address"
     return proc([make_cmd] + ['-j'] + ['V=1'] + ['DEBUGFLAGS='] + args, pipe, env)
 
+
 def git(args, pipe=True):
     return proc([git_cmd] + args, pipe)
+
 
 def get_git_tags():
     # Only start from first v1.7.x format release
@@ -69,20 +74,22 @@ def get_git_tags():
     tags = stdout.decode('utf-8').split()
     return tags
 
+
 # https://stackoverflow.com/a/19711609/2132223
 def sha1_of_file(filepath):
     with open(filepath, 'rb') as f:
         return hashlib.sha1(f.read()).hexdigest()
+
 
 if __name__ == '__main__':
     if sys.platform == "darwin":
         print("!!! Warning: this test is not validated for macos !!!")
 
     error_code = 0
-    base_dir = os.getcwd() + '/..'           # /path/to/lz4
+    base_dir = os.getcwd() + '/..'  # /path/to/lz4
     tmp_dir = base_dir + '/' + tmp_dir_name  # /path/to/lz4/tests/versionsTest
-    clone_dir = tmp_dir + '/' + 'lz4'        # /path/to/lz4/tests/versionsTest/lz4
-    lib_dir = base_dir + '/lib'              # /path/to/lz4/lib
+    clone_dir = tmp_dir + '/' + 'lz4'  # /path/to/lz4/tests/versionsTest/lz4
+    lib_dir = base_dir + '/lib'  # /path/to/lz4/lib
     test_dir = base_dir + '/tests'
     os.makedirs(tmp_dir, exist_ok=True)
 
@@ -110,10 +117,10 @@ if __name__ == '__main__':
         for tag in tags:
             print('building library ', tag)
             os.chdir(base_dir)
-    #        if not os.path.isfile(dst_liblz4) or tag == head:
+            #        if not os.path.isfile(dst_liblz4) or tag == head:
             if tag != head:
                 r_dir = '{}/{}'.format(tmp_dir, tag)  # /path/to/lz4/test/lz4test/<TAG>
-                #print('r_dir = ', r_dir)  # for debug
+                # print('r_dir = ', r_dir)  # for debug
                 os.makedirs(r_dir, exist_ok=True)
                 os.chdir(clone_dir)
                 git(['--work-tree=' + r_dir, 'checkout', tag, '--', '.'])
@@ -164,12 +171,12 @@ if __name__ == '__main__':
             build_env = os.environ.copy()
             if tag != head:
                 build_env["CPPFLAGS"] = '-IabiTests/{}/lib'.format(tag)
-                build_env["LDFLAGS"]  = '-LabiTests/{}/lib'.format(tag)
+                build_env["LDFLAGS"] = '-LabiTests/{}/lib'.format(tag)
             else:
                 build_env["CPPFLAGS"] = '-I../lib'
-                build_env["LDFLAGS"]  = '-L../lib'
-            build_env["LDLIBS"]  = "-llz4"
-            build_env["CFLAGS"]  = "-O1 " + march
+                build_env["LDFLAGS"] = '-L../lib'
+            build_env["LDLIBS"] = "-llz4"
+            build_env["CFLAGS"] = "-O1 " + march
             os.remove('abiTest')
             make(['abiTest'], pipe=False, env=build_env)
 
@@ -180,7 +187,6 @@ if __name__ == '__main__':
             proc(['./check_liblz4_version.sh'] + ['./abiTest'], pipe=False, env=run_env)
             # now run with mismatched library version
             proc(['./abiTest'] + test_dat_src, pipe=False, env=run_env)
-
 
     if error_code != 0:
         print('ERROR')

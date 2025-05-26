@@ -11,6 +11,7 @@ The tool is created in a bid to investigate performance for this scenario,
 and experiment mitigation techniques.
 
 Command line :
+
 ```
 largeNbDicts [Options] filename(s)
 
