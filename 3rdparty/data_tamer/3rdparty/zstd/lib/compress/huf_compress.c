@@ -601,7 +601,8 @@ typedef struct
  * Let buckets 166 to 192 represent all remaining counts up to RANK_POSITION_MAX_COUNT_LOG using log2 bucketing.
  */
 #define RANK_POSITION_MAX_COUNT_LOG 32
-#define RANK_POSITION_LOG_BUCKETS_BEGIN ((RANK_POSITION_TABLE_SIZE - 1) - RANK_POSITION_MAX_COUNT_LOG - 1 /* == 158 \
+#define RANK_POSITION_LOG_BUCKETS_BEGIN \
+    ((RANK_POSITION_TABLE_SIZE - 1) - RANK_POSITION_MAX_COUNT_LOG - 1 /* == 158 \
                                                                                                            */)
 #define RANK_POSITION_DISTINCT_COUNT_CUTOFF \
     (RANK_POSITION_LOG_BUCKETS_BEGIN + ZSTD_highbit32(RANK_POSITION_LOG_BUCKETS_BEGIN) /* == 166 */)

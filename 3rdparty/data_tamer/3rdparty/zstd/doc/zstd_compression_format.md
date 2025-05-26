@@ -1126,7 +1126,7 @@ It depends on :
   This is achieved through this scheme :
 
   | 8-bit field read | Value decoded | Nb of bits consumed |
-      | ---------------- | ------------- | ------------------- |
+        | ---------------- | ------------- | ------------------- |
   |         0 -  97  |   0 -  97     |  7                  |
   |        98 - 127  |  98 - 127     |  8                  |
   |       128 - 225  |   0 -  97     |  7                  |

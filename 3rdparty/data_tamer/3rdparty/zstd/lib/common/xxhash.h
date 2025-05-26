@@ -5834,8 +5834,9 @@ XXH_FORCE_INLINE xxh_u64 XXH_mult32to64_add64(xxh_u64 lhs, xxh_u64 rhs, xxh_u64 
          * This is extracted to its own function because the NEON path uses a combination
          * of NEON and scalar.
          */
-        XXH_FORCE_INLINE
-        void XXH3_scalarScrambleRound(void *XXH_RESTRICT acc, void const *XXH_RESTRICT secret, size_t lane)
+        XXH_FORCE_INLINE void XXH3_scalarScrambleRound(void *XXH_RESTRICT acc,
+                                                       void const *XXH_RESTRICT secret,
+                                                       size_t lane)
     {
         xxh_u64 *const xacc = (xxh_u64 *)acc;                 /* presumed aligned */
         const xxh_u8 *const xsecret = (const xxh_u8 *)secret; /* no alignment restriction */

@@ -491,8 +491,8 @@ extern "C"
                                  * Each compression job is completed in parallel, so this value can indirectly impact the
                                  * nb of active threads.   0 means default, which is dynamically determined based on
                                  * compression parameters.   Job size must be a minimum of overlap size, or
-                                 * ZSTDMT_JOBSIZE_MIN (= 512 KB), whichever is largest.   The minimum size is automatically
-                                 * and transparently enforced. */
+                                 * ZSTDMT_JOBSIZE_MIN (= 512 KB), whichever is largest.   The minimum size is
+                                 * automatically   and transparently enforced. */
         ZSTD_c_overlapLog =
             402, /* Control the overlap size, as a fraction of window size.
                   * The overlap size is an amount of data reloaded from previous job at the beginning of a new job.
@@ -796,16 +796,16 @@ extern "C"
     {
         ZSTD_e_continue =
             0, /* collect more data, encoder decides when to output compressed result, for optimal compression ratio */
-        ZSTD_e_flush =
-            1,         /* flush any data provided so far,
-                        * it creates (at least) one new block, that can be decoded immediately on reception;
-                        * frame will continue: any future data can still reference previously compressed data, improving
-                        * compression.         note : multithreaded compression will block to flush as much output as possible. */
-        ZSTD_e_end = 2 /* flush any remaining data _and_ close current frame.
-                        * note that frame is only closed after compressed data is fully flushed (return value == 0).
-                        * After that point, any additional data starts a new frame.
-                        * note : each frame is independent (does not reference any content from previous frame).
-                        : note : multithreaded compression will block to flush as much output as possible. */
+        ZSTD_e_flush = 1, /* flush any data provided so far,
+                           * it creates (at least) one new block, that can be decoded immediately on reception;
+                           * frame will continue: any future data can still reference previously compressed data,
+                           * improving compression.         note : multithreaded compression will block to flush as much
+                           * output as possible. */
+        ZSTD_e_end = 2    /* flush any remaining data _and_ close current frame.
+                           * note that frame is only closed after compressed data is fully flushed (return value == 0).
+                           * After that point, any additional data starts a new frame.
+                           * note : each frame is independent (does not reference any content from previous frame).
+                           : note : multithreaded compression will block to flush as much output as possible. */
     } ZSTD_EndDirective;
 
     /*! ZSTD_compressStream2() : Requires v1.4.0+
