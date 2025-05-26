@@ -60,7 +60,7 @@ int main()
     // Timestamp requires nanosecond
     msg.logTime = mcap::Timestamp(snapshot.timestamp.count());
     msg.publishTime = msg.logTime;
-    msg.data = reinterpret_cast<std::byte const *>(merged_payload.data()); // NOLINT
+    msg.data = reinterpret_cast<const std::byte *>(merged_payload.data()); // NOLINT
     msg.dataSize = merged_payload.size();
     // step3: write message into mcap file
     status = writer.write(msg);

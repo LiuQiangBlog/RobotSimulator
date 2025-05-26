@@ -6,5 +6,9 @@
 
 int main()
 {
-
+    auto duration = std::chrono::system_clock::now().time_since_epoch();
+    auto nanoseconds = std::chrono::nanoseconds(duration);
+    auto seconds = std::chrono::duration_cast<std::chrono::duration<double>>(nanoseconds).count();
+    CLOG_INFO << seconds;
+    return 0;
 }

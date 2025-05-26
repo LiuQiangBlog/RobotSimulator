@@ -187,8 +187,7 @@ public:
 
         if (schemas.count(latest_snapshot.schema_hash) > 0)
         {
-            const auto &schema_in = schemas[latest_snapshot.schema_hash];
-            const auto &schema_out = DataTamerParser::BuilSchemaFromText(ToStr(schema_in));
+            const auto &schema = DataTamerParser::BuilSchemaFromText(ToStr(schemas[latest_snapshot.schema_hash]));
             const auto snapshot_view = ConvertSnapshot(latest_snapshot);
             std::map<std::string, std::pair<double, double>> parsed_values; // timestamp, value
 
@@ -206,7 +205,7 @@ public:
                     number);
                 parsed_values[field_name] = {sec, value}; // timestamp unit is s
             };
-            DataTamerParser::ParseSnapshot(schema_out, snapshot_view, callback);
+            DataTamerParser::ParseSnapshot(schema, snapshot_view, callback);
 
             for (auto &[key, pair] : parsed_values)
             {
