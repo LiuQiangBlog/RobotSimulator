@@ -33,3 +33,7 @@ add_subdirectory(imtools)
 add_subdirectory(uuid)
 add_subdirectory(enum)
 add_subdirectory(pfd)
+add_subdirectory(fmt)
+add_subdirectory(lexical_cast)
+
+

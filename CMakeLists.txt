@@ -107,6 +107,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/math)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/uuid)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/enum)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/pfd)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/fmt/include)
 
 add_subdirectory(3rdparty)
 
