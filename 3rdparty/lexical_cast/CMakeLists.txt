@@ -65,7 +65,7 @@ file(GLOB_RECURSE PUBLIC_INCLUDE_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} incl
 target_sources(lexical_cast INTERFACE FILE_SET HEADERS BASE_DIRS include FILES ${PUBLIC_INCLUDE_FILES})
 
 target_include_directories(lexical_cast INTERFACE include)
-target_link_libraries(lexical_cast INTERFACE fmt::fmt)
+target_link_libraries(lexical_cast INTERFACE fmt)
 
 foreach(prog
     lexical_cast_builtin
@@ -83,7 +83,6 @@ endforeach()
 # Optionally configure the tests
 #
 if(LEXICAL_CAST_TEST)
- add_gtest()
  add_subdirectory(test)
 endif()
 
