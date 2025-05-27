@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <thread>
 #include <data_tamer/sinks/publish_sink.hpp>
+#include <data_tamer/sinks/mcap_sink.hpp>
 #include <data_tamer/sinks/type_definition.hpp>
 
 std::mutex mtx;
@@ -13,7 +14,6 @@ std::condition_variable cv;
 
 int main()
 {
-    zcm::RegisterAllPlugins();
     std::string file("/home/liuqiang/CLionProjects/RobotControlAlgorithms/mujoco/tora_one/scene.xml");
 //        std::string file("/home/liuqiang/PycharmProjects/mink/examples/kuka_iiwa_14/scene.xml");
     char err[1000];
@@ -47,22 +47,23 @@ int main()
     viewer.showMocapGizmo("target");
     viewer.drawBodyFrame("table");
     auto channel = DataTamer::LogChannel::create("channel");
-    auto sink = std::make_shared<DataTamer::PlotSink>();
-    channel->addDataSink(sink);
-
-    auto publisher = std::make_shared<DataTamer::PublishSink>();
-    if (!publisher->init())
+    auto mcap_slink = std::make_shared<DataTamer::MCAPSink>("mcap_position_data.mcap");
+    auto plot_sink = std::make_shared<DataTamer::PlotSink>();
+    auto pub_sink = std::make_shared<DataTamer::PublishSink>();
+    if (!pub_sink->init())
     {
         return -1;
     }
-    channel->addDataSink(publisher);
+    channel->addDataSink(mcap_slink);
+    channel->addDataSink(plot_sink);
+    channel->addDataSink(pub_sink);
 
     viewer.addFunction(
         [&]()
         {
-            viewer.plotChannelData("pos/x", sink);
-            viewer.plotChannelData("pos/y", sink);
-            viewer.plotChannelData("pos/z", sink);
+            viewer.plotChannelData("pos/x", plot_sink);
+            viewer.plotChannelData("pos/y", plot_sink);
+            viewer.plotChannelData("pos/z", plot_sink);
         });
 
     std::atomic<bool> exit{false};

@@ -3,11 +3,13 @@
 //
 
 #include "Viewer.h"
+#include <zcm/zcm-cpp.hpp>
 #include <sstream>
 
 Viewer::Viewer(mjModel *m, mjData *d, std::string windowTitle)
     : model(m), data(d), title(std::move(windowTitle))
 {
+    zcm::RegisterAllPlugins();
     bodyVisible.resize(model->nbody, true);
     bodyChildren.resize(model->nbody);
     bodyExpanded.resize(model->nbody, true);

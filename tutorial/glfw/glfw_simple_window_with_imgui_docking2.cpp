@@ -493,7 +493,7 @@ public:
             ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
             ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
-            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+            if (ImGui::BeginTabBar("TabBarOfViewerOfZcmData", tab_bar_flags))
             {
                 if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
                 {
@@ -740,7 +740,7 @@ public:
         ImVec2 original_window_padding = style.WindowPadding;
         style.WindowPadding.x = 4.0f; // keep TabItem distance to left window edge is 4
         style.WindowPadding.y = 4.0f; // keep TabItem distance to top window edge is 4
-        if (ImGui::Begin("##ViewerOfZcmData", &openViewerOfMcapData, flags))
+        if (ImGui::Begin("##ViewerOfMcapData", &openViewerOfMcapData, flags))
         {
             ImGui::SetWindowPos(ImVec2(0, 0));
             ImGui::SetWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y));
@@ -760,7 +760,7 @@ public:
             ImGui::PushStyleVar(ImGuiStyleVar_TabBorderSize, 1.0f);     // 增大边框厚度
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 4));
             ImGui::PushStyleVar(ImGuiStyleVar_TabBarBorderSize, 0.0f);  // 隐藏底部边框
-            if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+            if (ImGui::BeginTabBar("TabBarOfViewerOfMcapData", tab_bar_flags))
             {
                 if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
                 {
