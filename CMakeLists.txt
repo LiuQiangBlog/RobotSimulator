@@ -105,6 +105,7 @@ include_directories(${PROJECT_SOURCE_DIR}/3rdparty/ctools/include)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/imtools)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/math)
 include_directories(${PROJECT_SOURCE_DIR}/3rdparty/uuid)
+include_directories(${PROJECT_SOURCE_DIR}/3rdparty/enum)
 
 add_subdirectory(3rdparty)
 
