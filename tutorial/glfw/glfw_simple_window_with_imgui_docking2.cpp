@@ -239,6 +239,83 @@ public:
         ImGui::EndChild();
     }
 
+    void plotChannelDataForMcapFile(const std::string &title, const std::vector<std::string> &channels)
+    {
+        ImVec2 tabContentRegion = ImGui::GetContentRegionAvail();
+        ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar |
+                                       ImGuiWindowFlags_NoResize |
+                                       ImGuiWindowFlags_NoMove |
+                                       ImGuiWindowFlags_NoScrollbar |
+                                       ImGuiWindowFlags_NoSavedSettings;
+        ImGui::SetNextWindowSize(tabContentRegion, ImGuiCond_Always);
+        if (ImGui::BeginChild((title + "##PlotWindow").c_str(), tabContentRegion, ImGuiChildFlags_None, windowFlags))
+        {
+            ImPlot::SetNextAxisToFit(ImAxis_Y1);
+
+            auto global_x_min = DBL_MAX;
+            auto global_x_max = -DBL_MAX;
+            auto global_y_min = DBL_MAX;
+            auto global_y_max = -DBL_MAX;
+
+            {
+                std::shared_lock<std::shared_mutex> lock(mtx);
+                for (const auto &channel : channels)
+                {
+                    if (mcap_file_channel_plot_data.count(channel) > 0)
+                    {
+                        auto &[ts, vals] = mcap_file_channel_plot_data[channel];
+                        if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                        {
+                            double min_time = *std::min_element(ts.begin(), ts.end());
+                            double max_time = *std::max_element(ts.begin(), ts.end());
+                            auto [y_min, y_max] = std::minmax_element(vals.begin(), vals.end());
+
+                            global_x_min = std::min(global_x_min, min_time);
+                            global_x_max = std::max(global_x_max, max_time);
+                            global_y_min = std::min(global_y_min, *y_min);
+                            global_y_max = std::max(global_y_max, *y_max);
+                        }
+                    }
+                }
+            }
+
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            if (ImPlot::BeginPlot(("##" + title + "##ChannelPlot").c_str(), contentRegion))
+            {
+                ImPlot::SetupAxisFormat(ImAxis_X1, "%.3f");
+                ImPlot::SetupAxisFormat(ImAxis_Y1, "%.3f");
+                ImPlot::SetupAxes("Time(s)", "Value");
+                ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
+                if (global_x_min <= global_x_max && global_y_min <= global_y_max)
+                {
+                    ImPlot::SetupAxisLimits(ImAxis_X1, global_x_min, global_x_max, ImGuiCond_Always);
+                    ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
+                }
+                {
+                    std::shared_lock<std::shared_mutex> lock(mtx);
+                    for (size_t i = 0; i < channels.size(); i++)
+                    {
+                        const auto &channel = channels[i];
+                        if (mcap_file_channel_plot_data.count(channel) > 0)
+                        {
+                            auto &[ts, vals] = mcap_file_channel_plot_data[channel];
+                            if (!ts.empty() && !vals.empty() && ts.size() == vals.size())
+                            {
+                                ImVec4 color = ImPlot::GetColormapColor(int(i));
+                                ImPlot::SetNextLineStyle(color, 2.0f);
+                                ImPlot::PlotLine(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                                //ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle, -1.0f, color, 4.0f, color);
+                                ImPlot::PlotScatter(channel.c_str(), ts.data(), vals.data(), (int)ts.size());
+                            }
+                        }
+                    }
+                }
+                ImPlot::EndPlot();
+            }
+        }
+        ImGui::EndChild();
+    }
+
     void handle(const zcm::ReceiveBuffer *buffer, const std::string &channel, const all_timed_value *msg)
     {
         static bool initialized{false};
@@ -271,11 +348,6 @@ public:
 
     void handle_from_mcap_files()
     {
-        if (vSelectedMcapFiles.empty())
-        {
-            CLOG_ERROR << "Input files are empty.";
-            return;
-        }
         std::unordered_map<mcap::SchemaId, mcap::SchemaPtr> mcap_schemas;
         std::unordered_map<mcap::ChannelId, mcap::ChannelPtr> mcap_channels;
         std::optional<std::chrono::system_clock::time_point> ts;
@@ -329,7 +401,7 @@ public:
                 if (schema->encoding == "data_tamer")
                 {
                     std::string schema_str(reinterpret_cast<const char *>(schema->data.data()), schema->data.size());
-                    CLOG_INFO << schema_str;
+                    //CLOG_INFO << schema_str;
                     try
                     {
                         DataTamerParser::Schema dt_schema = DataTamerParser::BuilSchemaFromText(schema_str, true);
@@ -381,6 +453,7 @@ public:
                                 mcap_file_channel_plot_data[key].first = timestamps;
                                 mcap_file_channel_plot_data[key].second = values;
                             }
+                            //todo, wait for gui event
                         }
                         catch (const std::exception &e)
                         {
@@ -402,12 +475,16 @@ public:
                     if (bStop)
                     {
                         reader.close();
+                        CLOG_INFO << "Stop...";
+                        vSelectedMcapFiles.clear();
                         return;
                     }
                 }
             }
             reader.close();
         }
+        CLOG_INFO << "Done...";
+        vSelectedMcapFiles.clear();
     }
 
     std::unordered_map<double, std::unordered_map<std::string, double>> frame_buffer;
@@ -472,12 +549,7 @@ public:
         glfwDestroyWindow(window);
         glfwTerminate();
         zcm->stop();
-        bExit = true;
-        if (th_zcm.joinable())
-        {
-            th_zcm.join();
-        }
-        if (th_mcap_file_created && th_mcap_file.joinable())
+        if (th_mcap_file_created)
         {
             {
                 std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
@@ -485,6 +557,14 @@ public:
                 h.bStop = false;
             }
             cv.notify_one();
+        }
+        if (th_zcm.joinable())
+        {
+            th_zcm.join();
+        }
+        if (th_mcap_file.joinable())
+        {
+
             th_mcap_file.join();
         }
     }
@@ -915,7 +995,21 @@ public:
                                                     return !h.bStop;
                                                 });
                                     }
-                                    h.handle_from_mcap_files();
+                                    if (!h.vSelectedMcapFiles.empty())
+                                    {
+                                        h.handle_from_mcap_files();
+                                    }
+                                    else
+                                    {
+                                        if (!bExit)
+                                        {
+                                            CLOG_ERROR << "Input files are empty, parse thread hangup.";
+                                            {
+                                                std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                                                h.bStop = true;
+                                            }
+                                        }
+                                    }
                                 }
                             });
                         th_mcap_file_created = true;
@@ -1072,7 +1166,7 @@ public:
                             //if (!popup_menu_open && !open_new_tab_dialog)
                             {
                                 auto &channels = h.mcap_tab_selected_channels[tab_id];
-                                h.plotChannelData(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
+                                h.plotChannelDataForMcapFile(tab_title, std::vector<std::string>(channels.begin(), channels.end()));
                             }
                         }
                         ImGui::EndTabItem();
