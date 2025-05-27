@@ -27,6 +27,7 @@
 #include <data_tamer/data_tamer.hpp>
 #include <data_tamer/sinks/dummy_sink.hpp>
 #include <data_tamer_parser/data_tamer_parser.hpp>
+#include <condition_variable>
 
 static void centerWindow(GLFWwindow *window)
 {
@@ -268,9 +269,9 @@ public:
         }
     }
 
-    void handle_from_mcap_files(const std::vector<std::string> &files)
+    void handle_from_mcap_files()
     {
-        if (files.empty())
+        if (vSelectedMcapFiles.empty())
         {
             CLOG_ERROR << "Input files are empty.";
             return;
@@ -286,7 +287,7 @@ public:
                 CLOG_ERROR << "mcap error: " << status.message;
             }
         };
-        for (auto &file : files)
+        for (auto &file : vSelectedMcapFiles)
         {
             // step1: open
             auto status = reader.open(file);
@@ -308,7 +309,6 @@ public:
             std::cout << "Recorded channel topic:" << std::endl;
             for (auto &[key, val] : mcap_channels)
             {
-                mcap_all_channels.insert(val->topic);
                 std::cout << "  " << val->topic << std::endl;
             }
             auto&& messages = reader.readMessages();
@@ -368,6 +368,7 @@ public:
                             std::scoped_lock lck(mtx);
                             for (auto &[key, pair] : parsed_values)
                             {
+                                mcap_all_channels.insert(key);
                                 mcap_file_channel_data[key].first.push_back(pair.first);
                                 mcap_file_channel_data[key].second.push_back(pair.second);
                                 if (mcap_file_channel_data[key].first.size() > 10000)
@@ -396,10 +397,13 @@ public:
                     }
                     ++it;
                 }
-                if (exit)
                 {
-                    reader.close();
-                    return;
+                    std::unique_lock<std::mutex> lck(mcap_file_mtx);
+                    if (bStop)
+                    {
+                        reader.close();
+                        return;
+                    }
                 }
             }
             reader.close();
@@ -415,7 +419,9 @@ public:
     std::shared_mutex mtx;
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> mcap_file_channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> mcap_file_channel_plot_data;
-    std::atomic_bool exit{false};
+    std::vector<std::string> vSelectedMcapFiles;
+    std::atomic_bool bStop{false};
+    std::mutex mcap_file_mtx;
 };
 
 enum class AppState
@@ -438,6 +444,7 @@ private:
     std::unique_ptr<zcm::ZCM> zcm;
     Handler h;
     std::thread th_zcm, th_mcap_file;
+    bool th_mcap_file_created{false};
     ImVec4 clear{0.45f, 0.55f, 0.60f, 1.00f};
     std::set<std::string> availableChannels;
     AppState currentState{AppState::MainMenu};
@@ -445,7 +452,8 @@ private:
     std::vector<std::string> mcapChannels;
     bool openViewerOfZcmData{true};
     bool openViewerOfMcapData{true};
-    std::vector<std::string> vSelectedMcapFiles;
+    std::atomic_bool bExit{false};
+    std::condition_variable cv;
 
 public:
     explicit DataViewer(const std::string &name = "DataViewer")
@@ -464,13 +472,19 @@ public:
         glfwDestroyWindow(window);
         glfwTerminate();
         zcm->stop();
-        h.exit = true;
+        bExit = true;
         if (th_zcm.joinable())
         {
             th_zcm.join();
         }
-        if (th_mcap_file.joinable())
+        if (th_mcap_file_created && th_mcap_file.joinable())
         {
+            {
+                std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                bExit = true;
+                h.bStop = false;
+            }
+            cv.notify_one();
             th_mcap_file.join();
         }
     }
@@ -882,12 +896,46 @@ public:
                     {
                         std::cout << " " + name << std::endl;
                     }
-                    vSelectedMcapFiles = res;
-                    th_mcap_file = std::thread(
-                        [&]()
+                    if (!th_mcap_file_created)
+                    {
+                        h.vSelectedMcapFiles = res;
+                        h.mcap_all_channels.clear();
+                        h.mcap_file_channel_data.clear();
+                        h.mcap_file_channel_plot_data.clear();
+                        th_mcap_file = std::thread(
+                            [&]()
+                            {
+                                while (!bExit)
+                                {
+                                    {
+                                        std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                                        cv.wait(lock,
+                                                [&]
+                                                {
+                                                    return !h.bStop;
+                                                });
+                                    }
+                                    h.handle_from_mcap_files();
+                                }
+                            });
+                        th_mcap_file_created = true;
+                    }
+                    else
+                    {
                         {
-                            h.handle_from_mcap_files(vSelectedMcapFiles);
-                        });
+                            std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                            h.bStop = true;
+                        }
+                        {
+                            std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                            h.vSelectedMcapFiles = res;
+                            h.mcap_all_channels.clear();
+                            h.mcap_file_channel_data.clear();
+                            h.mcap_file_channel_plot_data.clear();
+                            h.bStop = false;
+                        }
+                        cv.notify_one();
+                    }
                     // switch to mcap view
                     currentState = AppState::McapView;
                 }
@@ -982,25 +1030,28 @@ public:
                                 trimString(new_tab_title);
 
                                 ImGui::Separator();
-                                for (const std::string &channel : h.mcap_all_channels)
                                 {
-                                    if (strlen(filter_text) != 0 && channel.find(filter_text) == std::string::npos)
+                                    std::lock_guard<std::shared_mutex> lck(h.mtx);
+                                    for (const std::string &channel : h.mcap_all_channels)
                                     {
-                                        continue;
-                                    }
-                                    bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
-                                    if (ImGui::Checkbox(channel.c_str(), &is_selected))
-                                    {
-                                        if (is_selected)
+                                        if (strlen(filter_text) != 0 && channel.find(filter_text) == std::string::npos)
                                         {
-                                            selected_channels.push_back(channel);
+                                            continue;
                                         }
-                                        else
+                                        bool is_selected = std::find(selected_channels.begin(), selected_channels.end(), channel) != selected_channels.end();
+                                        if (ImGui::Checkbox(channel.c_str(), &is_selected))
                                         {
-                                            auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
-                                            if (it != selected_channels.end())
+                                            if (is_selected)
                                             {
-                                                selected_channels.erase(it);
+                                                selected_channels.push_back(channel);
+                                            }
+                                            else
+                                            {
+                                                auto it = std::find(selected_channels.begin(), selected_channels.end(), channel);
+                                                if (it != selected_channels.end())
+                                                {
+                                                    selected_channels.erase(it);
+                                                }
                                             }
                                         }
                                     }
