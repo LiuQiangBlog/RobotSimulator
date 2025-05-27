@@ -3,7 +3,6 @@
 //
 #include <mcap/mcap.hpp>
 #include <data_tamer/data_tamer.hpp>
-#include <data_tamer/data_tamer.hpp>
 #include <data_tamer/sinks/dummy_sink.hpp>
 #include <data_tamer_parser/data_tamer_parser.hpp>
 #include <memory>
