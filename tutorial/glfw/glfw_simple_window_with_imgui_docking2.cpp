@@ -568,6 +568,9 @@ private:
     bool openViewerOfZcmData{true};
     bool openViewerOfMcapData{true};
 
+    ImVector<int> mcap_active_tabs;
+    std::unordered_map<int, std::string> mcap_tab_titles;
+
 public:
     explicit DataViewer(const std::string &name = "DataViewer")
     {
@@ -1074,6 +1077,12 @@ public:
                             h.mcap_file_channel_data.clear();
                             h.mcap_file_channel_plot_data.clear();
                             h.parse_state = ParserState::Idle;
+                            for (int tab_id : mcap_active_tabs) // clear all opened imgui tab items
+                            {
+                                mcap_tab_titles.erase(tab_id);
+                                h.mcap_tab_selected_channels.erase(tab_id);
+                            }
+                            mcap_active_tabs.clear();
                         }
                         h.cv.notify_one();
                     }
@@ -1108,13 +1117,11 @@ public:
             //style.Colors[ImGuiCol_Tab] = HexToImVec4("#353333");
             //style.Colors[ImGuiCol_TabActive] = HexToImVec4("#353333");
             //style.Colors[ImGuiCol_WindowBg] = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-            static ImVector<int> active_tabs;
             static int next_tab_id = 0;
             static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable |
                                                     ImGuiTabBarFlags_FittingPolicyResizeDown;
             static char new_tab_title[64] = "";
             static bool open_new_tab_dialog{false};
-            static std::unordered_map<int, std::string> tab_titles;
             static std::string error_message;
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 12));
@@ -1135,11 +1142,11 @@ public:
                     currentState = AppState::MainMenu;
                 }
                 ImGui::PopStyleVar(4);
-                for (int n = 0; n < active_tabs.Size;)
+                for (int n = 0; n < mcap_active_tabs.Size;)
                 {
-                    int tab_id = active_tabs[n];
+                    int tab_id = mcap_active_tabs[n];
                     bool tab_open = true;
-                    const char* tab_title = tab_titles[tab_id].c_str();
+                    const char* tab_title = mcap_tab_titles[tab_id].c_str();
 
                     if (!h.mcap_tab_selected_channels.count(tab_id))
                     {
@@ -1229,8 +1236,8 @@ public:
                     }
                     if (!tab_open)
                     {
-                        tab_titles.erase(tab_id);
-                        active_tabs.erase(active_tabs.begin() + n);
+                        mcap_tab_titles.erase(tab_id);
+                        mcap_active_tabs.erase(mcap_active_tabs.begin() + n);
                         h.mcap_tab_selected_channels.erase(tab_id);
                     }
                     else
@@ -1279,7 +1286,7 @@ public:
                 {
                     error_message = "Title cannot be empty!";
                 }
-                else if (isTitleExists(new_tab_title, tab_titles))
+                else if (isTitleExists(new_tab_title, mcap_tab_titles))
                 {
                     error_message = "Title already exists!";
                 }
@@ -1292,8 +1299,8 @@ public:
                 if (ImGui::Button("Create", ImVec2(120, 0)))
                 {
                     int new_id = next_tab_id++;
-                    active_tabs.push_back(new_id);
-                    tab_titles[new_id] = std::string(new_tab_title);
+                    mcap_active_tabs.push_back(new_id);
+                    mcap_tab_titles[new_id] = std::string(new_tab_title);
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndDisabled();
