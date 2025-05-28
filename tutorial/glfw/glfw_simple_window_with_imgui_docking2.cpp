@@ -155,6 +155,15 @@ struct ScrollingBuffer
     }
 };
 
+// 合并状态为枚举，避免多变量竞争
+enum class ParserState
+{
+    Idle,    // 等待新任务
+    Hangup,
+    Running, // 解析中
+    Reset    // 请求重置
+};
+
 class Handler
 {
 public:
@@ -364,9 +373,10 @@ public:
         {
             {
                 std::unique_lock<std::mutex> lck(mcap_file_mtx);
-                if (bReset || bExit)
+                if (parse_state == ParserState::Reset || bExit)
                 {
                     vSelectedMcapFiles.clear();
+                    CLOG_INFO << (parse_state == ParserState::Reset ? "Reset..." : "Exit...");
                     return;
                 }
             }
@@ -398,10 +408,10 @@ public:
             {
                 {
                     std::unique_lock<std::mutex> lck(mcap_file_mtx);
-                    if (bReset || bExit)
+                    if (parse_state == ParserState::Reset || bExit)
                     {
-                        reader.close();
                         vSelectedMcapFiles.clear();
+                        CLOG_INFO << (parse_state == ParserState::Reset ? "Reset..." : "Exit...");
                         return;
                     }
                 }
@@ -455,35 +465,38 @@ public:
                                 parsed_values[field_name] = {sec, value}; // timestamp unit is s
                             };
                             DataTamerParser::ParseSnapshot(dt_schema, snapshot, callback);
-                            std::scoped_lock lck(mtx);
-                            for (auto &[key, pair] : parsed_values)
                             {
-                                mcap_all_channels.insert(key);
-                                mcap_file_channel_data[key].first.push_back(pair.first);
-                                mcap_file_channel_data[key].second.push_back(pair.second);
-                                if (mcap_file_channel_data[key].first.size() > 10000)
+                                std::unique_lock<std::mutex> lock(mcap_file_mtx);
+                                for (auto &[key, pair] : parsed_values)
                                 {
-                                    mcap_file_channel_data[key].first.pop_front();
-                                    mcap_file_channel_data[key].second.pop_front();
+                                    mcap_all_channels.insert(key);
+                                    mcap_file_channel_data[key].first.push_back(pair.first);
+                                    mcap_file_channel_data[key].second.push_back(pair.second);
+                                    if (mcap_file_channel_data[key].first.size() > 10000)
+                                    {
+                                        mcap_file_channel_data[key].first.pop_front();
+                                        mcap_file_channel_data[key].second.pop_front();
+                                    }
+                                    auto timestamps = std::vector<double>(mcap_file_channel_data[key].first.begin(), mcap_file_channel_data[key].first.end());
+                                    auto values = std::vector<double>(mcap_file_channel_data[key].second.begin(), mcap_file_channel_data[key].second.end());
+                                    mcap_file_channel_plot_data[key].first = timestamps;
+                                    mcap_file_channel_plot_data[key].second = values;
                                 }
-                                auto timestamps = std::vector<double>(mcap_file_channel_data[key].first.begin(), mcap_file_channel_data[key].first.end());
-                                auto values = std::vector<double>(mcap_file_channel_data[key].second.begin(), mcap_file_channel_data[key].second.end());
-                                mcap_file_channel_plot_data[key].first = timestamps;
-                                mcap_file_channel_plot_data[key].second = values;
                             }
                             if (!first_snapshot_parsed)
                             {
                                 first_snapshot_parsed = true;
                                 {
                                     std::unique_lock<std::mutex> lock(mcap_file_mtx);
-                                    bStop = true;
+                                    parse_state = ParserState::Hangup;
                                 }
                                 {
                                     std::unique_lock<std::mutex> lock(mcap_file_mtx);
+                                    CLOG_INFO << "Hangup...";
                                     cv.wait(lock,
                                             [&]
                                             {
-                                                return !bStop;
+                                                return parse_state != ParserState::Hangup;
                                             });
                                 }
                             }
@@ -520,9 +533,8 @@ public:
     std::unordered_map<std::string, std::pair<std::deque<double>, std::deque<double>>> mcap_file_channel_data;
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> mcap_file_channel_plot_data;
     std::vector<std::string> vSelectedMcapFiles;
-    std::atomic_bool bStop{false};
     std::atomic_bool bExit{false};
-    std::atomic_bool bReset{false};
+    std::atomic<ParserState> parse_state{ParserState::Idle};
     std::mutex mcap_file_mtx;
     std::condition_variable cv;
 };
@@ -578,7 +590,7 @@ public:
             {
                 std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
                 h.bExit = true;
-                h.bStop = false;
+                h.parse_state = ParserState::Idle;
             }
             h.cv.notify_one();
         }
@@ -1015,14 +1027,14 @@ public:
                                     CLOG_INFO << "Parse thread hangup.";
                                     {
                                         std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
-                                        h.bStop = true;
+                                        h.parse_state = ParserState::Hangup;
                                     }
                                     {
                                         std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
                                         h.cv.wait(lock,
                                                 [&]
                                                 {
-                                                    return !h.bStop;
+                                                    return h.parse_state != ParserState::Hangup;
                                                 });
                                     }
                                 }
@@ -1033,19 +1045,35 @@ public:
                     {
                         {
                             std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
-                            h.bStop = true;
-                            h.bReset = true;
+                            h.parse_state = ParserState::Reset;
                         }
                         h.cv.notify_one();
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                        auto ts = std::chrono::high_resolution_clock::now();
+                        while (true)
+                        {
+                            {
+                                std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                                if (h.parse_state == ParserState::Hangup)
+                                {
+                                    break;
+                                }
+                            }
+                            auto te = std::chrono::high_resolution_clock::now();
+                            if (std::chrono::duration_cast<std::chrono::milliseconds>(te - ts).count() > 500)
+                            {
+                                CLOG_WARNING << "Reset took too long, proceeding anyway";
+                                break;
+                            }
+                            std::this_thread::yield();
+                        }
+                        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         {
                             std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
                             h.vSelectedMcapFiles = res;
                             h.mcap_all_channels.clear();
                             h.mcap_file_channel_data.clear();
                             h.mcap_file_channel_plot_data.clear();
-                            h.bReset = false;
-                            h.bStop = false;
+                            h.parse_state = ParserState::Idle;
                         }
                         h.cv.notify_one();
                     }
@@ -1175,8 +1203,9 @@ public:
                                     ImGui::CloseCurrentPopup();
                                     {
                                         std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
-                                        h.bStop = false;
+                                        h.parse_state = ParserState::Idle;
                                     }
+                                    h.cv.notify_one();
                                 }
                                 ImGui::SameLine();
                                 if (ImGui::Button("Clear Selection"))
