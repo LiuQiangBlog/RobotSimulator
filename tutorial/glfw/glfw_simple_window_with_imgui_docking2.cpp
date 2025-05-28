@@ -352,6 +352,7 @@ public:
         std::unordered_map<mcap::ChannelId, mcap::ChannelPtr> mcap_channels;
         std::optional<std::chrono::system_clock::time_point> ts;
         mcap::McapReader reader;
+        bool first_snapshot_parsed = false;
         auto problem = [](const mcap::Status &status)
         {
             if (!status.ok())
@@ -361,6 +362,14 @@ public:
         };
         for (auto &file : vSelectedMcapFiles)
         {
+            {
+                std::unique_lock<std::mutex> lck(mcap_file_mtx);
+                if (bReset || bExit)
+                {
+                    vSelectedMcapFiles.clear();
+                    return;
+                }
+            }
             // step1: open
             auto status = reader.open(file);
             if (!status.ok())
@@ -387,6 +396,15 @@ public:
             DataTamerParser::SnapshotView snapshot;
             for (auto it = messages.begin(); it != messages.end();)
             {
+                {
+                    std::unique_lock<std::mutex> lck(mcap_file_mtx);
+                    if (bReset || bExit)
+                    {
+                        reader.close();
+                        vSelectedMcapFiles.clear();
+                        return;
+                    }
+                }
                 const mcap::MessageView &msgView = *it;
                 if (!ts.has_value())
                 {
@@ -453,7 +471,22 @@ public:
                                 mcap_file_channel_plot_data[key].first = timestamps;
                                 mcap_file_channel_plot_data[key].second = values;
                             }
-                            //todo, wait for gui event
+                            if (!first_snapshot_parsed)
+                            {
+                                first_snapshot_parsed = true;
+                                {
+                                    std::unique_lock<std::mutex> lock(mcap_file_mtx);
+                                    bStop = true;
+                                }
+                                {
+                                    std::unique_lock<std::mutex> lock(mcap_file_mtx);
+                                    cv.wait(lock,
+                                            [&]
+                                            {
+                                                return !bStop;
+                                            });
+                                }
+                            }
                         }
                         catch (const std::exception &e)
                         {
@@ -469,16 +502,6 @@ public:
                         continue;
                     }
                     ++it;
-                }
-                {
-                    std::unique_lock<std::mutex> lck(mcap_file_mtx);
-                    if (bStop)
-                    {
-                        reader.close();
-                        CLOG_INFO << "Stop...";
-                        vSelectedMcapFiles.clear();
-                        return;
-                    }
                 }
             }
             reader.close();
@@ -498,7 +521,10 @@ public:
     std::unordered_map<std::string, std::pair<std::vector<double>, std::vector<double>>> mcap_file_channel_plot_data;
     std::vector<std::string> vSelectedMcapFiles;
     std::atomic_bool bStop{false};
+    std::atomic_bool bExit{false};
+    std::atomic_bool bReset{false};
     std::mutex mcap_file_mtx;
+    std::condition_variable cv;
 };
 
 enum class AppState
@@ -529,8 +555,6 @@ private:
     std::vector<std::string> mcapChannels;
     bool openViewerOfZcmData{true};
     bool openViewerOfMcapData{true};
-    std::atomic_bool bExit{false};
-    std::condition_variable cv;
 
 public:
     explicit DataViewer(const std::string &name = "DataViewer")
@@ -553,10 +577,10 @@ public:
         {
             {
                 std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
-                bExit = true;
+                h.bExit = true;
                 h.bStop = false;
             }
-            cv.notify_one();
+            h.cv.notify_one();
         }
         if (th_zcm.joinable())
         {
@@ -985,30 +1009,21 @@ public:
                         th_mcap_file = std::thread(
                             [&]()
                             {
-                                while (!bExit)
+                                while (!h.bExit)
                                 {
+                                    h.handle_from_mcap_files();
+                                    CLOG_INFO << "Parse thread hangup.";
                                     {
                                         std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
-                                        cv.wait(lock,
+                                        h.bStop = true;
+                                    }
+                                    {
+                                        std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                                        h.cv.wait(lock,
                                                 [&]
                                                 {
                                                     return !h.bStop;
                                                 });
-                                    }
-                                    if (!h.vSelectedMcapFiles.empty())
-                                    {
-                                        h.handle_from_mcap_files();
-                                    }
-                                    else
-                                    {
-                                        if (!bExit)
-                                        {
-                                            CLOG_ERROR << "Input files are empty, parse thread hangup.";
-                                            {
-                                                std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
-                                                h.bStop = true;
-                                            }
-                                        }
                                     }
                                 }
                             });
@@ -1019,16 +1034,20 @@ public:
                         {
                             std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
                             h.bStop = true;
+                            h.bReset = true;
                         }
+                        h.cv.notify_one();
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
                         {
                             std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
                             h.vSelectedMcapFiles = res;
                             h.mcap_all_channels.clear();
                             h.mcap_file_channel_data.clear();
                             h.mcap_file_channel_plot_data.clear();
+                            h.bReset = false;
                             h.bStop = false;
                         }
-                        cv.notify_one();
+                        h.cv.notify_one();
                     }
                     // switch to mcap view
                     currentState = AppState::McapView;
@@ -1125,7 +1144,7 @@ public:
 
                                 ImGui::Separator();
                                 {
-                                    std::lock_guard<std::shared_mutex> lck(h.mtx);
+                                    std::lock_guard<std::mutex> lck(h.mcap_file_mtx);
                                     for (const std::string &channel : h.mcap_all_channels)
                                     {
                                         if (strlen(filter_text) != 0 && channel.find(filter_text) == std::string::npos)
@@ -1154,6 +1173,10 @@ public:
                                 if (ImGui::Button("Apply Selection"))
                                 {
                                     ImGui::CloseCurrentPopup();
+                                    {
+                                        std::unique_lock<std::mutex> lock(h.mcap_file_mtx);
+                                        h.bStop = false;
+                                    }
                                 }
                                 ImGui::SameLine();
                                 if (ImGui::Button("Clear Selection"))
