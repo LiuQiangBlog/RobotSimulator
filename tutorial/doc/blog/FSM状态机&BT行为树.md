@@ -14,5 +14,7 @@ QP/C++既是构建由主动对象（Actor）组成的应用程序的软件基础
 
 行为树框架 https://github.com/BehaviorTree/BehaviorTree.CPP
 
+针对QP状态机库，有一本中文教材 《uml状态图的实用cc++设计第二版pdf》
+
 
 
