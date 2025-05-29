@@ -321,5 +321,6 @@ add_subdirectory(tutorial/glfw)
 add_subdirectory(tutorial/cpp)
 add_subdirectory(tutorial/mcap)
 add_subdirectory(tutorial/uuid)
+add_subdirectory(tutorial/json)
 
 
