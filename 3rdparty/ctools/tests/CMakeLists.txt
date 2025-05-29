@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.1)
-cmake_policy(SET CMP0110 OLD) ## for use [] in test names like "cTools.double.Vec2.[]"
+cmake_minimum_required(VERSION 3.16)
+cmake_policy(SET CMP0110 NEW) ## for use [] in test names like "cTools.double.Vec2.[]"
 
 set(PROJECT cTools_Test)
 enable_language(C CXX)

@@ -6,6 +6,7 @@ add_subdirectory(eigen3)
 add_subdirectory(cereal_lib)
 add_subdirectory(tinyobjloader)
 add_subdirectory(qhull)
+add_subdirectory(gl3w)
 add_subdirectory(glew)
 add_subdirectory(glad)
 add_subdirectory(glfw3)
@@ -34,5 +35,6 @@ add_subdirectory(uuid)
 add_subdirectory(enum)
 add_subdirectory(pfd)
 add_subdirectory(fmt)
+
 
 

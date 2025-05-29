@@ -9,7 +9,7 @@ add_library(imgui STATIC
         imgui_demo.cpp
 )
 
-target_link_libraries(imgui glew glfw)
+target_link_libraries(imgui glad glfw)
 
 add_executable(imgui_demo main.cpp)
 target_link_libraries(imgui_demo imgui glfw dl)
