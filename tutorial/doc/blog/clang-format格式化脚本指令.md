@@ -4,6 +4,15 @@ https://github.com/cross-platform/dspatchables/blob/master/scripts/clang-format.
 ```shell
 #!/bin/bash
 
+DIR=$(cd `dirname $0` && pwd)
+cd $DIR/..
+
+find Components -iname *.h -o -iname *.cpp | grep -v kissfft | grep -v Mongoose | grep -v RtAudio | xargs clang-format --style=file --verbose -i
+```
+可以在每个仓库下创建一个clang-format.sh脚本，用户通过执行这个格式化的脚本，就可以格式化当前的仓库代码。
+```shell
+#!/bin/bash
+
 # 获取脚本所在目录的绝对路径
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
 echo $SCRIPT_DIR
