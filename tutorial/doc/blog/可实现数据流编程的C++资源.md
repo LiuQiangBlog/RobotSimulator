@@ -8,3 +8,15 @@ https://github.com/cross-platform/dspatcher 这是对应的前端框架，不过
 https://github.com/cross-platform/dspatchables
 
 
+https://github.com/arximboldi/lager 基于单向数据流架构的 C++值导向设计库——C++版 Redux
+
+
+https://github.com/paceholder/nodeeditor 基于Qt的节点编辑器，一个非常经典的节点编程库，我记得2019年就关注到了它，现在有3k的star。
+
+需要说明的是，因为nodeeditor已经使用qt6框架了，所以你需要先安装qt6，然后在cmake中设置
+set(Qt6_DIR "/home/liuqiang/Qt/6.9.0/gcc_64/lib/cmake/Qt6")
+set(QT_DIR "/home/liuqiang/Qt/6.9.0/gcc_64/lib/cmake/Qt6")
+
+
+
+
