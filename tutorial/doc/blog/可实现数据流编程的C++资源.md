@@ -17,6 +17,11 @@ https://github.com/paceholder/nodeeditor 基于Qt的节点编辑器，一个非�
 set(Qt6_DIR "/home/liuqiang/Qt/6.9.0/gcc_64/lib/cmake/Qt6")
 set(QT_DIR "/home/liuqiang/Qt/6.9.0/gcc_64/lib/cmake/Qt6")
 
+nodeeditor库支持将数据流场景到.flow文件中，也支持从flow文件中加载数据流场景
+
+https://github.com/chigraph/chigraph 类似nodeeditor
+https://github.com/chigraph/chigraph-gui 这是它的前端
+
 
 
 
