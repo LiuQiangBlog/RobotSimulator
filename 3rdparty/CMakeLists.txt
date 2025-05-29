@@ -9,7 +9,7 @@ add_subdirectory(qhull)
 add_subdirectory(gl3w)
 add_subdirectory(glew)
 add_subdirectory(glad)
-add_subdirectory(glfw3)
+add_subdirectory(glfw)
 add_subdirectory(tinyxml2)
 if (IMGUI_DOCKING)
     add_subdirectory(imgui-docking)
@@ -35,6 +35,8 @@ add_subdirectory(uuid)
 add_subdirectory(enum)
 add_subdirectory(pfd)
 add_subdirectory(fmt)
+add_subdirectory(glm)
+add_subdirectory(marchingcubecpp)
 
 
 
