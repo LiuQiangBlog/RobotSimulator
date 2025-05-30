@@ -14,4 +14,10 @@ https://sourceforge.net/projects/qwt/files/qwt/
 https://gitee.com/czyt1988/QWT cmake版本的qwt
 https://github.com/sintegrial/qwtplot3d
 
+flameshot 一个Qt开发的截图工具
+https://github.com/flameshot-org/flameshot
 
+QtScrcpy 一个控制Android手机的应用
+https://github.com/barry-ran/QtScrcpy
+
+https://github.com/Bzi-Han/AndroidSurfaceImgui
