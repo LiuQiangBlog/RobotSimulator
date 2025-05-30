@@ -37,8 +37,10 @@ auto measure(T &&func, Args &&...args) -> std::future<typename std::result_of<T(
     auto begin = std::chrono::high_resolution_clock::now();
     (*task)();
     auto end = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-    printf("执行时间: % .3f seconds.\n", elapsed.count() * 1e-9);
+//    auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+//    printf("执行时间: % .3f seconds.\n", elapsed.count() * 1e-9);
+    auto elapsed = std::chrono::duration_cast<std::chrono::duration<double>>(end - begin);
+    printf("执行时间: % .3f seconds.\n", elapsed.count());
     return res;
 }
 

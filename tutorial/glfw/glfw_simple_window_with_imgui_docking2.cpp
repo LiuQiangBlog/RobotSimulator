@@ -267,7 +267,7 @@ public:
             auto global_y_max = -DBL_MAX;
 
             {
-                std::shared_lock<std::shared_mutex> lock(mtx);
+                std::unique_lock<std::mutex> lock(mcap_file_mtx);
                 for (const auto &channel : channels)
                 {
                     if (mcap_file_channel_plot_data.count(channel) > 0)
@@ -301,7 +301,7 @@ public:
                     ImPlot::SetupAxisLimits(ImAxis_Y1, global_y_min, global_y_max, ImGuiCond_Always);
                 }
                 {
-                    std::shared_lock<std::shared_mutex> lock(mtx);
+                    std::unique_lock<std::mutex> lock(mcap_file_mtx);
                     for (size_t i = 0; i < channels.size(); i++)
                     {
                         const auto &channel = channels[i];
@@ -406,6 +406,7 @@ public:
             DataTamerParser::SnapshotView snapshot;
             for (auto it = messages.begin(); it != messages.end();)
             {
+                auto loop_start_time = std::chrono::high_resolution_clock::now();
                 {
                     std::unique_lock<std::mutex> lck(mcap_file_mtx);
                     if (parse_state == ParserState::Reset || bExit)
@@ -451,7 +452,7 @@ public:
                             snapshot.active_mask = {active_mask.data(), active_mask.size()};
                             snapshot.payload = {payload.data(), payload.size()};
 
-                            std::map<std::string, std::pair<double, double>> parsed_values; // timestamp, value
+                            std::unordered_map<std::string, std::pair<double, double>> parsed_values; // timestamp, value
                             auto te = std::chrono::system_clock::time_point(std::chrono::nanoseconds(logTime));
                             auto sec = std::chrono::duration<double>(te - ts.value()).count();
                             auto callback = [&](const std::string &field_name, const DataTamerParser::VarNumber &number)
@@ -515,6 +516,12 @@ public:
                         continue;
                     }
                     ++it;
+                }
+                auto loop_end_time = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> loop_duration = loop_end_time - loop_start_time;
+                if (loop_duration.count() < 0.001)
+                {
+                    std::this_thread::sleep_for(std::chrono::duration<double>(0.001 - loop_duration.count()));
                 }
             }
             reader.close();
