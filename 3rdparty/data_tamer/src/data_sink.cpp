@@ -1,5 +1,5 @@
 #include "data_tamer/data_sink.hpp"
-#include "ConcurrentQueue/concurrentqueue.h"
+#include "concurrentqueue.h"
 
 #include <atomic>
 #include <thread>
