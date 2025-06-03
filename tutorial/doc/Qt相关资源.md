@@ -21,3 +21,4 @@ QtScrcpy 一个控制Android手机的应用
 https://github.com/barry-ran/QtScrcpy
 
 https://github.com/Bzi-Han/AndroidSurfaceImgui
+https://github.com/zealdocs/zeal
