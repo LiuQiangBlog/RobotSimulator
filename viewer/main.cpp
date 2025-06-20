@@ -47,14 +47,14 @@ int main()
     viewer.showMocapGizmo("target");
     viewer.drawBodyFrame("table");
     auto channel = DataTamer::LogChannel::create("channel");
-    auto mcap_slink = std::make_shared<DataTamer::MCAPSink>("mcap_position_data.mcap");
+    auto mcap_sink = std::make_shared<DataTamer::MCAPSink>("mcap_position_data.mcap");
     auto plot_sink = std::make_shared<DataTamer::PlotSink>();
     auto pub_sink = std::make_shared<DataTamer::PublishSink>();
     if (!pub_sink->init())
     {
         return -1;
     }
-    channel->addDataSink(mcap_slink);
+    channel->addDataSink(mcap_sink);
     channel->addDataSink(plot_sink);
     channel->addDataSink(pub_sink);
 

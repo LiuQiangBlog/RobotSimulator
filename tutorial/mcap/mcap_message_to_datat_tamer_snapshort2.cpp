@@ -151,7 +151,9 @@ private:
 
 int main()
 {
-    std::string filepath("/home/liuqiang/ClionProjects/RobotSimulator/cmake-build-debug/bin/test_sample.mcap");
+    std::string file = "/home/liuqiang/mc/dev/pr10_common/build/third-party/proximity_query/tutorial/is_collide_time_consume_log.mcap";
+//    std::string filepath("/home/liuqiang/ClionProjects/RobotSimulator/cmake-build-debug/bin/test_sample.mcap");
+    std::string filepath(file);
     McapFileParser parser;
     if (!parser.open(filepath))
     {
