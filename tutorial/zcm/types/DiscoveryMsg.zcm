@@ -1,0 +1,7 @@
+struct DiscoveryMsg
+{
+    double timestamp;
+    string channel_name;
+    string shm_url;
+    int32_t pid;
+}

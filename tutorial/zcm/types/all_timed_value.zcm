@@ -7,6 +7,7 @@ struct timed_value
 
 struct all_timed_value
 {
+    string session_id;
     int32_t cnt;
     timed_value channels[cnt];
     boolean channel_updated;
