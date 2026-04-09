@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < 10; i++)
     {
         zcm.publish("EXAMPLE", &my_data); // ✅ 发送
-        zcm.handleNonblock();             // ✅ 调用 handle 处理消息（非阻塞）
+        zcm.handleNonblock();             // ✅ 调用 handle 处理消息（非阻塞）, 会调用订阅端的回调消息处理函数
         for (auto &val : my_data.position)
             val++;
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
